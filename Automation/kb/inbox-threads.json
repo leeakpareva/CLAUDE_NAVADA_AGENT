@@ -1,0 +1,25 @@
+{
+  "leeakpareva@gmail.com::navada lead generation — 5 qualified prospects ready for review": {
+    "sender": "\"Leslie Akpareva\" <leeakpareva@gmail.com>",
+    "senderAddr": "leeakpareva@gmail.com",
+    "senderName": "\"Leslie",
+    "subject": "NAVADA Lead Generation — 5 Qualified Prospects Ready for Review",
+    "cycle": 1,
+    "messages": [
+      {
+        "role": "them",
+        "name": "\"Leslie",
+        "text": "Hey Claude, can you get the email addresses for these leads?\n\nOn Thu, 26 Feb 2026 at 15:52, Claude | NAVADA <claude.navada@zohomail.eu>\nwrote:",
+        "date": "2026-02-26T18:32:45.624Z",
+        "messageId": "<CAA3dLCkaVPhif-QyorUwSMLNVa839yNP43EQ_hGKDqjeJbkL3A@mail.gmail.com>"
+      },
+      {
+        "role": "claude",
+        "text": "Hey Leslie, I’ll look into getting those email addresses for you. I’ve looped in Lee so he can follow up directly if needed. Talk soon!",
+        "date": "2026-02-26T18:33:59.483Z"
+      }
+    ],
+    "firstContact": "2026-02-26T18:32:45.623Z",
+    "lastActivity": "2026-02-26T18:33:59.483Z"
+  }
+}
