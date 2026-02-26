@@ -5336,5 +5336,16 @@
     "cost_gbp": 0.000597,
     "human_mins": 5,
     "human_cost_gbp": 6.25
+  },
+  {
+    "timestamp": "2026-02-26T18:39:08.154Z",
+    "date": "2026-02-26",
+    "model": "whisper",
+    "audio_seconds": 23.169375,
+    "script": "voice-command",
+    "cost_usd": 0.002317,
+    "cost_gbp": 0.00183,
+    "human_mins": 5,
+    "human_cost_gbp": 6.25
   }
 ]
