@@ -1,0 +1,58 @@
+{
+  "weeks": [
+    {
+      "week": 9,
+      "year": 2026,
+      "findings": [
+        {
+          "id": 1,
+          "category": "BUG",
+          "title": "Job hunter script silently fails when Apify token expires",
+          "description": "The job-hunter-apify.js script catches the Apify error but logs nothing useful. When the token expires, it appears to run successfully but finds 0 jobs.",
+          "action": "Add explicit token validation at startup and alert email on failure.",
+          "priority": "high",
+          "effort": "30min"
+        },
+        {
+          "id": 2,
+          "category": "SECURITY",
+          "title": "LinkedIn token has no expiry check",
+          "description": "The .linkedin-token.json stores the access token but no expiry date. LinkedIn tokens expire after 60 days.",
+          "action": "Add expiry tracking and auto-refresh or alert before expiry.",
+          "priority": "medium",
+          "effort": "1hr"
+        },
+        {
+          "id": 3,
+          "category": "PERFORMANCE",
+          "title": "47 temp files in Automation/temp/",
+          "description": "Old ZIP files from app deliveries are accumulating. Currently 47 files using 230MB.",
+          "action": "Add cleanup routine to deliver-app.js — delete temp files older than 7 days.",
+          "priority": "low",
+          "effort": "5min"
+        },
+        {
+          "id": 4,
+          "category": "NEW_TOOL",
+          "title": "Kaggle MCP server now available",
+          "description": "The Kaggle MCP server was released and could provide access to 50,000+ datasets and competition data directly from Claude Code.",
+          "action": "Install kaggle MCP server — requires kaggle.json API key.",
+          "priority": "medium",
+          "effort": "30min"
+        },
+        {
+          "id": 5,
+          "category": "IDEA",
+          "title": "Auto-post AI news digest to LinkedIn weekly",
+          "description": "The daily AI news digest could be summarised weekly and posted to LinkedIn as a thought leadership post for NAVADA brand visibility.",
+          "action": "Create weekly LinkedIn auto-poster that summarises top 3 AI stories.",
+          "priority": "low",
+          "effort": "2hr+"
+        }
+      ],
+      "scannedAt": "2026-02-26T09:06:55.385Z",
+      "sentAt": "2026-02-26T09:06:56.424Z",
+      "approvedItems": []
+    }
+  ]
+}

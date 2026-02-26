@@ -1,0 +1,41 @@
+{
+  "projects": [
+    {
+      "name": "NAVADA Robotics",
+      "url": "https://www.navadarobotics.com",
+      "status": "active",
+      "description": "Main robotics company — AI-powered robotics solutions"
+    },
+    {
+      "name": "Navada Lab",
+      "url": "https://www.navada-lab.space",
+      "status": "active",
+      "description": "R&D lab for experimental AI and robotics"
+    },
+    {
+      "name": "Raven Terminal",
+      "url": "https://www.raventerminal.xyz",
+      "status": "active",
+      "description": "Terminal/platform project"
+    },
+    {
+      "name": "Alex Navada",
+      "url": "https://www.alexnavada.xyz",
+      "status": "active",
+      "description": "Personal portfolio site"
+    },
+    {
+      "name": "CLAWD Dashboard",
+      "path": "C:\\Users\\leeak\\Alex\\clawd-dashboard",
+      "status": "in-development",
+      "description": "CLAWD BOT Global Adoption dashboard — React + Recharts, mock data"
+    },
+    {
+      "name": "NAVADA Server Automations",
+      "path": "C:\\Users\\leeak\\Alex\\Automation",
+      "status": "active",
+      "description": "HP laptop server running: AI news digest, job hunter, email service, voice notes"
+    }
+  ],
+  "_instructions": "Track all NAVADA projects with status. Update as projects evolve."
+}

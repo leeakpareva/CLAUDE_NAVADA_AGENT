@@ -1,0 +1,36 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Node Exporter (Windows host metrics via windows_exporter if installed)
+  - job_name: "windows"
+    static_configs:
+      - targets: ["host.docker.internal:9182"]
+
+  # Docker containers (cAdvisor-style if added later)
+  - job_name: "docker"
+    static_configs:
+      - targets: ["host.docker.internal:9323"]
+
+  # PM2 metrics (if pm2-prometheus-exporter is added)
+  - job_name: "pm2"
+    static_configs:
+      - targets: ["host.docker.internal:9209"]
+
+  # MLflow
+  - job_name: "mlflow"
+    metrics_path: /health
+    static_configs:
+      - targets: ["host.docker.internal:5000"]
+
+  # Nginx stub status
+  - job_name: "nginx"
+    static_configs:
+      - targets: ["navada-proxy:80"]
+    metrics_path: /health

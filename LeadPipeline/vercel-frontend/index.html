@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAVADA Lead Pipeline</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;background:#fff;color:#333;-webkit-font-smoothing:antialiased}
+  a{color:#111;text-decoration:none;cursor:pointer}a:hover{text-decoration:underline}
+  .header{background:#000;padding:20px 28px;display:flex;justify-content:space-between;align-items:center}
+  .header h1{font-size:20px;font-weight:800;color:#fff;letter-spacing:.15em}
+  .header p{font-size:10px;color:#999;letter-spacing:.08em;text-transform:uppercase;margin-top:3px}
+  .live{display:flex;align-items:center;gap:6px;font-size:11px;color:#2ECC71}
+  .live .dot{width:8px;height:8px;border-radius:50%;background:#2ECC71;animation:pulse 2s infinite}
+  .live.offline .dot{background:#E74C3C;animation:none}
+  .live.offline{color:#E74C3C}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .nav{background:#fafafa;border-bottom:1px solid #eaeaea;padding:10px 28px;display:flex;gap:20px;flex-wrap:wrap;align-items:center}
+  .nav a{font-size:13px;color:#666;font-weight:500;padding-bottom:2px}
+  .nav a.active{color:#000;border-bottom:2px solid #000}
+  .config-btn{margin-left:auto;font-size:11px;color:#888;cursor:pointer;background:#f0f0f0;border:1px solid #ddd;padding:3px 10px;border-radius:4px}
+  .config-btn:hover{background:#e5e5e5}
+  .config-panel{display:none;background:#fafafa;border-bottom:1px solid #eaeaea;padding:12px 28px;font-size:12px}
+  .config-panel.show{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .config-panel input{font-size:12px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;width:320px;font-family:monospace}
+  .config-panel button{font-size:11px;padding:4px 12px;border:1px solid #111;background:#111;color:#fff;border-radius:4px;cursor:pointer}
+  .config-panel button:hover{background:#333}
+  .content{padding:24px 28px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:28px}
+  .stat{background:#fafafa;padding:16px;border-radius:6px}
+  .stat .num{font-size:28px;font-weight:700;color:#111}
+  .stat .label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-bottom:2px solid #111}
+  td{padding:10px;border-bottom:1px solid #f0f0f0;vertical-align:top}
+  tr:hover{background:#fafafa}
+  .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;color:#fff;letter-spacing:.03em}
+  .card{background:#fafafa;border-radius:6px;padding:20px;margin-bottom:16px}
+  .card h3{font-size:16px;margin-bottom:4px}.card .meta{font-size:12px;color:#888;margin-bottom:12px}
+  .card .detail{font-size:13px;line-height:1.6;color:#555}
+  .kv{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;font-size:13px}
+  .kv .k{color:#888}.kv .v{font-weight:600;color:#111;text-align:right;max-width:60%}
+  .ev{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px;flex-wrap:wrap}
+  .ev-type{background:#f0f0f0;padding:2px 8px;border-radius:3px;font-size:11px;color:#555;white-space:nowrap}
+  .ev-time{color:#aaa;font-size:11px;white-space:nowrap;margin-left:auto}
+  .score-bar{background:#eee;border-radius:4px;height:8px;width:80px;display:inline-block;vertical-align:middle}
+  .score-fill{height:8px;border-radius:4px}.score-num{font-size:12px;color:#666;margin-left:4px}
+  .footer{padding:20px 28px;border-top:1px solid #eee;margin-top:40px;font-size:10px;color:#aaa}
+  .error-banner{background:#FFF3CD;border-bottom:1px solid #F0C36D;padding:10px 28px;font-size:12px;color:#856404;display:none}
+  .error-banner.show{display:block}
+  @media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr)}table{font-size:12px}td,th{padding:6px 4px}.ev{font-size:12px}.config-panel input{width:200px}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div><h1>NAVADA</h1><p>Lead Pipeline</p></div>
+  <div class="live" id="status-indicator"><span class="dot"></span><span id="status-text">CONNECTING</span></div>
+</div>
+<div class="nav">
+  <a onclick="showView('dashboard')" id="nav-dashboard" class="active">Dashboard</a>
+  <a onclick="showView('leads')" id="nav-leads">Leads</a>
+  <a onclick="showView('tasks')" id="nav-tasks">Tasks</a>
+  <a onclick="showView('events')" id="nav-events">Events</a>
+  <span class="config-btn" onclick="toggleConfig()">API</span>
+</div>
+<div class="config-panel" id="config-panel">
+  <label>API URL:</label>
+  <input type="text" id="api-url-input">
+  <button onclick="saveApiUrl()">Save</button>
+  <span style="color:#888;font-size:11px" id="config-status"></span>
+</div>
+<div class="error-banner" id="error-banner"></div>
+<div class="content" id="app"><div style="text-align:center;padding:60px 20px;color:#888;font-size:14px">Connecting to NAVADA Lead Pipeline...</div></div>
+<div class="footer">NAVADA Lead Pipeline &middot; Vercel Frontend &middot; Data synced to PostgreSQL</div>
+
+<script>
+const DEFAULT_API='http://100.121.187.67:3100';
+let API_BASE=localStorage.getItem('navada_api_url')||DEFAULT_API;
+document.getElementById('api-url-input').value=API_BASE;
+
+const SC={new:'#3498DB',researching:'#9B59B6',outreach_drafted:'#F39C12',outreach_sent:'#E67E22',responded:'#2ECC71',meeting_scheduled:'#27AE60',proposal_sent:'#1ABC9C',negotiating:'#16A085',won:'#2ECC71',lost:'#E74C3C',nurturing:'#95A5A6',archived:'#7F8C8D'};
+let state={stats:{},leads:[],tasks:[],events:[]};
+let view='dashboard',detailId=null,connected=false,detailCache={};
+
+function badge(s){return'<span class="badge" style="background:'+(SC[s]||'#888')+'">'+s+'</span>'}
+function ago(d){if(!d)return'\u2014';const m=Math.floor((Date.now()-new Date(d).getTime())/60000);if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago'}
+function sbar(s){const c=s>=85?'#2ECC71':s>=70?'#F39C12':'#E74C3C';return'<div class="score-bar"><div class="score-fill" style="background:'+c+';width:'+Math.min(s,100)+'%"></div></div><span class="score-num">'+s+'</span>'}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function toggleConfig(){document.getElementById('config-panel').classList.toggle('show')}
+function saveApiUrl(){
+  const v=document.getElementById('api-url-input').value.trim().replace(/\/+$/,'');
+  if(!v)return;API_BASE=v;localStorage.setItem('navada_api_url',API_BASE);
+  document.getElementById('config-status').textContent='Saved. Reconnecting...';
+  fetchState();setTimeout(()=>{document.getElementById('config-status').textContent=''},3000);
+}
+
+function setStatus(online){
+  connected=online;const i=document.getElementById('status-indicator'),t=document.getElementById('status-text');
+  if(online){i.classList.remove('offline');t.textContent='LIVE'}else{i.classList.add('offline');t.textContent='OFFLINE'}
+}
+
+function showView(v,id){
+  view=v;detailId=id||null;
+  document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('active'));
+  const n=document.getElementById('nav-'+v);if(n)n.classList.add('active');
+  render();if(v==='detail'&&id)fetchLeadDetail(id);
+}
+
+function render(){
+  const el=document.getElementById('app');
+  if(view==='dashboard')el.innerHTML=renderDashboard();
+  else if(view==='leads')el.innerHTML=renderLeads();
+  else if(view==='tasks')el.innerHTML=renderTasks();
+  else if(view==='events')el.innerHTML=renderEvents();
+  else if(view==='detail')el.innerHTML=renderDetail();
+}
+
+function renderDashboard(){
+  const s=state.stats;
+  const lr=state.leads.map(l=>'<tr><td><a onclick="showView(\'detail\','+l.id+')" style="font-weight:600;cursor:pointer">'+esc(l.company)+'</a></td><td>'+esc(l.contact_name)+'</td><td>'+badge(l.status)+'</td><td>'+sbar(l.score)+'</td><td>'+(esc(l.sector)||'\u2014')+'</td><td style="font-size:11px;color:#888">'+ago(l.updated_at)+'</td></tr>').join('');
+  const tr=state.tasks.slice(0,8).map(t=>'<tr><td>'+esc(t.title)+'</td><td>'+(esc(t.company)||'\u2014')+'</td><td>'+esc(t.assigned_to)+'</td><td style="font-size:11px;color:#888">'+(t.due_date?new Date(t.due_date).toLocaleDateString('en-GB'):'\u2014')+'</td></tr>').join('');
+  const ev=state.events.slice(0,10).map(e=>'<div class="ev"><span class="ev-type">'+e.event_type.replace(/_/g,' ')+'</span><span>'+(esc(e.company)||'\u2014')+' \u2014 '+esc((e.event_detail||'').substring(0,60))+'</span><span class="ev-time">'+ago(e.timestamp)+'</span></div>').join('');
+  return'<div class="stats"><div class="stat"><div class="num">'+(s.total_leads||0)+'</div><div class="label">Total Leads</div></div><div class="stat"><div class="num">'+(s.total_events||0)+'</div><div class="label">Events</div></div><div class="stat"><div class="num">'+(s.pending_tasks||0)+'</div><div class="label">Tasks</div></div><div class="stat"><div class="num">'+(s.avg_score||0)+'</div><div class="label">Avg Score</div></div></div><h2 style="font-size:16px;margin-bottom:12px">Pipeline</h2><div style="overflow-x:auto"><table><thead><tr><th>Company</th><th>Contact</th><th>Status</th><th>Score</th><th>Sector</th><th>Updated</th></tr></thead><tbody>'+lr+'</tbody></table></div><h2 style="font-size:16px;margin:28px 0 12px">Pending Tasks</h2><div style="overflow-x:auto"><table><thead><tr><th>Task</th><th>Company</th><th>Assigned</th><th>Due</th></tr></thead><tbody>'+tr+'</tbody></table></div><h2 style="font-size:16px;margin:28px 0 12px">Recent Events</h2>'+ev;
+}
+
+function renderLeads(){
+  return'<h2 style="font-size:16px;margin-bottom:16px">All Leads ('+state.leads.length+')</h2>'+state.leads.map(l=>'<div class="card"><h3><a onclick="showView(\'detail\','+l.id+')" style="cursor:pointer">'+esc(l.company)+'</a> '+badge(l.status)+'</h3><div class="meta">'+esc(l.contact_name)+' &middot; '+(esc(l.contact_role)||'')+' &middot; '+(esc(l.sector)||'')+'</div><div class="kv"><span class="k">Score</span><span class="v">'+sbar(l.score)+'</span></div><div class="kv"><span class="k">Funding</span><span class="v">'+(esc(l.funding)||'\u2014')+'</span></div><div class="kv"><span class="k">Fit</span><span class="v">'+(esc(l.navada_fit)||'\u2014')+'</span></div></div>').join('');
+}
+
+function renderTasks(){
+  const p=state.tasks.filter(t=>t.status==='pending');
+  const rows=p.map(t=>'<tr><td>'+esc(t.title)+'</td><td>'+(esc(t.company)||'\u2014')+'</td><td>'+esc(t.assigned_to)+'</td><td>'+t.priority+'/5</td><td style="font-size:11px;color:#888">'+(t.due_date?new Date(t.due_date).toLocaleDateString('en-GB'):'\u2014')+'</td></tr>').join('');
+  return'<h2 style="font-size:16px;margin-bottom:12px">Pending Tasks ('+p.length+')</h2><div style="overflow-x:auto"><table><thead><tr><th>Task</th><th>Company</th><th>Assigned</th><th>Priority</th><th>Due</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+function renderEvents(){
+  const ev=state.events.map(e=>'<div class="ev"><span class="ev-type">'+e.event_type.replace(/_/g,' ')+'</span><span style="flex:1">'+(esc(e.company)||'\u2014')+' \u2014 '+esc((e.event_detail||'').substring(0,80))+'</span><span class="ev-time">'+ago(e.timestamp)+'</span></div>').join('');
+  return'<h2 style="font-size:16px;margin-bottom:16px">All Events ('+state.events.length+')</h2>'+ev;
+}
+
+function renderDetail(){
+  const l=state.leads.find(x=>x.id===detailId);
+  if(!l)return'<p>Lead not found. <a onclick="showView(\'dashboard\')" style="cursor:pointer;color:#3498DB">Back to dashboard</a></p>';
+  const fields=[['Company',esc(l.company)],['Contact',esc(l.contact_name)],['Role',esc(l.contact_role)||'\u2014'],['Email',esc(l.contact_email)||'Not found yet'],['LinkedIn',l.contact_linkedin?'<a href="'+esc(l.contact_linkedin)+'" target="_blank">View</a>':'\u2014'],['Sector',esc(l.sector)],['Location',esc(l.location)],['Stage',esc(l.stage)],['Funding',esc(l.funding)],['Status',badge(l.status)],['Score',sbar(l.score)],['Priority',l.priority+'/5'],['Source',esc(l.source)]];
+  const fh=fields.map(f=>'<div class="kv"><span class="k">'+f[0]+'</span><span class="v">'+(f[1]||'\u2014')+'</span></div>').join('');
+  const dd=detailCache[detailId];const lev=dd?dd.events:state.events.filter(e=>e.lead_id===l.id);
+  const evh=lev.map(e=>'<div class="ev"><span class="ev-type">'+e.event_type.replace(/_/g,' ')+'</span><span>'+esc((e.event_detail||'').substring(0,80))+'</span><span class="ev-time">'+ago(e.timestamp)+'</span></div>').join('');
+  return'<a onclick="showView(\'dashboard\')" style="font-size:12px;color:#888;cursor:pointer">&larr; Back</a><div class="card" style="margin-top:12px"><h3>'+esc(l.company)+'</h3><div class="meta">'+esc(l.contact_name)+' &middot; '+(esc(l.contact_role)||'')+' &middot; '+(esc(l.location)||'')+'</div>'+fh+'</div><div class="card"><h3 style="font-size:14px">NAVADA Fit</h3><div class="detail">'+(esc(l.navada_fit)||'\u2014')+'</div></div><div class="card"><h3 style="font-size:14px">Service Match</h3><div class="detail">'+(esc(l.service_match)||'\u2014')+'</div></div><div class="card"><h3 style="font-size:14px">Company Description</h3><div class="detail">'+(esc(l.company_desc)||'\u2014')+'</div></div><div class="card"><h3 style="font-size:14px">Notes</h3><div class="detail">'+(esc(l.notes)||'\u2014')+'</div></div><h2 style="font-size:16px;margin:28px 0 12px">Timeline ('+lev.length+' events)</h2>'+(evh||'<p style="color:#888;font-size:13px">No events</p>');
+}
+
+async function fetchState(){
+  try{
+    const r=await fetch(API_BASE+'/api/state',{signal:AbortSignal.timeout(8000)});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.json();state={stats:d.stats||{},leads:d.leads||[],tasks:d.tasks||[],events:d.events||[]};
+    setStatus(true);document.getElementById('error-banner').classList.remove('show');render();
+  }catch(e){
+    setStatus(false);
+    const eb=document.getElementById('error-banner');eb.textContent='Cannot reach API at '+API_BASE+'. Click "API" to configure.';eb.classList.add('show');
+    render();
+  }
+}
+
+async function fetchLeadDetail(id){
+  try{const r=await fetch(API_BASE+'/api/lead/'+id,{signal:AbortSignal.timeout(8000)});if(!r.ok)return;const d=await r.json();detailCache[id]=d;if(view==='detail'&&detailId===id)render();}catch(e){}
+}
+
+fetchState();
+setInterval(fetchState,5000);
+</script>
+</body>
+</html>

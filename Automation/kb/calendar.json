@@ -1,0 +1,30 @@
+{
+  "events": [],
+  "recurring": [
+    {
+      "title": "Morning Briefing delivered",
+      "time": "06:30",
+      "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      "type": "automated"
+    },
+    {
+      "title": "AI News Digest delivered",
+      "time": "07:00",
+      "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      "type": "automated"
+    },
+    {
+      "title": "Job Digest delivered",
+      "time": "09:00",
+      "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      "type": "automated"
+    },
+    {
+      "title": "Weekly Intelligence Report",
+      "time": "18:00",
+      "days": ["Sun"],
+      "type": "automated"
+    }
+  ],
+  "_instructions": "Add events with: date (YYYY-MM-DD), time (HH:MM), title, notes. Claude reads this for morning briefings."
+}

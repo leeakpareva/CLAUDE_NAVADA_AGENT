@@ -1,0 +1,96 @@
+{"elements": [
+  {"id": "title", "type": "text", "x": 180, "y": 10, "text": "NAVADA SERVER ARCHITECTURE", "fontSize": 28, "fontFamily": "1", "strokeColor": "#1e1e1e"},
+  {"id": "subtitle", "type": "text", "x": 120, "y": 48, "text": "HP Laptop  |  Windows 11  |  192.168.0.36  |  23 MCP Servers", "fontSize": 14, "fontFamily": "1", "strokeColor": "#868e96"},
+
+  {"id": "iphone", "type": "rectangle", "x": 50, "y": 100, "width": 180, "height": 55, "backgroundColor": "#343a40", "strokeColor": "#495057", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "iPhone 15 Pro Max", "color": "#ffffff"}},
+  {"id": "s8", "type": "rectangle", "x": 50, "y": 170, "width": 180, "height": 55, "backgroundColor": "#343a40", "strokeColor": "#495057", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "S8 BT Speaker", "color": "#ffffff"}},
+
+  {"id": "tailscale", "type": "rectangle", "x": 300, "y": 100, "width": 160, "height": 40, "backgroundColor": "#1971c2", "strokeColor": "#1971c2", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Tailscale VPN", "color": "#ffffff"}},
+  {"id": "ssh-box", "type": "rectangle", "x": 300, "y": 150, "width": 160, "height": 40, "backgroundColor": "#2b8a3e", "strokeColor": "#2b8a3e", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "SSH Remote", "color": "#ffffff"}},
+  {"id": "cf-tunnel", "type": "rectangle", "x": 300, "y": 200, "width": 160, "height": 40, "backgroundColor": "#e67700", "strokeColor": "#e67700", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Cloudflare Tunnel", "color": "#ffffff"}},
+
+  {"id": "claude", "type": "rectangle", "x": 530, "y": 100, "width": 220, "height": 70, "backgroundColor": "#e03131", "strokeColor": "#c92a2a", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Claude Code CLI\nAI Agent Brain", "color": "#ffffff"}},
+  {"id": "pm2-box", "type": "rectangle", "x": 530, "y": 185, "width": 220, "height": 55, "backgroundColor": "#2b8a3e", "strokeColor": "#2b8a3e", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "PM2 Daemon (24/7)", "color": "#ffffff"}},
+
+  {"type": "arrow", "x": 0, "y": 0, "start": {"id": "iphone"}, "end": {"id": "tailscale"}, "strokeColor": "#1971c2", "strokeWidth": 2},
+  {"type": "arrow", "x": 0, "y": 0, "start": {"id": "tailscale"}, "end": {"id": "claude"}, "strokeColor": "#1971c2", "strokeWidth": 2},
+
+  {"id": "lbl-row1", "type": "text", "x": 50, "y": 275, "text": "MCP SERVERS (23)", "fontSize": 16, "fontFamily": "1", "strokeColor": "#1e1e1e"},
+
+  {"id": "c1", "type": "rectangle", "x": 50, "y": 305, "width": 140, "height": 35, "backgroundColor": "#845ef7", "strokeColor": "#845ef7", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Excalidraw", "color": "#ffffff"}},
+  {"id": "c2", "type": "rectangle", "x": 200, "y": 305, "width": 140, "height": 35, "backgroundColor": "#fab005", "strokeColor": "#fab005", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Hugging Face", "color": "#ffffff"}},
+  {"id": "c3", "type": "rectangle", "x": 350, "y": 305, "width": 140, "height": 35, "backgroundColor": "#343a40", "strokeColor": "#868e96", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Vercel", "color": "#ffffff"}},
+  {"id": "c4", "type": "rectangle", "x": 500, "y": 305, "width": 140, "height": 35, "backgroundColor": "#f76707", "strokeColor": "#f76707", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Zapier", "color": "#ffffff"}},
+  {"id": "c5", "type": "rectangle", "x": 650, "y": 305, "width": 140, "height": 35, "backgroundColor": "#0c8599", "strokeColor": "#0c8599", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Puppeteer", "color": "#ffffff"}},
+
+  {"id": "c6", "type": "rectangle", "x": 50, "y": 350, "width": 140, "height": 35, "backgroundColor": "#343a40", "strokeColor": "#868e96", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "GitHub", "color": "#ffffff"}},
+  {"id": "c7", "type": "rectangle", "x": 200, "y": 350, "width": 140, "height": 35, "backgroundColor": "#1864ab", "strokeColor": "#1864ab", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "PostgreSQL", "color": "#ffffff"}},
+  {"id": "c8", "type": "rectangle", "x": 350, "y": 350, "width": 140, "height": 35, "backgroundColor": "#0b7285", "strokeColor": "#0b7285", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Bright Data", "color": "#ffffff"}},
+  {"id": "c9", "type": "rectangle", "x": 500, "y": 350, "width": 140, "height": 35, "backgroundColor": "#099268", "strokeColor": "#099268", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "OpenAI Images", "color": "#ffffff"}},
+  {"id": "c10", "type": "rectangle", "x": 650, "y": 350, "width": 140, "height": 35, "backgroundColor": "#495057", "strokeColor": "#495057", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Fetch", "color": "#ffffff"}},
+
+  {"id": "c11", "type": "rectangle", "x": 50, "y": 395, "width": 140, "height": 35, "backgroundColor": "#a61e4d", "strokeColor": "#a61e4d", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Memory", "color": "#ffffff"}},
+  {"id": "c12", "type": "rectangle", "x": 200, "y": 395, "width": 140, "height": 35, "backgroundColor": "#6741d9", "strokeColor": "#6741d9", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Seq. Thinking", "color": "#ffffff"}},
+  {"id": "c13", "type": "rectangle", "x": 350, "y": 395, "width": 140, "height": 35, "backgroundColor": "#087f5b", "strokeColor": "#087f5b", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Context7", "color": "#ffffff"}},
+  {"id": "c14", "type": "rectangle", "x": 500, "y": 395, "width": 140, "height": 35, "backgroundColor": "#5f3dc4", "strokeColor": "#5f3dc4", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "DBHub", "color": "#ffffff"}},
+  {"id": "c15", "type": "rectangle", "x": 650, "y": 395, "width": 140, "height": 35, "backgroundColor": "#e67700", "strokeColor": "#e67700", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "DuckDB", "color": "#ffffff"}},
+
+  {"id": "c16", "type": "rectangle", "x": 50, "y": 440, "width": 140, "height": 35, "backgroundColor": "#1864ab", "strokeColor": "#1864ab", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "SQLite", "color": "#ffffff"}},
+  {"id": "c17", "type": "rectangle", "x": 200, "y": 440, "width": 140, "height": 35, "backgroundColor": "#d9480f", "strokeColor": "#d9480f", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "dbt", "color": "#ffffff"}},
+  {"id": "c18", "type": "rectangle", "x": 350, "y": 440, "width": 140, "height": 35, "backgroundColor": "#364fc7", "strokeColor": "#364fc7", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Zaturn", "color": "#ffffff"}},
+  {"id": "c19", "type": "rectangle", "x": 500, "y": 440, "width": 140, "height": 35, "backgroundColor": "#c2255c", "strokeColor": "#c2255c", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Fermat", "color": "#ffffff"}},
+  {"id": "c20", "type": "rectangle", "x": 650, "y": 440, "width": 140, "height": 35, "backgroundColor": "#0b7285", "strokeColor": "#0b7285", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Vizro", "color": "#ffffff"}},
+
+  {"id": "c21", "type": "rectangle", "x": 50, "y": 485, "width": 140, "height": 35, "backgroundColor": "#0c8599", "strokeColor": "#0c8599", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Optuna", "color": "#ffffff"}},
+  {"id": "c22", "type": "rectangle", "x": 200, "y": 485, "width": 140, "height": 35, "backgroundColor": "#5c940d", "strokeColor": "#5c940d", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "NetworkX", "color": "#ffffff"}},
+  {"id": "c23", "type": "rectangle", "x": 350, "y": 485, "width": 140, "height": 35, "backgroundColor": "#d9480f", "strokeColor": "#d9480f", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Jupyter", "color": "#ffffff"}},
+
+  {"type": "arrow", "x": 0, "y": 0, "start": {"id": "claude"}, "end": {"id": "c3"}, "strokeColor": "#868e96", "strokeWidth": 2, "label": {"text": "23 MCP Tools"}},
+
+  {"id": "lbl-auto", "type": "text", "x": 50, "y": 555, "text": "AUTOMATIONS", "fontSize": 16, "fontFamily": "1", "strokeColor": "#1e1e1e"},
+
+  {"id": "a1", "type": "rectangle", "x": 50, "y": 585, "width": 170, "height": 45, "backgroundColor": "#7048e8", "strokeColor": "#7048e8", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "AI News Digest\nDaily 7 AM", "color": "#ffffff"}},
+  {"id": "a2", "type": "rectangle", "x": 235, "y": 585, "width": 170, "height": 45, "backgroundColor": "#7048e8", "strokeColor": "#7048e8", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Job Hunter\nDaily 9 AM", "color": "#ffffff"}},
+  {"id": "a3", "type": "rectangle", "x": 420, "y": 585, "width": 170, "height": 45, "backgroundColor": "#7048e8", "strokeColor": "#7048e8", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Economy Report\nMonday 8 AM", "color": "#ffffff"}},
+
+  {"id": "a4", "type": "rectangle", "x": 50, "y": 645, "width": 170, "height": 45, "backgroundColor": "#1971c2", "strokeColor": "#1971c2", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Market Pipeline\nDaily 6 PM", "color": "#ffffff"}},
+  {"id": "a5", "type": "rectangle", "x": 235, "y": 645, "width": 170, "height": 45, "backgroundColor": "#1971c2", "strokeColor": "#1971c2", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Ops Report\nDaily 9 PM", "color": "#ffffff"}},
+  {"id": "a6", "type": "rectangle", "x": 420, "y": 645, "width": 170, "height": 45, "backgroundColor": "#1971c2", "strokeColor": "#1971c2", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Cost Tracker\nROI Logging", "color": "#ffffff"}},
+
+  {"id": "a7", "type": "rectangle", "x": 50, "y": 705, "width": 170, "height": 45, "backgroundColor": "#2b8a3e", "strokeColor": "#2b8a3e", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Voice Agent\n24/7 PM2", "color": "#ffffff"}},
+  {"id": "a8", "type": "rectangle", "x": 235, "y": 705, "width": 170, "height": 45, "backgroundColor": "#c92a2a", "strokeColor": "#c92a2a", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Inbox Responder\n24/7 PM2", "color": "#ffffff"}},
+  {"id": "a9", "type": "rectangle", "x": 420, "y": 705, "width": 170, "height": 45, "backgroundColor": "#e67700", "strokeColor": "#e67700", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Self-Improve\nWeekly", "color": "#ffffff"}},
+
+  {"type": "arrow", "x": 0, "y": 0, "start": {"id": "s8"}, "end": {"id": "a7"}, "strokeColor": "#2b8a3e", "strokeWidth": 2, "label": {"text": "Bluetooth"}},
+  {"type": "arrow", "x": 0, "y": 0, "start": {"id": "pm2-box"}, "end": {"id": "a7"}, "strokeColor": "#2b8a3e", "strokeWidth": 1},
+  {"type": "arrow", "x": 0, "y": 0, "start": {"id": "pm2-box"}, "end": {"id": "a8"}, "strokeColor": "#c92a2a", "strokeWidth": 1},
+
+  {"id": "lbl-data", "type": "text", "x": 50, "y": 785, "text": "DATA LAYER", "fontSize": 16, "fontFamily": "1", "strokeColor": "#1e1e1e"},
+
+  {"id": "d1", "type": "rectangle", "x": 50, "y": 815, "width": 170, "height": 50, "backgroundColor": "#1864ab", "strokeColor": "#1864ab", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "PostgreSQL 17\nPort 5433", "color": "#ffffff"}},
+  {"id": "d2", "type": "rectangle", "x": 235, "y": 815, "width": 170, "height": 50, "backgroundColor": "#495057", "strokeColor": "#495057", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "JSON Stores\ncost-log / jobs", "color": "#ffffff"}},
+  {"id": "d3", "type": "rectangle", "x": 420, "y": 815, "width": 170, "height": 50, "backgroundColor": "#c92a2a", "strokeColor": "#c92a2a", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": ".env Secrets\nAPI Keys", "color": "#ffffff"}},
+  {"id": "d4", "type": "rectangle", "x": 605, "y": 815, "width": 170, "height": 50, "backgroundColor": "#495057", "strokeColor": "#495057", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Knowledge Base\nMEMORY.md", "color": "#ffffff"}},
+
+  {"type": "arrow", "x": 0, "y": 0, "start": {"id": "a4"}, "end": {"id": "d1"}, "strokeColor": "#1864ab", "strokeWidth": 2, "label": {"text": "scrape"}},
+  {"type": "arrow", "x": 0, "y": 0, "start": {"id": "a6"}, "end": {"id": "d2"}, "strokeColor": "#495057", "strokeWidth": 1, "label": {"text": "log"}},
+
+  {"id": "lbl-ext", "type": "text", "x": 50, "y": 900, "text": "EXTERNAL SERVICES", "fontSize": 16, "fontFamily": "1", "strokeColor": "#1e1e1e"},
+
+  {"id": "e1", "type": "rectangle", "x": 50, "y": 930, "width": 140, "height": 35, "backgroundColor": "#c92a2a", "strokeColor": "#c92a2a", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Gmail / Zoho", "color": "#ffffff"}},
+  {"id": "e2", "type": "rectangle", "x": 200, "y": 930, "width": 140, "height": 35, "backgroundColor": "#1971c2", "strokeColor": "#1971c2", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "LinkedIn", "color": "#ffffff"}},
+  {"id": "e3", "type": "rectangle", "x": 350, "y": 930, "width": 140, "height": 35, "backgroundColor": "#099268", "strokeColor": "#099268", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "OpenAI API", "color": "#ffffff"}},
+  {"id": "e4", "type": "rectangle", "x": 500, "y": 930, "width": 140, "height": 35, "backgroundColor": "#7048e8", "strokeColor": "#7048e8", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Yahoo Finance", "color": "#ffffff"}},
+  {"id": "e5", "type": "rectangle", "x": 650, "y": 930, "width": 140, "height": 35, "backgroundColor": "#343a40", "strokeColor": "#868e96", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "GitHub Repos", "color": "#ffffff"}},
+
+  {"id": "e6", "type": "rectangle", "x": 50, "y": 975, "width": 140, "height": 35, "backgroundColor": "#343a40", "strokeColor": "#868e96", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Vercel Deploy", "color": "#ffffff"}},
+  {"id": "e7", "type": "rectangle", "x": 200, "y": 975, "width": 140, "height": 35, "backgroundColor": "#0c8599", "strokeColor": "#0c8599", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Apify", "color": "#ffffff"}},
+  {"id": "e8", "type": "rectangle", "x": 350, "y": 975, "width": 140, "height": 35, "backgroundColor": "#d4a574", "strokeColor": "#d4a574", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Anthropic API", "color": "#ffffff"}},
+  {"id": "e9", "type": "rectangle", "x": 500, "y": 975, "width": 140, "height": 35, "backgroundColor": "#495057", "strokeColor": "#495057", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Indeed / Reed", "color": "#ffffff"}},
+  {"id": "e10", "type": "rectangle", "x": 650, "y": 975, "width": 140, "height": 35, "backgroundColor": "#0b7285", "strokeColor": "#0b7285", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "Totaljobs", "color": "#ffffff"}},
+
+  {"type": "arrow", "x": 0, "y": 0, "start": {"id": "a8"}, "end": {"id": "e1"}, "strokeColor": "#c92a2a", "strokeWidth": 1},
+  {"type": "arrow", "x": 0, "y": 0, "start": {"id": "a7"}, "end": {"id": "e3"}, "strokeColor": "#099268", "strokeWidth": 1},
+  {"type": "arrow", "x": 0, "y": 0, "start": {"id": "a4"}, "end": {"id": "e4"}, "strokeColor": "#7048e8", "strokeWidth": 1},
+  {"type": "arrow", "x": 0, "y": 0, "start": {"id": "a2"}, "end": {"id": "e9"}, "strokeColor": "#495057", "strokeWidth": 1}
+]}

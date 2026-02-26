@@ -1,0 +1,222 @@
+/**
+ * NAVADA Weekly Intelligence Report
+ * Generates PDF report + voice summary, emails both
+ * Runs Sunday 6 PM
+ */
+
+require('dotenv').config({ path: __dirname + '/.env' });
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
+const RSSParser = require('rss-parser');
+const { sendEmail, p, table, callout, kvList } = require('./email-service');
+const { generateVoice } = require('./voice-service');
+
+const parser = new RSSParser();
+const TRACKER_PATH = path.join(__dirname, 'jobs-tracker.json');
+const REPORTS_DIR = path.join(__dirname, 'reports');
+if (!fs.existsSync(REPORTS_DIR)) fs.mkdirSync(REPORTS_DIR, { recursive: true });
+
+// --- Gather Data ---
+async function getWeeklyNews() {
+  const feeds = [
+    'https://techcrunch.com/category/artificial-intelligence/feed/',
+    'https://feeds.arstechnica.com/arstechnica/technology-lab',
+    'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml',
+    'https://news.mit.edu/topic/mitartificial-intelligence2-rss.xml',
+  ];
+  const articles = [];
+  for (const url of feeds) {
+    try {
+      const data = await parser.parseURL(url);
+      data.items.slice(0, 5).forEach(item => {
+        articles.push({ title: item.title, link: item.link, source: data.title, date: new Date(item.pubDate || Date.now()) });
+      });
+    } catch (e) {}
+  }
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+  return articles.filter(a => a.date >= weekAgo).sort((a, b) => b.date - a.date).slice(0, 10);
+}
+
+function getJobMetrics() {
+  try {
+    const data = JSON.parse(fs.readFileSync(TRACKER_PATH, 'utf8'));
+    const jobs = data.jobs || [];
+    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+    const weekStr = weekAgo.toISOString().slice(0, 10);
+
+    const statuses = {};
+    jobs.forEach(j => { statuses[j.status] = (statuses[j.status] || 0) + 1; });
+    const thisWeek = jobs.filter(j => j.dateFound >= weekStr);
+
+    return {
+      total: jobs.length,
+      thisWeek: thisWeek.length,
+      ...statuses,
+      topCompanies: [...new Set(thisWeek.map(j => j.company))].slice(0, 5),
+    };
+  } catch (e) {
+    return { total: 0, thisWeek: 0 };
+  }
+}
+
+// --- Generate PDF via Python ---
+function generatePDF(news, metrics) {
+  const timestamp = new Date().toISOString().slice(0, 10);
+  const pdfPath = path.join(REPORTS_DIR, `weekly-report-${timestamp}.pdf`);
+  const dataPath = path.join(REPORTS_DIR, `report-data-${timestamp}.json`);
+
+  fs.writeFileSync(dataPath, JSON.stringify({ news, metrics, date: timestamp }, null, 2));
+
+  const pyScript = `
+import json, sys
+from fpdf import FPDF
+from datetime import datetime
+
+data = json.load(open(r'${dataPath.replace(/\\/g, '\\\\')}', 'r'))
+news = data['news']
+metrics = data['metrics']
+date = data['date']
+
+pdf = FPDF()
+pdf.set_auto_page_break(auto=True, margin=20)
+pdf.add_page()
+
+# Header
+pdf.set_fill_color(0, 0, 0)
+pdf.rect(0, 0, 210, 35, 'F')
+pdf.set_text_color(255, 255, 255)
+pdf.set_font('Helvetica', 'B', 20)
+pdf.set_y(8)
+pdf.cell(0, 10, 'NAVADA', ln=True, align='L')
+pdf.set_font('Helvetica', '', 9)
+pdf.cell(0, 5, 'Weekly Intelligence Report  |  ' + date, ln=True, align='L')
+
+# Reset colors
+pdf.set_text_color(0, 0, 0)
+pdf.ln(15)
+
+# Job Pipeline
+pdf.set_font('Helvetica', 'B', 14)
+pdf.cell(0, 8, 'JOB PIPELINE', ln=True)
+pdf.set_draw_color(0, 0, 0)
+pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+pdf.ln(4)
+pdf.set_font('Helvetica', '', 11)
+pdf.cell(95, 7, f"Total jobs tracked: {metrics.get('total', 0)}", ln=False)
+pdf.cell(95, 7, f"New this week: {metrics.get('thisWeek', 0)}", ln=True)
+pdf.cell(95, 7, f"Applied: {metrics.get('Applied', 0)}", ln=False)
+pdf.cell(95, 7, f"Interviews: {metrics.get('Interview', 0)}", ln=True)
+pdf.cell(95, 7, f"Shortlisted: {metrics.get('Shortlisted', 0)}", ln=False)
+pdf.cell(95, 7, f"Offers: {metrics.get('Offer', 0)}", ln=True)
+pdf.ln(8)
+
+# Top Companies
+if metrics.get('topCompanies'):
+    pdf.set_font('Helvetica', 'B', 11)
+    pdf.cell(0, 7, 'Top Companies This Week:', ln=True)
+    pdf.set_font('Helvetica', '', 10)
+    for c in metrics['topCompanies']:
+        pdf.cell(0, 6, f"  - {c}", ln=True)
+    pdf.ln(6)
+
+# AI News
+pdf.set_font('Helvetica', 'B', 14)
+pdf.cell(0, 8, 'AI INDUSTRY NEWS', ln=True)
+pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+pdf.ln(4)
+pdf.set_font('Helvetica', '', 10)
+for i, article in enumerate(news[:10]):
+    pdf.set_font('Helvetica', 'B', 10)
+    title = article['title'][:80] + ('...' if len(article['title']) > 80 else '')
+    pdf.cell(0, 6, f"{i+1}. {title}", ln=True)
+    pdf.set_font('Helvetica', '', 9)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(0, 5, f"   {article.get('source', '')}", ln=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.ln(2)
+
+# Footer
+pdf.ln(10)
+pdf.set_font('Helvetica', 'I', 8)
+pdf.set_text_color(150, 150, 150)
+pdf.cell(0, 5, 'Generated by Claude | AI Chief of Staff | NAVADA', ln=True, align='C')
+pdf.cell(0, 5, f"Report date: {datetime.now().strftime('%d %B %Y %H:%M')}", ln=True, align='C')
+
+pdf.output(r'${pdfPath.replace(/\\/g, '\\\\')}')
+print('PDF generated')
+`;
+
+  const pyPath = path.join(REPORTS_DIR, 'gen-report.py');
+  fs.writeFileSync(pyPath, pyScript);
+  execSync(`py "${pyPath}"`, { timeout: 30000 });
+  return pdfPath;
+}
+
+// --- Main ---
+async function generateWeeklyReport() {
+  console.log('Generating weekly intelligence report...\n');
+
+  const [news] = await Promise.all([getWeeklyNews()]);
+  const metrics = getJobMetrics();
+
+  console.log(`News articles: ${news.length}`);
+  console.log(`Jobs tracked: ${metrics.total}, this week: ${metrics.thisWeek}`);
+
+  // Generate PDF
+  console.log('Generating PDF...');
+  const pdfPath = generatePDF(news, metrics);
+  console.log(`PDF: ${pdfPath}`);
+
+  // Generate voice summary
+  const voiceSummary = `Hey Lee, here's your weekly intelligence report. This week we tracked ${metrics.thisWeek} new jobs, bringing the total pipeline to ${metrics.total}. ${metrics.Applied ? `You've applied to ${metrics.Applied} positions.` : 'No applications submitted yet — let me know which roles to target.'} ${metrics.Interview ? `You have ${metrics.Interview} interviews lined up.` : ''} In AI news, the top story this week is: ${news[0]?.title || 'check the report for details'}. Full report attached as PDF. Have a great week.`;
+
+  console.log('Generating voice summary...');
+  const voicePath = await generateVoice(voiceSummary, 'onyx');
+
+  // Build email
+  const newsHtml = news.slice(0, 5).map((a, i) =>
+    `<div style="padding:6px 0; ${i < 4 ? 'border-bottom:1px solid #f0f0f0;' : ''}">
+      <div style="font-size:13px; font-weight:600;"><a href="${a.link}" style="color:#111; text-decoration:none;">${a.title}</a></div>
+      <div style="font-size:10px; color:#888;">${a.source}</div>
+    </div>`
+  ).join('');
+
+  const body = [
+    p('Lee,'),
+    p('Your weekly intelligence report is attached as a PDF. Voice summary also attached — listen on the go.'),
+    `<h3 style="font-size:13px; font-weight:700; color:#111; margin:16px 0 8px; text-transform:uppercase; letter-spacing:0.06em; border-bottom:1px solid #eaeaea; padding-bottom:4px;">Pipeline Snapshot</h3>`,
+    kvList([
+      ['Total Jobs Tracked', String(metrics.total)],
+      ['New This Week', String(metrics.thisWeek)],
+      ['Applied', String(metrics.Applied || 0)],
+      ['Interviews', String(metrics.Interview || 0)],
+    ]),
+    `<h3 style="font-size:13px; font-weight:700; color:#111; margin:16px 0 8px; text-transform:uppercase; letter-spacing:0.06em; border-bottom:1px solid #eaeaea; padding-bottom:4px;">Top AI News</h3>`,
+    newsHtml,
+  ].join('');
+
+  await sendEmail({
+    to: 'leeakpareva@gmail.com',
+    subject: `Weekly Report — ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`,
+    heading: 'Weekly Intelligence Report',
+    type: 'report',
+    body,
+    attachments: [
+      { filename: 'NAVADA-Weekly-Report.pdf', path: pdfPath, contentType: 'application/pdf' },
+      { filename: 'weekly-voice-summary.mp3', path: voicePath, contentType: 'audio/mpeg' },
+    ],
+    footerNote: 'Weekly report &middot; PDF + Voice summary attached',
+  });
+
+  console.log('\nWeekly report sent with PDF + voice.');
+}
+
+if (require.main === module) {
+  generateWeeklyReport()
+    .then(() => process.exit(0))
+    .catch(e => { console.error('Failed:', e.message); process.exit(1); });
+}
+
+module.exports = { generateWeeklyReport };

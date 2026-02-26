@@ -1,0 +1,41 @@
+{
+  "decisions": [
+    {
+      "date": "2026-02-26",
+      "topic": "Automation backbone",
+      "decision": "Windows Task Scheduler for scheduled tasks, PM2 for long-running services",
+      "reason": "Survives reboots, native Windows GUI, no terminal needed"
+    },
+    {
+      "date": "2026-02-26",
+      "topic": "Job scraping method",
+      "decision": "Apify Indeed Scraper API over Puppeteer",
+      "reason": "Reliable, no 403 blocks, structured data, faster"
+    },
+    {
+      "date": "2026-02-26",
+      "topic": "Email system",
+      "decision": "Zoho Mail (claude.navada@zohomail.eu) as primary, Gmail as fallback",
+      "reason": "Claude gets own email identity, professional NAVADA branding"
+    },
+    {
+      "date": "2026-02-26",
+      "topic": "Autonomous daemon",
+      "decision": "Not needed for now",
+      "reason": "Shared Claude sessions + Task Scheduler provide same functionality. PC is always-on server."
+    },
+    {
+      "date": "2026-02-26",
+      "topic": "Remote access",
+      "decision": "SSH key auth (SSH.id) + Chrome Remote Desktop",
+      "reason": "Microsoft account blocks SSH password auth. CRD for visual access."
+    },
+    {
+      "date": "2026-02-26",
+      "topic": "Job email limit",
+      "decision": "Max 10 jobs per daily email",
+      "reason": "Avoid overwhelm. Full list stays in tracker."
+    }
+  ],
+  "_instructions": "Log significant decisions with reasoning so future sessions don't re-ask."
+}

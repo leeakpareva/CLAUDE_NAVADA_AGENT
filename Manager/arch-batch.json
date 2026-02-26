@@ -1,0 +1,5 @@
+{"elements": [
+  {"id": "arr-claude-auto2", "type": "arrow", "x": 0, "y": 0, "strokeColor": "#f97583", "strokeWidth": 2, "start": {"id": "claude"}, "end": {"id": "auto-bg"}},
+  {"id": "arr-auto-data2", "type": "arrow", "x": 0, "y": 0, "strokeColor": "#79c0ff", "strokeWidth": 2, "start": {"id": "auto-bg"}, "end": {"id": "data-bg"}},
+  {"id": "arr-auto-ext2", "type": "arrow", "x": 0, "y": 0, "strokeColor": "#d2a8ff", "strokeWidth": 2, "start": {"id": "auto-bg"}, "end": {"id": "ext-bg"}}
+]}

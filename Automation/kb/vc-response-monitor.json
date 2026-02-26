@@ -1,0 +1,20 @@
+{
+  "created": "2026-02-26T15:00:01.417Z",
+  "subject": "Akpareva Family VC Initiative — Investment Plans for 2026",
+  "recipients": [
+    {
+      "name": "Tim",
+      "email": "tim_akpareva@yahoo.co.uk",
+      "responded": false,
+      "respondedAt": null
+    },
+    {
+      "name": "Uncle Patrick",
+      "email": "patakpareva@gmail.com",
+      "responded": false,
+      "respondedAt": null
+    }
+  ],
+  "alertEmail": "leeakpareva@gmail.com",
+  "status": "awaiting_responses"
+}

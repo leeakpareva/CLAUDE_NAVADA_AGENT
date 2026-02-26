@@ -1,0 +1,32 @@
+{
+  "name": "automation",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "news": "node ai-news-mailer.js",
+    "jobs": "node job-hunter.js",
+    "tracker": "node -e \"const t=require('./jobs-tracker.json');console.table(t.jobs.map(j=>({title:j.title,company:j.company,status:j.status,date:j.dateFound})))\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "axios": "^1.13.5",
+    "cheerio": "^1.2.0",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "form-data": "^4.0.5",
+    "imap-simple": "^5.1.0",
+    "mailparser": "^3.9.3",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^8.0.1",
+    "open": "^11.0.0",
+    "openai": "^6.25.0",
+    "puppeteer": "^24.37.5",
+    "rss-parser": "^3.13.0"
+  }
+}

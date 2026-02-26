@@ -1,0 +1,33 @@
+{
+  "communication": {
+    "style": "Direct, concise, no fluff",
+    "emojis": false,
+    "tone": "Professional but friendly",
+    "format": "Short paragraphs, bullet points, tables for data"
+  },
+  "workflow": {
+    "confirmBeforeDestructive": true,
+    "autoCommit": false,
+    "alwaysProvideLocalLink": true,
+    "localIP": "192.168.0.36",
+    "preferredShell": "bash (Git Bash on Windows)",
+    "pythonCommand": "py",
+    "emailFrom": "claude.navada@zohomail.eu",
+    "emailTo": "leeakpareva@gmail.com"
+  },
+  "jobSearch": {
+    "maxJobsPerEmail": 10,
+    "targetRoles": ["Head of AI", "VP AI/ML", "Director of AI", "Principal AI Consultant", "AI Solutions Architect"],
+    "targetSalary": "£100k+",
+    "locations": ["London", "UK Remote", "US Remote"],
+    "excludePatterns": ["junior", "intern", "graduate", "entry level", "apprentice"],
+    "preferredTypes": ["Permanent", "Contract"]
+  },
+  "technical": {
+    "frameworks": ["Next.js", "React", "FastAPI", "PyTorch", "LangChain"],
+    "cloud": ["AWS", "GCP", "Azure"],
+    "databases": ["PostgreSQL", "MongoDB", "Pinecone", "ChromaDB"],
+    "deployment": ["Vercel", "Docker", "Kubernetes"]
+  },
+  "_instructions": "User preferences that should be respected across all sessions."
+}
