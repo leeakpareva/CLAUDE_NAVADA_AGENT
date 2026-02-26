@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# worldmonitor
+worldmonitor-repo/
+public/worldmonitor/
+
+# osint database
+data/osint.db

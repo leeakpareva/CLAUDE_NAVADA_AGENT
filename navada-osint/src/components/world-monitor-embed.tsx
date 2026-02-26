@@ -12,9 +12,10 @@ export function WorldMonitorEmbed() {
         <Skeleton className="absolute inset-0 rounded-lg" />
       )}
       <iframe
-        src="/worldmonitor/index.html"
+        src="http://192.168.0.36:4001"
         title="World Monitor"
         className="size-full border-0 rounded-lg"
+        allow="fullscreen; geolocation"
         onLoad={() => setLoading(false)}
       />
     </div>
