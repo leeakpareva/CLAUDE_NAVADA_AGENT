@@ -31,6 +31,7 @@ const axios = require('axios');
 const FormData = require('form-data');
 const { sendEmail, p } = require('./email-service');
 const costTracker = require('../Manager/cost-tracker');
+const grok = require('./voice-grok');
 
 const AUDIO_DIR = path.join(__dirname, 'voice-notes');
 const LOG_FILE = path.join(__dirname, 'logs', 'voice-command.log');
@@ -48,6 +49,8 @@ const CONVO_START = ['let\'s talk', 'lets talk', 'conversation mode', 'talk to m
 const CONVO_END = ['stop talking', 'goodbye', 'bye', 'end conversation', 'that\'s all', 'go back to standby'];
 const COMPANION_START = ['keep talking', 'radio mode', 'companion mode', 'just talk', 'entertain me', 'tell me things', 'keep going'];
 const COMPANION_END = ['quiet', 'shut up', 'enough', 'stop', 'that\'s enough', 'be quiet', 'silence', 'pause'];
+const GROK_START = ['use grok', 'switch to grok', 'grok mode', 'grok voice', 'talk to grok', 'activate grok'];
+const GROK_END = ['switch to openai', 'use openai', 'exit grok', 'leave grok', 'stop grok', 'back to normal'];
 
 const COMPANION_TOPICS = [
   'a short surprising AI fact from the last year — one sentence only',
@@ -68,7 +71,7 @@ const COMPANION_TOPICS = [
 ];
 
 // State
-let mode = 'STANDBY'; // STANDBY | ACTIVE | CONVO | SLEEPING | COMPANION
+let mode = 'STANDBY'; // STANDBY | ACTIVE | CONVO | SLEEPING | COMPANION | GROK
 let conversationHistory = [];
 let companionIndex = 0;
 const MAX_CONVO_HISTORY = 20;
@@ -362,6 +365,13 @@ async function processCommand(transcript, fromConvo = false) {
     return;
   }
 
+  // Grok realtime mode
+  if (matchesPhrase(lower, GROK_START)) {
+    await speak("Switching to Grok realtime voice. One moment.");
+    await startGrokMode();
+    return;
+  }
+
   // Companion mode
   if (matchesPhrase(lower, COMPANION_START)) {
     mode = 'COMPANION';
@@ -470,6 +480,19 @@ async function handleControl(cmd) {
       await speak("Companion mode. Here we go.");
       log('Terminal → COMPANION');
       break;
+    case 'grok':
+      if (mode === 'GROK' && grok.isActive()) {
+        log('Grok already active');
+      } else {
+        await startGrokMode();
+      }
+      log('Terminal → GROK');
+      break;
+    case 'grok-stop':
+    case 'grokstop':
+      if (mode === 'GROK') await stopGrokMode();
+      else log('Not in Grok mode');
+      break;
     case 'pause':
     case 'sleep':
       mode = 'SLEEPING';
@@ -546,6 +569,31 @@ function startControlServer() {
         return;
       }
 
+      if (cmd === 'grok') {
+        const prevMode = mode;
+        if (mode === 'GROK' && grok.isActive()) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true, action: 'grok', status: 'already_active', mode }));
+        } else {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true, action: 'grok', prevMode, mode: 'GROK' }));
+          await startGrokMode();
+        }
+        return;
+      }
+
+      if (cmd === 'grok-stop' || cmd === 'grokstop') {
+        if (mode === 'GROK') {
+          await stopGrokMode();
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true, action: 'grok-stop', mode }));
+        } else {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: 'Not in Grok mode', mode }));
+        }
+        return;
+      }
+
       if (['start', 'stop', 'pause', 'convo', 'companion', 'radio', 'sleep', 'standby', 'status'].includes(cmd)) {
         const prevMode = mode;
         await handleControl(cmd);
@@ -567,6 +615,43 @@ function startControlServer() {
     log(`Control server on http://0.0.0.0:${CONTROL_PORT}`);
   });
   server.on('error', (e) => log(`Control server error: ${e.message}`));
+}
+
+/**
+ * Start Grok realtime voice mode — hands off audio I/O to the Grok WebSocket
+ */
+async function startGrokMode() {
+  try {
+    mode = 'GROK';
+    log('Starting Grok realtime voice session...');
+    grok.onStop(() => {
+      if (mode === 'GROK') {
+        mode = 'STANDBY';
+        log('Grok session ended → STANDBY');
+        speak("Grok session ended. Back to standby.").catch(() => {});
+      }
+    });
+    grok.onExitPhrase(() => {
+      log('User requested exit from Grok via voice');
+      stopGrokMode().catch(() => {});
+    });
+    await grok.startSession({ greeting: true });
+    log('Grok voice session active');
+  } catch (e) {
+    log(`Grok start failed: ${e.message}`);
+    mode = 'STANDBY';
+    await speak("Couldn't start Grok voice. Back to normal mode.");
+  }
+}
+
+/**
+ * Stop Grok mode and return to standby
+ */
+async function stopGrokMode() {
+  grok.stopSession();
+  mode = 'STANDBY';
+  log('Grok stopped → STANDBY');
+  await speak("Grok disconnected. Back to standby. Say Claude when you need me.");
 }
 
 // ==========================================
@@ -602,6 +687,21 @@ async function startListening() {
             log('Woke up → STANDBY');
           }
           // Ignore everything else while sleeping
+        }
+        continue;
+      }
+
+      // ---- GROK MODE ----
+      // In Grok mode, audio I/O is handled by the Grok WebSocket.
+      // We just poll for control commands and Grok exit phrases.
+      if (mode === 'GROK') {
+        if (grok.isActive()) {
+          await new Promise(r => setTimeout(r, 1000));
+        } else {
+          // Grok session died — return to standby
+          mode = 'STANDBY';
+          log('Grok session inactive → STANDBY');
+          await speak("Grok session ended. Say Claude when you need me.");
         }
         continue;
       }
@@ -714,6 +814,18 @@ if (require.main === module) {
       process.exit(0);
     });
 
+  } else if (args[0] === 'grok') {
+    // Launch Grok realtime voice directly (standalone, no daemon needed)
+    console.log('\n  NAVADA Grok Realtime Voice');
+    console.log('  Press Ctrl+C to stop.\n');
+    const voice = args[1] || 'Sage';
+    grok.startSession({ voice, greeting: true })
+      .then(() => log('Grok session active — speak freely'))
+      .catch(e => { console.error(`Failed: ${e.message}`); process.exit(1); });
+    const shutdown = () => { grok.stopSession(); setTimeout(() => process.exit(0), 1000); };
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+
   } else if (args[0] && ['start', 'stop', 'pause', 'convo', 'companion', 'radio', 'sleep', 'standby', 'status'].includes(args[0])) {
     // Send command via HTTP to running daemon (instant), fallback to file
     const http = require('http');
@@ -765,6 +877,9 @@ NAVADA Voice Command System — Terminal Controls
   node voice-command.js start           Activate → STANDBY
   node voice-command.js convo           Activate → CONVERSATION mode
   node voice-command.js companion       Activate → COMPANION mode (radio)
+  node voice-command.js grok            Activate → GROK realtime voice
+  node voice-command.js grok Ara        Grok with specific voice (Ara/Sage/Ember/Nova/Orbit)
+  node voice-command.js grok-stop       Stop Grok mode
   node voice-command.js pause           Pause listening (SLEEP)
   node voice-command.js stop            Stop → STANDBY
   node voice-command.js status          Show current mode
@@ -774,6 +889,14 @@ NAVADA Voice Command System — Terminal Controls
   node voice-command.js --test-speak    Test S8 speaker
   node voice-command.js --once          Listen for one command
   node voice-command.js help            Show this help
+
+  Voice commands (while in any mode):
+    "Use Grok" / "Switch to Grok"     → Enter Grok realtime mode
+    "Switch to OpenAI" / "Exit Grok"  → Return to OpenAI mode
+
+  HTTP endpoints:
+    GET http://localhost:7777/grok      → Start Grok mode
+    GET http://localhost:7777/grok-stop → Stop Grok mode
 `);
     process.exit(0);
 
