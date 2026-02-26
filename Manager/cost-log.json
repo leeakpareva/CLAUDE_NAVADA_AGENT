@@ -5347,5 +5347,137 @@
     "cost_gbp": 0.00183,
     "human_mins": 5,
     "human_cost_gbp": 6.25
+  },
+  {
+    "timestamp": "2026-02-26T18:41:14.600Z",
+    "date": "2026-02-26",
+    "model": "whisper",
+    "audio_seconds": 29.121375,
+    "script": "voice-command",
+    "cost_usd": 0.002912,
+    "cost_gbp": 0.002301,
+    "human_mins": 5,
+    "human_cost_gbp": 6.25
+  },
+  {
+    "timestamp": "2026-02-26T18:43:34.076Z",
+    "date": "2026-02-26",
+    "model": "whisper",
+    "audio_seconds": 4.609375,
+    "script": "voice-command",
+    "cost_usd": 0.000461,
+    "cost_gbp": 0.000364,
+    "human_mins": 5,
+    "human_cost_gbp": 6.25
+  },
+  {
+    "timestamp": "2026-02-26T18:43:41.341Z",
+    "date": "2026-02-26",
+    "model": "whisper",
+    "audio_seconds": 3.713375,
+    "script": "voice-command",
+    "cost_usd": 0.000371,
+    "cost_gbp": 0.000293,
+    "human_mins": 5,
+    "human_cost_gbp": 6.25
+  },
+  {
+    "timestamp": "2026-02-26T18:43:44.010Z",
+    "date": "2026-02-26",
+    "model": "whisper",
+    "audio_seconds": 3.009375,
+    "script": "voice-command",
+    "cost_usd": 0.000301,
+    "cost_gbp": 0.000238,
+    "human_mins": 5,
+    "human_cost_gbp": 6.25
+  },
+  {
+    "timestamp": "2026-02-26T18:43:52.097Z",
+    "date": "2026-02-26",
+    "model": "whisper",
+    "audio_seconds": 5.249375,
+    "script": "voice-command",
+    "cost_usd": 0.000525,
+    "cost_gbp": 0.000415,
+    "human_mins": 5,
+    "human_cost_gbp": 6.25
+  },
+  {
+    "timestamp": "2026-02-26T18:44:17.915Z",
+    "date": "2026-02-26",
+    "model": "whisper",
+    "audio_seconds": 15.361375,
+    "script": "voice-command",
+    "cost_usd": 0.001536,
+    "cost_gbp": 0.001214,
+    "human_mins": 5,
+    "human_cost_gbp": 6.25
+  },
+  {
+    "timestamp": "2026-02-26T18:44:19.381Z",
+    "date": "2026-02-26",
+    "model": "whisper",
+    "audio_seconds": 5.057375,
+    "script": "voice-command",
+    "cost_usd": 0.000506,
+    "cost_gbp": 0.0004,
+    "human_mins": 5,
+    "human_cost_gbp": 6.25
+  },
+  {
+    "timestamp": "2026-02-26T18:44:39.609Z",
+    "date": "2026-02-26",
+    "model": "whisper",
+    "audio_seconds": 6.401375,
+    "script": "voice-command",
+    "cost_usd": 0.00064,
+    "cost_gbp": 0.000506,
+    "human_mins": 5,
+    "human_cost_gbp": 6.25
+  },
+  {
+    "timestamp": "2026-02-26T18:45:40.255Z",
+    "date": "2026-02-26",
+    "model": "whisper",
+    "audio_seconds": 6.785375,
+    "script": "voice-command",
+    "cost_usd": 0.000679,
+    "cost_gbp": 0.000536,
+    "human_mins": 5,
+    "human_cost_gbp": 6.25
+  },
+  {
+    "timestamp": "2026-02-26T18:46:15.458Z",
+    "date": "2026-02-26",
+    "model": "whisper",
+    "audio_seconds": 13.185375,
+    "script": "voice-command",
+    "cost_usd": 0.001319,
+    "cost_gbp": 0.001042,
+    "human_mins": 5,
+    "human_cost_gbp": 6.25
+  },
+  {
+    "timestamp": "2026-02-26T18:46:26.826Z",
+    "date": "2026-02-26",
+    "model": "whisper",
+    "audio_seconds": 10.049375,
+    "script": "voice-command",
+    "cost_usd": 0.001005,
+    "cost_gbp": 0.000794,
+    "human_mins": 5,
+    "human_cost_gbp": 6.25
+  },
+  {
+    "timestamp": "2026-02-26T18:48:53.934Z",
+    "date": "2026-02-26",
+    "model": "whisper",
+    "audio_seconds": 11.969375,
+    "script": "voice-command",
+    "cost_usd": 0.001197,
+    "cost_gbp": 0.000946,
+    "human_mins": 5,
+    "human_cost_gbp": 6.25
   }
 ]
