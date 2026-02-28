@@ -1,13 +1,13 @@
 {
   "active": true,
-  "iteration": 3,
+  "iteration": 1,
   "minIterations": 1,
   "maxIterations": 3,
   "completionPromise": "COMPLETE",
   "tasksMode": false,
   "taskPromise": "READY_FOR_NEXT_TASK",
   "prompt": "You are running as part of the NAVADA Self-Improvement System. Your job is to RESEARCH ONLY — do NOT modify any files except the improvement log.\n\nTASK: Scan the NAVADA server and identify improvements, bugs, security issues, and opportunities.\n\nSCAN CHECKLIST:\n1. AUTOMATIONS — Check all scripts in C:/Users/leeak/CLAUDE_NAVADA_AGENT/Automation/:\n   - Are scheduled tasks (ai-news-mailer.js, job-hunter-apify.js, uk-us-economy-report.py) working?\n   - Check logs/ for recent errors or failures\n   - Are any API tokens expiring soon?\n   - Is inbox-auto-responder.js running in PM2?\n\n2. SECURITY — Check for vulnerabilities:\n   - Any secrets committed to git or exposed?\n   - SSH config still hardened?\n   - .env file permissions?\n   - Any packages with known vulnerabilities (npm audit)?\n\n3. MCP SERVERS — Are all 23 MCP servers responsive?\n   - Check for any that have been deprecated or have updates\n\n4. PERFORMANCE — Check system health:\n   - Disk space usage\n   - Node.js / Python package sizes\n   - Any temp files that need cleanup?\n\n5. NEW TOOLS & IDEAS — Research opportunities:\n   - Any new MCP servers worth adding?\n   - Workflow improvements?\n   - New automations that would help Lee?\n\nOUTPUT FORMAT:\nAfter scanning, write your findings to the improvement log file at:\nC:/Users/leeak/CLAUDE_NAVADA_AGENT/Automation/kb/improvement-log.json\n\nUse this exact JSON format:\n{\n  \"week\": <week_number>,\n  \"findings\": [\n    {\n      \"id\": 1,\n      \"category\": \"BUG|SECURITY|PERFORMANCE|NEW_TOOL|IDEA|MAINTENANCE\",\n      \"title\": \"Short title\",\n      \"description\": \"What you found and why it matters\",\n      \"action\": \"Specific action to take if approved\",\n      \"priority\": \"high|medium|low\",\n      \"effort\": \"5min|30min|1hr|2hr+\"\n    }\n  ],\n  \"scannedAt\": \"<ISO timestamp>\",\n  \"sentAt\": null\n}\n\nRULES:\n- DO NOT modify any code, configs, or files other than the improvement log\n- DO NOT install, uninstall, or update any packages\n- DO NOT restart any services\n- DO NOT send any emails\n- ONLY read files, check logs, run diagnostic commands (npm audit, disk space, etc.)\n- Be specific — include file paths, line numbers, error messages\n- Maximum 10 findings per scan (prioritise the most important)\n- When complete, output: <promise>COMPLETE</promise>",
-  "startedAt": "2026-02-28T20:35:02.918Z",
+  "startedAt": "2026-02-28T20:40:45.574Z",
   "model": "",
   "agent": "claude-code"
 }

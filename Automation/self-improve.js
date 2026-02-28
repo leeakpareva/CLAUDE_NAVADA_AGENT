@@ -154,59 +154,70 @@ async function runResearchScan() {
   // Ensure directories exist
   fs.mkdirSync(path.join(__dirname, 'kb'), { recursive: true });
   fs.mkdirSync(path.join(__dirname, 'logs'), { recursive: true });
-  fs.mkdirSync(RALPH_DIR, { recursive: true });
 
   const prompt = buildResearchPrompt();
   const promptFile = path.join(__dirname, 'kb', 'self-improve-prompt.md');
   fs.writeFileSync(promptFile, prompt);
 
-  log('Research prompt written. Launching Ralph + Claude Code...');
+  log('Research prompt written. Launching Claude Code scan...');
 
+  // Clear old log so we can verify a fresh scan actually writes new findings
+  const oldLog = getLog();
+  const oldWeek = oldLog.week;
+
+  let scanSuccess = false;
+
+  // Primary: Direct Claude Code in print mode (reliable on Windows)
   try {
-    // Run Ralph with Claude Code agent in research-only mode
-    const env = {
-      ...process.env,
-      PATH: `C:\\Users\\leeak\\.bun\\bin;${process.env.PATH}`,
-    };
-
+    const promptText = fs.readFileSync(promptFile, 'utf8');
     const result = execSync(
-      `ralph --prompt-file "${promptFile}" --agent claude-code --max-iterations 3 --min-iterations 1 --no-questions`,
+      `claude -p --model sonnet --max-turns 15 --allowedTools "Read Glob Grep Bash Write Edit"`,
       {
-        cwd: __dirname,
+        cwd: path.join(__dirname, '..'),
         encoding: 'utf8',
         timeout: 600000, // 10 min max
-        env,
-        stdio: 'pipe',
+        input: promptText,
       }
     );
-
-    log('Ralph scan completed.');
-    log(result.substring(result.length - 500));
+    log('Claude Code scan completed.');
+    log(result.substring(Math.max(0, result.length - 500)));
+    scanSuccess = true;
   } catch (e) {
-    log(`Ralph scan error: ${e.message?.substring(0, 300)}`);
+    log(`Claude Code scan error: ${e.message?.substring(0, 300)}`);
+  }
 
-    // Fallback: run Claude Code directly without Ralph
-    log('Falling back to direct Claude Code scan...');
+  // Fallback: Ralph + Claude Code (if direct failed)
+  if (!scanSuccess) {
+    log('Trying Ralph + Claude Code fallback...');
     try {
+      const env = {
+        ...process.env,
+        PATH: `C:\\Users\\leeak\\.bun\\bin;${process.env.PATH}`,
+      };
+
       execSync(
-        `claude -p "${prompt.replace(/"/g, '\\"').substring(0, 4000)}" --model sonnet --max-turns 10`,
+        `ralph --prompt-file "${promptFile}" --agent claude-code --max-iterations 3 --min-iterations 1 --no-questions`,
         {
           cwd: __dirname,
           encoding: 'utf8',
           timeout: 600000,
+          env,
           stdio: 'pipe',
         }
       );
-      log('Direct scan completed.');
+      log('Ralph scan completed.');
+      scanSuccess = true;
     } catch (e2) {
-      log(`Direct scan also failed: ${e2.message?.substring(0, 200)}`);
+      log(`Ralph scan also failed: ${e2.message?.substring(0, 200)}`);
     }
   }
 
-  // Verify the log was written
+  // Verify the log was written with fresh data
   const logData = getLog();
-  if (logData.findings && logData.findings.length > 0) {
-    log(`Scan complete: ${logData.findings.length} findings logged.`);
+  if (logData.findings && logData.findings.length > 0 && logData.week !== oldWeek) {
+    log(`Scan complete: ${logData.findings.length} new findings logged (week ${logData.week}).`);
+  } else if (logData.findings && logData.findings.length > 0) {
+    log(`Scan complete: ${logData.findings.length} findings in log (may be from previous scan).`);
   } else {
     log('Warning: No findings were logged. Check if Claude Code wrote to the correct file.');
   }
@@ -351,42 +362,43 @@ RULES:
 - Log what you did for each item
 - When all items are complete, output: <promise>COMPLETE</promise>`;
 
+  // Primary: Direct Claude Code execution
   try {
-    const env = {
-      ...process.env,
-      PATH: `C:\\Users\\leeak\\.bun\\bin;${process.env.PATH}`,
-    };
-
-    // Write execution prompt to temp file
-    const execPromptFile = path.join(__dirname, 'kb', 'self-improve-exec-prompt.md');
-    fs.writeFileSync(execPromptFile, execPrompt);
-
     execSync(
-      `ralph --prompt-file "${execPromptFile}" --agent claude-code --max-iterations 5 --min-iterations 1 --no-questions`,
+      `claude -p --model sonnet --max-turns 15 --allowedTools "Read Glob Grep Bash Write Edit"`,
       {
-        cwd: __dirname,
+        cwd: path.join(__dirname, '..'),
         encoding: 'utf8',
         timeout: 600000,
-        env,
-        stdio: 'pipe',
+        input: execPrompt,
       }
     );
+    log('Claude Code execution completed.');
   } catch (e) {
-    // Fallback to direct Claude
-    log(`Ralph execution failed: ${e.message?.substring(0, 200)}`);
-    log('Falling back to direct Claude Code execution...');
+    log(`Claude Code execution failed: ${e.message?.substring(0, 300)}`);
+
+    // Fallback: Ralph
+    log('Trying Ralph fallback...');
     try {
+      const execPromptFile = path.join(__dirname, 'kb', 'self-improve-exec-prompt.md');
+      fs.writeFileSync(execPromptFile, execPrompt);
+      const env = {
+        ...process.env,
+        PATH: `C:\\Users\\leeak\\.bun\\bin;${process.env.PATH}`,
+      };
       execSync(
-        `claude -p "${execPrompt.replace(/"/g, '\\"').substring(0, 4000)}" --model sonnet --max-turns 15`,
+        `ralph --prompt-file "${execPromptFile}" --agent claude-code --max-iterations 5 --min-iterations 1 --no-questions`,
         {
           cwd: __dirname,
           encoding: 'utf8',
           timeout: 600000,
+          env,
           stdio: 'pipe',
         }
       );
+      log('Ralph execution completed.');
     } catch (e2) {
-      log(`Direct execution also failed: ${e2.message?.substring(0, 200)}`);
+      log(`Ralph execution also failed: ${e2.message?.substring(0, 200)}`);
     }
   }
 
