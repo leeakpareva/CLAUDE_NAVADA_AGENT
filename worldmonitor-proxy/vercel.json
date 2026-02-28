@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "https://navada.tail394c36.ts.net/$1" }
+  ]
+}

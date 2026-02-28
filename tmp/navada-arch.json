@@ -1,0 +1,61 @@
+{"elements": [
+  {"id": "title", "type": "text", "x": 250, "y": -40, "text": "NAVADA Server Architecture", "fontSize": 28, "fontFamily": "1", "strokeColor": "#1e1e1e"},
+
+  {"id": "bg-clients", "type": "rectangle", "x": -40, "y": 40, "width": 900, "height": 100, "backgroundColor": "#e7f5ff", "strokeColor": "#1971c2", "label": {"text": ""}},
+  {"id": "lbl-clients", "type": "text", "x": -30, "y": 50, "text": "CLIENTS", "fontSize": 14, "fontFamily": "1", "strokeColor": "#1971c2"},
+  {"id": "iphone", "type": "rectangle", "x": 50, "y": 60, "width": 160, "height": 60, "backgroundColor": "#d0ebff", "strokeColor": "#1971c2", "label": {"text": "iPhone (Tailscale)"}},
+  {"id": "browser", "type": "rectangle", "x": 260, "y": 60, "width": 160, "height": 60, "backgroundColor": "#d0ebff", "strokeColor": "#1971c2", "label": {"text": "Browser (LAN)"}},
+  {"id": "claude-mobile", "type": "rectangle", "x": 470, "y": 60, "width": 180, "height": 60, "backgroundColor": "#d0ebff", "strokeColor": "#1971c2", "label": {"text": "Claude Code (CLI)"}},
+  {"id": "public", "type": "rectangle", "x": 690, "y": 60, "width": 150, "height": 60, "backgroundColor": "#d0ebff", "strokeColor": "#1971c2", "label": {"text": "Public (HTTPS)"}},
+
+  {"id": "bg-edge", "type": "rectangle", "x": -40, "y": 190, "width": 900, "height": 100, "backgroundColor": "#fff3bf", "strokeColor": "#e67700", "label": {"text": ""}},
+  {"id": "lbl-edge", "type": "text", "x": -30, "y": 200, "text": "EDGE / PROXY", "fontSize": 14, "fontFamily": "1", "strokeColor": "#e67700"},
+  {"id": "nginx", "type": "rectangle", "x": 120, "y": 210, "width": 220, "height": 60, "backgroundColor": "#fff9db", "strokeColor": "#e67700", "label": {"text": "Nginx (Docker :8080)"}},
+  {"id": "cloudflare", "type": "rectangle", "x": 420, "y": 210, "width": 250, "height": 60, "backgroundColor": "#fff9db", "strokeColor": "#e67700", "label": {"text": "Cloudflare Tunnel (Docker)"}},
+  {"id": "tailscale-svc", "type": "rectangle", "x": 720, "y": 210, "width": 130, "height": 60, "backgroundColor": "#fff9db", "strokeColor": "#e67700", "label": {"text": "Tailscale VPN"}},
+
+  {"id": "bg-services", "type": "rectangle", "x": -40, "y": 340, "width": 900, "height": 220, "backgroundColor": "#f3f0ff", "strokeColor": "#7048e8", "label": {"text": ""}},
+  {"id": "lbl-services", "type": "text", "x": -30, "y": 350, "text": "SERVICES (PM2 + Node.js)", "fontSize": 14, "fontFamily": "1", "strokeColor": "#7048e8"},
+
+  {"id": "worldmonitor", "type": "rectangle", "x": 0, "y": 380, "width": 180, "height": 55, "backgroundColor": "#e5dbff", "strokeColor": "#7048e8", "label": {"text": "WorldMonitor :4173"}},
+  {"id": "wm-api", "type": "rectangle", "x": 200, "y": 380, "width": 190, "height": 55, "backgroundColor": "#e5dbff", "strokeColor": "#7048e8", "label": {"text": "WorldMonitor API :46123"}},
+  {"id": "clawd", "type": "rectangle", "x": 410, "y": 380, "width": 190, "height": 55, "backgroundColor": "#e5dbff", "strokeColor": "#7048e8", "label": {"text": "CLAWD Dashboard :3000"}},
+  {"id": "lead-dash", "type": "rectangle", "x": 620, "y": 380, "width": 200, "height": 55, "backgroundColor": "#e5dbff", "strokeColor": "#7048e8", "label": {"text": "Lead Dashboard"}},
+
+  {"id": "voice", "type": "rectangle", "x": 0, "y": 475, "width": 180, "height": 55, "backgroundColor": "#e5dbff", "strokeColor": "#7048e8", "label": {"text": "Voice Command (S8)"}},
+  {"id": "inbox", "type": "rectangle", "x": 200, "y": 475, "width": 190, "height": 55, "backgroundColor": "#e5dbff", "strokeColor": "#7048e8", "label": {"text": "Inbox Auto-Responder"}},
+  {"id": "jupyter-svc", "type": "rectangle", "x": 410, "y": 475, "width": 190, "height": 55, "backgroundColor": "#e5dbff", "strokeColor": "#7048e8", "label": {"text": "JupyterLab :8888"}},
+  {"id": "gradio-svc", "type": "rectangle", "x": 620, "y": 475, "width": 200, "height": 55, "backgroundColor": "#e5dbff", "strokeColor": "#7048e8", "label": {"text": "Gradio Quant :7860"}},
+
+  {"id": "bg-auto", "type": "rectangle", "x": -40, "y": 610, "width": 900, "height": 100, "backgroundColor": "#d3f9d8", "strokeColor": "#2b8a3e", "label": {"text": ""}},
+  {"id": "lbl-auto", "type": "text", "x": -30, "y": 620, "text": "SCHEDULED (Task Scheduler)", "fontSize": 14, "fontFamily": "1", "strokeColor": "#2b8a3e"},
+  {"id": "news", "type": "rectangle", "x": 0, "y": 640, "width": 160, "height": 50, "backgroundColor": "#b2f2bb", "strokeColor": "#2b8a3e", "label": {"text": "AI News (7 AM)"}},
+  {"id": "jobs", "type": "rectangle", "x": 180, "y": 640, "width": 160, "height": 50, "backgroundColor": "#b2f2bb", "strokeColor": "#2b8a3e", "label": {"text": "Job Hunter (9 AM)"}},
+  {"id": "economy", "type": "rectangle", "x": 360, "y": 640, "width": 180, "height": 50, "backgroundColor": "#b2f2bb", "strokeColor": "#2b8a3e", "label": {"text": "Economy (Mon 8 AM)"}},
+  {"id": "pipeline", "type": "rectangle", "x": 560, "y": 640, "width": 180, "height": 50, "backgroundColor": "#b2f2bb", "strokeColor": "#2b8a3e", "label": {"text": "Lead Pipeline (8:30)"}},
+  {"id": "ralph", "type": "rectangle", "x": 760, "y": 640, "width": 90, "height": 50, "backgroundColor": "#b2f2bb", "strokeColor": "#2b8a3e", "label": {"text": "Ralph"}},
+
+  {"id": "bg-data", "type": "rectangle", "x": -40, "y": 760, "width": 540, "height": 100, "backgroundColor": "#ffe3e3", "strokeColor": "#c92a2a", "label": {"text": ""}},
+  {"id": "lbl-data", "type": "text", "x": -30, "y": 770, "text": "DATA STORES", "fontSize": 14, "fontFamily": "1", "strokeColor": "#c92a2a"},
+  {"id": "postgres", "type": "ellipse", "x": 20, "y": 790, "width": 180, "height": 55, "backgroundColor": "#ffc9c9", "strokeColor": "#c92a2a", "label": {"text": "PostgreSQL :5433"}},
+  {"id": "sqlite-db", "type": "ellipse", "x": 220, "y": 790, "width": 140, "height": 55, "backgroundColor": "#ffc9c9", "strokeColor": "#c92a2a", "label": {"text": "SQLite (CRM)"}},
+  {"id": "chromadb", "type": "ellipse", "x": 380, "y": 790, "width": 120, "height": 55, "backgroundColor": "#ffc9c9", "strokeColor": "#c92a2a", "label": {"text": "ChromaDB"}},
+
+  {"id": "bg-ext", "type": "rectangle", "x": 520, "y": 760, "width": 340, "height": 100, "backgroundColor": "#fff4e6", "strokeColor": "#d9480f", "label": {"text": ""}},
+  {"id": "lbl-ext", "type": "text", "x": 530, "y": 770, "text": "EXTERNAL APIs", "fontSize": 14, "fontFamily": "1", "strokeColor": "#d9480f"},
+  {"id": "zoho", "type": "rectangle", "x": 540, "y": 790, "width": 90, "height": 50, "backgroundColor": "#ffe8cc", "strokeColor": "#d9480f", "label": {"text": "Zoho SMTP"}},
+  {"id": "hunter", "type": "rectangle", "x": 645, "y": 790, "width": 90, "height": 50, "backgroundColor": "#ffe8cc", "strokeColor": "#d9480f", "label": {"text": "Hunter.io"}},
+  {"id": "openai-api", "type": "rectangle", "x": 750, "y": 790, "width": 90, "height": 50, "backgroundColor": "#ffe8cc", "strokeColor": "#d9480f", "label": {"text": "OpenAI"}},
+
+  {"id": "bg-mcp", "type": "rectangle", "x": -40, "y": 910, "width": 900, "height": 80, "backgroundColor": "#e3fafc", "strokeColor": "#0c8599", "label": {"text": ""}},
+  {"id": "lbl-mcp", "type": "text", "x": -30, "y": 920, "text": "MCP SERVERS (23)", "fontSize": 14, "fontFamily": "1", "strokeColor": "#0c8599"},
+  {"id": "mcp-list", "type": "text", "x": 0, "y": 945, "text": "GitHub | Puppeteer | Bright Data | HuggingFace | Vercel | DuckDB | SQLite | Memory | Context7 | Vizro | Jupyter", "fontSize": 14, "fontFamily": "1", "strokeColor": "#0c8599"},
+
+  {"id": "hw-box", "type": "rectangle", "x": 200, "y": 1040, "width": 420, "height": 60, "backgroundColor": "#f8f9fa", "strokeColor": "#495057", "label": {"text": "HP i5-8350U | 16GB RAM | 256GB NVMe | Win11 Pro | Docker WSL2"}},
+
+  {"type": "arrow", "x": 130, "y": 120, "start": {"id": "iphone"}, "end": {"id": "tailscale-svc"}, "strokeColor": "#868e96"},
+  {"type": "arrow", "x": 340, "y": 120, "start": {"id": "browser"}, "end": {"id": "nginx"}, "strokeColor": "#868e96"},
+  {"type": "arrow", "x": 765, "y": 120, "start": {"id": "public"}, "end": {"id": "cloudflare"}, "strokeColor": "#868e96"},
+  {"type": "arrow", "x": 230, "y": 270, "start": {"id": "nginx"}, "end": {"id": "clawd"}, "strokeColor": "#868e96"},
+  {"type": "arrow", "x": 545, "y": 270, "start": {"id": "cloudflare"}, "end": {"id": "nginx"}, "strokeColor": "#868e96"}
+]}

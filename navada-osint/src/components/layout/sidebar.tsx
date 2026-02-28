@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -8,10 +8,12 @@ import {
   Linkedin,
   Sparkles,
   FlaskConical,
+  Brain,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AlertFeed } from "@/components/alert-feed";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const QUICK_ACTIONS = [
   {
@@ -39,6 +41,65 @@ const QUICK_ACTIONS = [
     external: true,
   },
 ];
+
+function AIInsightsCompact() {
+  const [summary, setSummary] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchInsights() {
+      try {
+        const res = await fetch("/api/insights");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.briefing) {
+            // Get first 2 sentences
+            const sentences = data.briefing.match(/[^.!?]+[.!?]+/g) || [];
+            setSummary(sentences.slice(0, 2).join(" ").trim());
+          }
+        }
+      } catch {
+        // silent fail
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchInsights();
+    const id = setInterval(fetchInsights, 30 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="space-y-1.5 p-3 border-t">
+        <div className="flex items-center gap-1.5 mb-1">
+          <Brain className="size-3 text-amber-400" />
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-amber-400">
+            AI Insights
+          </span>
+        </div>
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-4/5" />
+      </div>
+    );
+  }
+
+  if (!summary) return null;
+
+  return (
+    <div className="border-t p-3">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <Brain className="size-3 text-amber-400" />
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-amber-400">
+          AI Insights
+        </span>
+      </div>
+      <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-4">
+        {summary}
+      </p>
+    </div>
+  );
+}
 
 export function Sidebar() {
   const [expanded, setExpanded] = useState(true);
@@ -74,6 +135,8 @@ export function Sidebar() {
           <div className="flex-1 overflow-hidden">
             <AlertFeed />
           </div>
+
+          <AIInsightsCompact />
 
           <div className="border-t p-3">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">

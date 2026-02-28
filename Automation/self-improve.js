@@ -87,7 +87,7 @@ function buildResearchPrompt() {
 TASK: Scan the NAVADA server and identify improvements, bugs, security issues, and opportunities.
 
 SCAN CHECKLIST:
-1. AUTOMATIONS — Check all scripts in C:/Users/leeak/Alex/Automation/:
+1. AUTOMATIONS — Check all scripts in C:/Users/leeak/CLAUDE_NAVADA_AGENT/Automation/:
    - Are scheduled tasks (ai-news-mailer.js, job-hunter-apify.js, uk-us-economy-report.py) working?
    - Check logs/ for recent errors or failures
    - Are any API tokens expiring soon?
@@ -114,7 +114,7 @@ SCAN CHECKLIST:
 
 OUTPUT FORMAT:
 After scanning, write your findings to the improvement log file at:
-C:/Users/leeak/Alex/Automation/kb/improvement-log.json
+C:/Users/leeak/CLAUDE_NAVADA_AGENT/Automation/kb/improvement-log.json
 
 Use this exact JSON format:
 {
@@ -170,7 +170,7 @@ async function runResearchScan() {
     };
 
     const result = execSync(
-      `ralph "${prompt.replace(/"/g, '\\"').substring(0, 200)}..." --prompt-file "${promptFile}" --agent claude-code --max-iterations 3 --min-iterations 1 --no-commit`,
+      `ralph --prompt-file "${promptFile}" --agent claude-code --max-iterations 3 --min-iterations 1 --no-questions`,
       {
         cwd: __dirname,
         encoding: 'utf8',
@@ -189,7 +189,7 @@ async function runResearchScan() {
     log('Falling back to direct Claude Code scan...');
     try {
       execSync(
-        `claude --p "${prompt.replace(/"/g, '\\"').substring(0, 4000)}" --model claude-sonnet-4-20250514 --max-turns 10`,
+        `claude -p "${prompt.replace(/"/g, '\\"').substring(0, 4000)}" --model sonnet --max-turns 10`,
         {
           cwd: __dirname,
           encoding: 'utf8',
@@ -357,22 +357,27 @@ RULES:
       PATH: `C:\\Users\\leeak\\.bun\\bin;${process.env.PATH}`,
     };
 
+    // Write execution prompt to temp file
+    const execPromptFile = path.join(__dirname, 'kb', 'self-improve-exec-prompt.md');
+    fs.writeFileSync(execPromptFile, execPrompt);
+
     execSync(
-      `ralph "${execPrompt.substring(0, 200)}..." --prompt-file - --agent claude-code --max-iterations 5 --min-iterations 1`,
+      `ralph --prompt-file "${execPromptFile}" --agent claude-code --max-iterations 5 --min-iterations 1 --no-questions`,
       {
         cwd: __dirname,
         encoding: 'utf8',
         timeout: 600000,
         env,
-        input: execPrompt,
-        stdio: ['pipe', 'pipe', 'pipe'],
+        stdio: 'pipe',
       }
     );
   } catch (e) {
     // Fallback to direct Claude
+    log(`Ralph execution failed: ${e.message?.substring(0, 200)}`);
+    log('Falling back to direct Claude Code execution...');
     try {
       execSync(
-        `claude --p "${execPrompt.replace(/"/g, '\\"').substring(0, 4000)}" --model claude-sonnet-4-20250514 --max-turns 15`,
+        `claude -p "${execPrompt.replace(/"/g, '\\"').substring(0, 4000)}" --model sonnet --max-turns 15`,
         {
           cwd: __dirname,
           encoding: 'utf8',
@@ -381,7 +386,7 @@ RULES:
         }
       );
     } catch (e2) {
-      log(`Execution failed: ${e2.message?.substring(0, 200)}`);
+      log(`Direct execution also failed: ${e2.message?.substring(0, 200)}`);
     }
   }
 

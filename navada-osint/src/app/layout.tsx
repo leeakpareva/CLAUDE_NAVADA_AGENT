@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NAVADA OSINT | Intelligence Dashboard",
+  title: "NAVADA OSINT | Global Intelligence Platform",
   description: "Real-time global intelligence monitoring and analysis platform",
 };
 

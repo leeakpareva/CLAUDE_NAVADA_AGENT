@@ -1,6 +1,6 @@
 /**
  * NAVADA Daily Operations Report
- * Aggregates all server activity, costs, and ROI into a branded email.
+ * Aggregates all server activity, costs, and ROI into a clean dark email.
  * Scheduled: Daily 9 PM via Task Scheduler
  *
  * Usage:
@@ -12,7 +12,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '..', 'Automati
 const fs = require('fs');
 const path = require('path');
 const { getDailySummary, getWeeklySummary } = require('./cost-tracker');
-const { sendEmail, p } = require('../Automation/email-service');
+const { sendEmail } = require('../Automation/email-service');
 
 const LOGS_DIR = path.join(__dirname, '..', 'Automation', 'logs');
 const VOICE_LOG = path.join(__dirname, '..', 'Automation', 'logs', 'voice-command.log');
@@ -50,7 +50,11 @@ function scanVoiceActivity(date) {
       if (line.includes('Entered CONVO')) stats.convos++;
       if (line.includes('Companion:')) stats.companionNuggets++;
       if (line.includes('Ignoring (no wake word)')) stats.ignored++;
-      if (line.includes('error') || line.includes('Error')) stats.errors++;
+      // Only count actual error events, skip stack traces and incidental mentions
+      if (/\[ERROR\]|Error:|error:/i.test(line) &&
+          !line.includes('at ') && !line.includes('node_modules')) {
+        stats.errors++;
+      }
     }
   } catch (e) { /* */ }
   return stats;
@@ -82,7 +86,8 @@ function getPM2Status() {
 }
 
 // ============================================================
-// Build HTML Report
+// Build HTML Report — Clean dark full-width email
+// Single-table structure for Gmail dark background support
 // ============================================================
 function buildReport(date) {
   const costs = getDailySummary(date);
@@ -92,168 +97,265 @@ function buildReport(date) {
   const jobs = scanJobActivity(date);
   const pm2 = getPM2Status();
 
-  const roiColor = costs.roi_multiplier >= 100 ? '#22c55e' : costs.roi_multiplier >= 10 ? '#eab308' : '#ef4444';
+  const dateObj = new Date(date + 'T00:00:00');
+  const dateStr = dateObj.toLocaleDateString('en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  });
+  const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-  // ROI bar chart (last 7 days)
-  let roiChart = '';
-  const days = Object.entries(weekly.days).sort();
-  if (days.length > 0) {
-    const maxHuman = Math.max(...days.map(([, d]) => d.human_cost_gbp), 1);
-    roiChart = days.map(([day, data]) => {
-      const aiWidth = Math.max(2, Math.round(data.cost_gbp / maxHuman * 300));
-      const humanWidth = Math.max(2, Math.round(data.human_cost_gbp / maxHuman * 300));
-      const dayLabel = day.slice(5); // MM-DD
-      return `
-        <tr>
-          <td style="color:#888;font-size:12px;padding:2px 8px 2px 0;white-space:nowrap">${dayLabel}</td>
-          <td style="padding:2px 0">
-            <div style="background:#22c55e;height:14px;width:${aiWidth}px;border-radius:3px;display:inline-block" title="AI: £${data.cost_gbp.toFixed(3)}"></div>
-            <span style="color:#22c55e;font-size:11px;margin-left:4px">£${data.cost_gbp.toFixed(3)}</span>
-          </td>
-        </tr>
-        <tr>
-          <td></td>
-          <td style="padding:0 0 6px 0">
-            <div style="background:#ef4444;height:14px;width:${humanWidth}px;border-radius:3px;display:inline-block" title="Human: £${data.human_cost_gbp.toFixed(0)}"></div>
-            <span style="color:#ef4444;font-size:11px;margin-left:4px">£${data.human_cost_gbp.toFixed(0)}</span>
-          </td>
-        </tr>`;
-    }).join('');
+  function fmtCost(gbp) {
+    if (!gbp || gbp === 0) return '0p';
+    if (gbp < 0.01) return '<1p';
+    if (gbp < 1) return `${Math.round(gbp * 100)}p`;
+    if (gbp >= 1000) return `£${Math.round(gbp).toLocaleString('en-GB')}`;
+    return `£${Math.round(gbp)}`;
   }
 
-  // Model breakdown table
-  const modelRows = Object.entries(costs.by_model).map(([model, data]) => `
-    <tr>
-      <td style="padding:4px 12px 4px 0;color:#ccc">${model}</td>
-      <td style="padding:4px 12px;color:#fff;text-align:right">${data.calls}</td>
-      <td style="padding:4px 12px;color:#22c55e;text-align:right">£${data.cost_gbp.toFixed(4)}</td>
-      <td style="padding:4px 12px;color:#888;text-align:right">${data.human_mins}m</td>
-    </tr>`).join('');
+  function fmtUptime(mins) {
+    if (mins >= 1440) {
+      const d = Math.floor(mins / 1440);
+      const h = Math.floor((mins % 1440) / 60);
+      return h > 0 ? `${d}d ${h}h` : `${d}d`;
+    }
+    if (mins >= 60) {
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    }
+    return `${mins}m`;
+  }
 
-  // Script breakdown
-  const scriptRows = Object.entries(costs.by_script).map(([script, data]) => `
-    <tr>
-      <td style="padding:4px 12px 4px 0;color:#ccc">${script}</td>
-      <td style="padding:4px 12px;color:#fff;text-align:right">${data.calls}</td>
-      <td style="padding:4px 12px;color:#22c55e;text-align:right">£${data.cost_gbp.toFixed(4)}</td>
-    </tr>`).join('');
+  const taskMap = new Map();
+  for (const t of tasks) {
+    const existing = taskMap.get(t.name);
+    if (!existing || !t.success) taskMap.set(t.name, t);
+  }
+  const uniqueTasks = [...taskMap.values()];
+  const tasksOk = uniqueTasks.filter(t => t.success).length;
+  const servicesOnline = pm2.filter(p => p.status === 'online').length;
 
-  // Task status
-  const taskRows = tasks.map(t => `
-    <tr>
-      <td style="padding:4px 12px 4px 0;color:#ccc">${t.name}</td>
-      <td style="padding:4px 12px;color:${t.success ? '#22c55e' : '#ef4444'}">${t.success ? 'OK' : 'FAILED'}</td>
-    </tr>`).join('') || '<tr><td style="color:#666;padding:4px">No scheduled tasks ran today</td></tr>';
+  // Colours
+  const BG = '#0d0d0d';
+  const HD = '#000000';
+  const CD = '#111111';
+  const W = '#ffffff';
+  const GR = '#999999';
+  const DM = '#555555';
+  const LN = '#222222';
+  const P = '32px';
+  const FN = "-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif";
+  const MN = "'Courier New',Courier,monospace";
 
-  // PM2 status
-  const pm2Rows = pm2.map(p => `
-    <tr>
-      <td style="padding:4px 12px 4px 0;color:#ccc">${p.name}</td>
-      <td style="padding:4px 12px;color:${p.status === 'online' ? '#22c55e' : '#ef4444'}">${p.status}</td>
-      <td style="padding:4px 12px;color:#888">${p.uptime}m</td>
-      <td style="padding:4px 12px;color:#888">${p.memory}MB</td>
-    </tr>`).join('');
+  // Section header
+  const sh = (t) => `<div style="font-size:11px;font-weight:700;color:${DM};letter-spacing:0.12em;text-transform:uppercase;margin-bottom:16px;">${t}</div>`;
 
-  const html = `
-    <div style="font-family:'Courier New',monospace;max-width:640px;margin:0 auto;background:#0a0a0a;padding:32px;border:1px solid #222;border-radius:8px">
+  // Divider row in master table
+  const divRow = `<tr><td bgcolor="${BG}" style="background-color:${BG};padding:0 ${P};"><div style="border-top:1px solid ${LN};"></div></td></tr>`;
 
-      <div style="text-align:center;margin-bottom:24px">
-        <h1 style="color:#fff;font-size:20px;margin:0">NAVADA OPS REPORT</h1>
-        <p style="color:#666;font-size:13px;margin:4px 0">${date} | Generated ${new Date().toLocaleTimeString('en-GB')}</p>
-      </div>
+  // ── Build rows for the single master table ──
+  const rows = [];
 
-      <!-- ROI HERO -->
-      <div style="background:#111;border:1px solid #333;border-radius:8px;padding:20px;margin-bottom:20px;text-align:center">
-        <div style="font-size:48px;font-weight:bold;color:${roiColor}">${costs.roi_multiplier}x</div>
-        <div style="color:#888;font-size:13px;margin-top:4px">ROI — AI vs Human Cost</div>
-        <div style="display:flex;justify-content:center;gap:40px;margin-top:16px">
-          <div>
-            <div style="color:#22c55e;font-size:24px;font-weight:bold">£${costs.total_cost_gbp.toFixed(3)}</div>
-            <div style="color:#888;font-size:11px">AI COST</div>
-          </div>
-          <div>
-            <div style="color:#ef4444;font-size:24px;font-weight:bold">£${costs.total_human_cost_gbp}</div>
-            <div style="color:#888;font-size:11px">HUMAN COST</div>
-          </div>
-          <div>
-            <div style="color:#fff;font-size:24px;font-weight:bold">${costs.total_calls}</div>
-            <div style="color:#888;font-size:11px">API CALLS</div>
-          </div>
-        </div>
-      </div>
+  // ROW: Header
+  rows.push(`<tr><td bgcolor="${HD}" style="background-color:${HD};padding:28px ${P} 24px ${P};">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
+      <td bgcolor="${HD}" style="background-color:${HD};vertical-align:bottom;">
+        <div style="font-size:22px;font-weight:800;color:${W};letter-spacing:0.15em;">NAVADA</div>
+        <div style="font-size:11px;color:${DM};letter-spacing:0.08em;margin-top:4px;">DAILY OPERATIONS REPORT</div>
+      </td>
+      <td bgcolor="${HD}" style="background-color:${HD};text-align:right;vertical-align:bottom;">
+        <div style="font-size:12px;color:${GR};">${dateStr}</div>
+        <div style="font-size:12px;color:${DM};margin-top:2px;">${timeStr}</div>
+      </td>
+    </tr></table>
+  </td></tr>`);
 
-      <!-- 7-DAY COST CHART -->
-      ${roiChart ? `
-      <div style="background:#111;border:1px solid #333;border-radius:8px;padding:16px;margin-bottom:20px">
-        <h3 style="color:#fff;font-size:14px;margin:0 0 12px 0">7-Day Cost Comparison
-          <span style="color:#22c55e;font-size:11px">■ AI</span>
-          <span style="color:#ef4444;font-size:11px;margin-left:8px">■ Human</span>
-        </h3>
-        <table style="width:100%">${roiChart}</table>
-      </div>` : ''}
+  // ROW: Summary stats
+  rows.push(`<tr><td bgcolor="${CD}" style="background-color:${CD};padding:28px ${P};">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
+      <td width="25%" bgcolor="${CD}" style="background-color:${CD};text-align:center;padding:8px 4px;">
+        <div style="font-size:32px;font-weight:700;color:${W};font-family:${MN};">${fmtCost(costs.total_cost_gbp)}</div>
+        <div style="font-size:10px;color:${DM};text-transform:uppercase;letter-spacing:0.1em;margin-top:8px;">AI Spend</div>
+      </td>
+      <td width="25%" bgcolor="${CD}" style="background-color:${CD};text-align:center;padding:8px 4px;">
+        <div style="font-size:32px;font-weight:700;color:${W};font-family:${MN};">${costs.total_calls}</div>
+        <div style="font-size:10px;color:${DM};text-transform:uppercase;letter-spacing:0.1em;margin-top:8px;">API Calls</div>
+      </td>
+      <td width="25%" bgcolor="${CD}" style="background-color:${CD};text-align:center;padding:8px 4px;">
+        <div style="font-size:32px;font-weight:700;color:${W};font-family:${MN};">${tasksOk}/${uniqueTasks.length}</div>
+        <div style="font-size:10px;color:${DM};text-transform:uppercase;letter-spacing:0.1em;margin-top:8px;">Tasks OK</div>
+      </td>
+      <td width="25%" bgcolor="${CD}" style="background-color:${CD};text-align:center;padding:8px 4px;">
+        <div style="font-size:32px;font-weight:700;color:${W};font-family:${MN};">${servicesOnline}</div>
+        <div style="font-size:10px;color:${DM};text-transform:uppercase;letter-spacing:0.1em;margin-top:8px;">Services Up</div>
+      </td>
+    </tr></table>
+  </td></tr>`);
 
-      <!-- MODEL BREAKDOWN -->
-      ${modelRows ? `
-      <div style="background:#111;border:1px solid #333;border-radius:8px;padding:16px;margin-bottom:20px">
-        <h3 style="color:#fff;font-size:14px;margin:0 0 8px 0">API Usage by Model</h3>
-        <table style="width:100%;font-size:13px">
-          <tr style="color:#666;font-size:11px"><td>Model</td><td style="text-align:right">Calls</td><td style="text-align:right">Cost</td><td style="text-align:right">Human Equiv</td></tr>
-          ${modelRows}
-        </table>
-      </div>` : ''}
+  // DIVIDER
+  rows.push(divRow);
 
-      <!-- SCRIPT BREAKDOWN -->
-      ${scriptRows ? `
-      <div style="background:#111;border:1px solid #333;border-radius:8px;padding:16px;margin-bottom:20px">
-        <h3 style="color:#fff;font-size:14px;margin:0 0 8px 0">Usage by Script</h3>
-        <table style="width:100%;font-size:13px">
-          ${scriptRows}
-        </table>
-      </div>` : ''}
+  // ROW: Activities
+  let taskInner = '';
+  if (uniqueTasks.length > 0) {
+    taskInner = uniqueTasks.map(t =>
+      `<tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-transform:capitalize;">${t.name}</td>` +
+      `<td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-weight:700;">${t.success ? 'OK' : 'FAIL'}</td></tr>`
+    ).join('');
+  } else {
+    taskInner = `<tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${DM};">No scheduled tasks ran today</td></tr>`;
+  }
+  rows.push(`<tr><td bgcolor="${BG}" style="background-color:${BG};padding:24px ${P} 20px ${P};">
+    ${sh('Activities Completed')}
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">${taskInner}</table>
+  </td></tr>`);
 
-      <!-- VOICE SYSTEM -->
-      <div style="background:#111;border:1px solid #333;border-radius:8px;padding:16px;margin-bottom:20px">
-        <h3 style="color:#fff;font-size:14px;margin:0 0 8px 0">Voice System (S8 Bluetooth)</h3>
-        <table style="font-size:13px">
-          <tr><td style="color:#888;padding:2px 16px 2px 0">Commands processed</td><td style="color:#fff">${voice.commands}</td></tr>
-          <tr><td style="color:#888;padding:2px 16px 2px 0">Conversations</td><td style="color:#fff">${voice.convos}</td></tr>
-          <tr><td style="color:#888;padding:2px 16px 2px 0">Companion nuggets</td><td style="color:#fff">${voice.companionNuggets}</td></tr>
-          <tr><td style="color:#888;padding:2px 16px 2px 0">Ignored (no wake word)</td><td style="color:#666">${voice.ignored}</td></tr>
-          <tr><td style="color:#888;padding:2px 16px 2px 0">Errors</td><td style="color:${voice.errors > 0 ? '#ef4444' : '#22c55e'}">${voice.errors}</td></tr>
-        </table>
-      </div>
+  // DIVIDER
+  rows.push(divRow);
 
-      <!-- SCHEDULED TASKS -->
-      <div style="background:#111;border:1px solid #333;border-radius:8px;padding:16px;margin-bottom:20px">
-        <h3 style="color:#fff;font-size:14px;margin:0 0 8px 0">Scheduled Tasks</h3>
-        <table style="font-size:13px">${taskRows}</table>
-      </div>
+  // ROW: API Costs
+  const modelEntries = Object.entries(costs.by_model);
+  const scriptEntries = Object.entries(costs.by_script);
+  let costInner = '';
+  if (modelEntries.length > 0) {
+    const mRows = modelEntries.map(([m, d]) =>
+      `<tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};">${m}</td>` +
+      `<td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${d.calls}</td>` +
+      `<td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${fmtCost(d.cost_gbp)}</td></tr>`
+    ).join('');
+    costInner = `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tr><td bgcolor="${BG}" style="background-color:${BG};padding:4px 0;font-size:11px;color:${DM};text-transform:uppercase;letter-spacing:0.05em;">Model</td>
+          <td bgcolor="${BG}" style="background-color:${BG};padding:4px 0;font-size:11px;color:${DM};text-transform:uppercase;letter-spacing:0.05em;text-align:right;">Calls</td>
+          <td bgcolor="${BG}" style="background-color:${BG};padding:4px 0;font-size:11px;color:${DM};text-transform:uppercase;letter-spacing:0.05em;text-align:right;">Cost</td></tr>
+      ${mRows}</table>`;
+    if (scriptEntries.length > 0) {
+      const sRows = scriptEntries.map(([s, d]) =>
+        `<tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};">${s}</td>` +
+        `<td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${d.calls}</td>` +
+        `<td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${fmtCost(d.cost_gbp)}</td></tr>`
+      ).join('');
+      costInner += `<div style="margin-top:20px;margin-bottom:12px;font-size:11px;font-weight:700;color:${DM};letter-spacing:0.12em;text-transform:uppercase;">By Script</div>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">${sRows}</table>`;
+    }
+  } else {
+    costInner = `<div style="font-size:14px;color:${DM};">No API usage today</div>`;
+  }
+  rows.push(`<tr><td bgcolor="${BG}" style="background-color:${BG};padding:24px ${P} 20px ${P};">
+    ${sh('API Costs')}${costInner}
+  </td></tr>`);
 
-      <!-- JOB HUNT -->
-      <div style="background:#111;border:1px solid #333;border-radius:8px;padding:16px;margin-bottom:20px">
-        <h3 style="color:#fff;font-size:14px;margin:0 0 8px 0">Job Pipeline</h3>
-        <table style="font-size:13px">
-          <tr><td style="color:#888;padding:2px 16px 2px 0">New jobs found today</td><td style="color:#fff">${jobs.found}</td></tr>
-          <tr><td style="color:#888;padding:2px 16px 2px 0">Applied today</td><td style="color:#fff">${jobs.applied}</td></tr>
-          <tr><td style="color:#888;padding:2px 16px 2px 0">Total in pipeline</td><td style="color:#fff">${jobs.total || 0}</td></tr>
-        </table>
-      </div>
+  // VOICE SYSTEM (conditional)
+  const hasVoice = voice.commands > 0 || voice.convos > 0 || voice.errors > 0;
+  if (hasVoice) {
+    rows.push(divRow);
+    let voiceInner = `<tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${GR};">Commands</td>
+      <td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${voice.commands}</td></tr>
+    <tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${GR};">Conversations</td>
+      <td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${voice.convos}</td></tr>`;
+    if (voice.companionNuggets > 0) {
+      voiceInner += `<tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${GR};">Companion nuggets</td>
+        <td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${voice.companionNuggets}</td></tr>`;
+    }
+    voiceInner += `<tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${GR};">Errors</td>
+      <td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${voice.errors}</td></tr>`;
+    rows.push(`<tr><td bgcolor="${BG}" style="background-color:${BG};padding:24px ${P} 20px ${P};">
+      ${sh('Voice System')}<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">${voiceInner}</table>
+    </td></tr>`);
+  }
 
-      <!-- PM2 DAEMONS -->
-      <div style="background:#111;border:1px solid #333;border-radius:8px;padding:16px;margin-bottom:20px">
-        <h3 style="color:#fff;font-size:14px;margin:0 0 8px 0">PM2 Daemons</h3>
-        <table style="width:100%;font-size:13px">
-          <tr style="color:#666;font-size:11px"><td>Process</td><td>Status</td><td>Uptime</td><td>Memory</td></tr>
-          ${pm2Rows}
-        </table>
-      </div>
+  // DIVIDER
+  rows.push(divRow);
 
-      <div style="text-align:center;color:#333;font-size:11px;margin-top:24px">
-        NAVADA Server • ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-      </div>
-    </div>`;
+  // ROW: Services
+  let svcInner = '';
+  if (pm2.length > 0) {
+    const svcR = pm2.map(p =>
+      `<tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};">${p.name}</td>` +
+      `<td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-transform:uppercase;">${p.status}</td>` +
+      `<td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${fmtUptime(p.uptime)}</td>` +
+      `<td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${p.memory}MB</td></tr>`
+    ).join('');
+    svcInner = `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tr><td bgcolor="${BG}" style="background-color:${BG};padding:4px 0;font-size:11px;color:${DM};text-transform:uppercase;letter-spacing:0.05em;">Process</td>
+          <td bgcolor="${BG}" style="background-color:${BG};padding:4px 0;font-size:11px;color:${DM};text-transform:uppercase;letter-spacing:0.05em;">Status</td>
+          <td bgcolor="${BG}" style="background-color:${BG};padding:4px 0;font-size:11px;color:${DM};text-align:right;text-transform:uppercase;letter-spacing:0.05em;">Uptime</td>
+          <td bgcolor="${BG}" style="background-color:${BG};padding:4px 0;font-size:11px;color:${DM};text-align:right;text-transform:uppercase;letter-spacing:0.05em;">Memory</td></tr>
+      ${svcR}</table>`;
+  } else {
+    svcInner = `<div style="font-size:14px;color:${DM};">No PM2 processes found</div>`;
+  }
+  rows.push(`<tr><td bgcolor="${BG}" style="background-color:${BG};padding:24px ${P} 20px ${P};">
+    ${sh('Services')}${svcInner}
+  </td></tr>`);
 
-  return html;
+  // JOB PIPELINE (conditional)
+  const hasJobs = jobs.found > 0 || jobs.applied > 0 || (jobs.total && jobs.total > 0);
+  if (hasJobs) {
+    rows.push(divRow);
+    rows.push(`<tr><td bgcolor="${BG}" style="background-color:${BG};padding:24px ${P} 20px ${P};">
+      ${sh('Job Pipeline')}
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+        <tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${GR};">Found today</td>
+            <td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${jobs.found}</td></tr>
+        <tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${GR};">Applied today</td>
+            <td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${jobs.applied}</td></tr>
+        <tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${GR};">Total in pipeline</td>
+            <td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${jobs.total || 0}</td></tr>
+      </table>
+    </td></tr>`);
+  }
+
+  // 7-DAY SPEND (conditional)
+  const days = Object.entries(weekly.days).sort();
+  if (days.length > 1) {
+    rows.push(divRow);
+    const wRows = days.map(([day, data]) => {
+      const dayDate = new Date(day + 'T00:00:00');
+      const label = dayDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+      return `<tr><td bgcolor="${BG}" style="background-color:${BG};padding:6px 0;font-size:13px;color:${GR};">${label}</td>` +
+        `<td bgcolor="${BG}" style="background-color:${BG};padding:6px 0;font-size:13px;color:${W};text-align:center;font-family:${MN};">${data.calls}</td>` +
+        `<td bgcolor="${BG}" style="background-color:${BG};padding:6px 0;font-size:13px;color:${W};text-align:right;font-family:${MN};">${fmtCost(data.cost_gbp)}</td></tr>`;
+    }).join('');
+    rows.push(`<tr><td bgcolor="${BG}" style="background-color:${BG};padding:24px ${P} 20px ${P};">
+      ${sh('7-Day Spend')}
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+        <tr><td bgcolor="${BG}" style="background-color:${BG};padding:4px 0;font-size:11px;color:${DM};text-transform:uppercase;letter-spacing:0.05em;">Day</td>
+            <td bgcolor="${BG}" style="background-color:${BG};padding:4px 0;font-size:11px;color:${DM};text-align:center;text-transform:uppercase;letter-spacing:0.05em;">Calls</td>
+            <td bgcolor="${BG}" style="background-color:${BG};padding:4px 0;font-size:11px;color:${DM};text-align:right;text-transform:uppercase;letter-spacing:0.05em;">Cost</td></tr>
+        ${wRows}
+      </table>
+    </td></tr>`);
+  }
+
+  // DIVIDER
+  rows.push(divRow);
+
+  // ROW: Footer
+  rows.push(`<tr><td bgcolor="${BG}" style="background-color:${BG};padding:24px ${P} 32px ${P};">
+    <div style="font-size:11px;color:${DM};">Claude &middot; AI Chief of Staff &middot; NAVADA<br>On behalf of Lee Akpareva</div>
+    <div style="font-size:10px;color:#333;margin-top:12px;">Auto-generated by NAVADA Server &middot;
+      <a href="https://www.navadarobotics.com" style="color:#444;text-decoration:none;">navadarobotics.com</a> &middot;
+      <a href="https://www.navada-lab.space" style="color:#444;text-decoration:none;">navada-lab.space</a></div>
+  </td></tr>`);
+
+  const preheaderText = `${fmtCost(costs.total_cost_gbp)} spent | ${costs.total_calls} calls | ${tasksOk}/${uniqueTasks.length} tasks OK | ${servicesOnline} services up`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>NAVADA Ops Report - ${date}</title>
+<!--[if mso]><style>body,table,td{font-family:Arial,sans-serif!important;}</style><![endif]-->
+</head>
+<body bgcolor="${BG}" style="margin:0;padding:0;background-color:${BG};color:${W};font-family:${FN};-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+<div style="display:none;max-height:0;overflow:hidden;">${preheaderText}</div>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="${BG}" style="background-color:${BG};border-collapse:collapse;">
+${rows.join('\n')}
+</table>
+</body>
+</html>`;
 }
 
 // ============================================================
@@ -261,15 +363,12 @@ function buildReport(date) {
 // ============================================================
 async function sendDailyReport(date) {
   const reportDate = date || getToday();
-  const html = buildReport(reportDate);
+  const rawHtml = buildReport(reportDate);
 
   await sendEmail({
     to: 'leeakpareva@gmail.com',
     subject: `NAVADA Ops Report — ${reportDate}`,
-    heading: 'Daily Operations Report',
-    body: html,
-    type: 'update',
-    footerNote: 'Auto-generated by NAVADA Manager',
+    rawHtml,
   });
 
   console.log(`Report sent for ${reportDate}`);
@@ -282,8 +381,10 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   if (args.includes('--test')) {
     const html = buildReport(getToday());
-    const outPath = path.join(__dirname, 'reports', `ops-${getToday()}.html`);
-    fs.writeFileSync(outPath, `<html><body style="background:#000;padding:20px">${html}</body></html>`);
+    const reportsDir = path.join(__dirname, 'reports');
+    if (!fs.existsSync(reportsDir)) fs.mkdirSync(reportsDir, { recursive: true });
+    const outPath = path.join(reportsDir, `ops-${getToday()}.html`);
+    fs.writeFileSync(outPath, html);
     console.log(`Preview saved: ${outPath}`);
   } else {
     sendDailyReport(args[0]).catch(e => { console.error(e.message); process.exit(1); });

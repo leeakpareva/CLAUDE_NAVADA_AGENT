@@ -1,0 +1,27 @@
+{
+  "iterations": [
+    {
+      "iteration": 1,
+      "startedAt": "2026-02-28T20:35:15.014Z",
+      "endedAt": "2026-02-28T20:35:29.102Z",
+      "durationMs": 2608,
+      "agent": "claude-code",
+      "model": "",
+      "toolsUsed": {},
+      "filesModified": [],
+      "exitCode": 1,
+      "completionDetected": false,
+      "errors": [
+        "Error: Claude Code cannot be launched inside another Claude Code session."
+      ]
+    }
+  ],
+  "totalDurationMs": 2608,
+  "struggleIndicators": {
+    "repeatedErrors": {
+      "Error: Claude Code cannot be launched inside another Claude Code session.": 1
+    },
+    "noProgressIterations": 1,
+    "shortIterations": 1
+  }
+}

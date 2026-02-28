@@ -189,8 +189,9 @@ async function sendEmail({
   footerNote,
   fromName = 'Claude | NAVADA',
   attachments,
+  rawHtml,
 }) {
-  const html = buildTemplate({ subject, heading, body, preheader, type, footerNote });
+  const html = rawHtml || buildTemplate({ subject, heading, body, preheader, type, footerNote });
 
   const mailOpts = {
     from: `"${fromName}" <${process.env.ZOHO_USER}>`,

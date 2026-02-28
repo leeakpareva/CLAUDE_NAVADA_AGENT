@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Brief } from "@/lib/types";
 import { TopBar } from "@/components/layout/top-bar";
@@ -67,6 +67,8 @@ export default function BriefsPage() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [seedMessage, setSeedMessage] = useState("");
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -90,6 +92,23 @@ export default function BriefsPage() {
   useEffect(() => {
     fetchBriefs();
   }, []);
+
+  async function handleSeed() {
+    setSeeding(true);
+    setSeedMessage("");
+    try {
+      const res = await fetch("/api/seed", { method: "POST" });
+      const data = await res.json();
+      setSeedMessage(data.message || "Briefs generated successfully.");
+      if (data.seeded) {
+        await fetchBriefs();
+      }
+    } catch {
+      setSeedMessage("Failed to generate briefs. Please try again.");
+    } finally {
+      setSeeding(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -127,81 +146,103 @@ export default function BriefsPage() {
                 Curated analysis and situation reports
               </p>
             </div>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm">
-                  <Plus className="size-4" />
-                  New Brief
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create Intelligence Brief</DialogTitle>
-                  <DialogDescription>
-                    Add a new brief to the intelligence database.
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="brief-title">Title</Label>
-                    <Input
-                      id="brief-title"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="Brief title"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="brief-content">Content</Label>
-                    <Textarea
-                      id="brief-content"
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      placeholder="Analysis and findings..."
-                      className="min-h-32"
-                      required
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSeed}
+                disabled={seeding}
+                className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+              >
+                {seeding ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Sparkles className="size-4" />
+                )}
+                {seeding ? "Generating..." : "Generate AI Briefs"}
+              </Button>
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="size-4" />
+                    New Brief
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create Intelligence Brief</DialogTitle>
+                    <DialogDescription>
+                      Add a new brief to the intelligence database.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Category</Label>
-                      <Select
-                        value={category}
-                        onValueChange={(v) => setCategory(v as Brief["category"])}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="geopolitical">Geopolitical</SelectItem>
-                          <SelectItem value="cyber">Cyber</SelectItem>
-                          <SelectItem value="economic">Economic</SelectItem>
-                          <SelectItem value="military">Military</SelectItem>
-                          <SelectItem value="general">General</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="brief-source">Source</Label>
+                      <Label htmlFor="brief-title">Title</Label>
                       <Input
-                        id="brief-source"
-                        value={source}
-                        onChange={(e) => setSource(e.target.value)}
-                        placeholder="e.g. OSINT Analyst"
+                        id="brief-title"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Brief title"
                         required
                       />
                     </div>
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit" disabled={submitting}>
-                      {submitting ? "Saving..." : "Create Brief"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+                    <div className="space-y-2">
+                      <Label htmlFor="brief-content">Content</Label>
+                      <Textarea
+                        id="brief-content"
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        placeholder="Analysis and findings..."
+                        className="min-h-32"
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Category</Label>
+                        <Select
+                          value={category}
+                          onValueChange={(v) => setCategory(v as Brief["category"])}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="geopolitical">Geopolitical</SelectItem>
+                            <SelectItem value="cyber">Cyber</SelectItem>
+                            <SelectItem value="economic">Economic</SelectItem>
+                            <SelectItem value="military">Military</SelectItem>
+                            <SelectItem value="general">General</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="brief-source">Source</Label>
+                        <Input
+                          id="brief-source"
+                          value={source}
+                          onChange={(e) => setSource(e.target.value)}
+                          placeholder="e.g. OSINT Analyst"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit" disabled={submitting}>
+                        {submitting ? "Saving..." : "Create Brief"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
+
+          {seedMessage && (
+            <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+              {seedMessage}
+            </div>
+          )}
 
           <Tabs defaultValue="all">
             <TabsList>

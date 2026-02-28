@@ -43,7 +43,7 @@ export const OSINT_FEEDS: RSSFeedConfig[] = [
 ];
 
 export const MONITORED_SERVICES = [
-  { name: "World Monitor", url: "http://localhost:4001" },
+  { name: "NAVADA Global Monitor", url: "http://localhost:4001" },
   { name: "CLAWD Dashboard", url: "http://localhost:3000" },
   { name: "Excalidraw", url: "http://localhost:3001" },
   { name: "JupyterLab", url: "http://localhost:8888" },
