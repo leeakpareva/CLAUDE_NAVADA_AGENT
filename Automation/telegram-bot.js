@@ -1,8 +1,9 @@
 /**
  * NAVADA Telegram Bot — Claude Chief of Staff
  * Full server control via Anthropic Claude with tool use.
- * 30+ slash commands, model switching, cost tracking, email sending.
- * Secured by Telegram user ID whitelist.
+ * 40+ slash commands, model switching, cost tracking, email sending.
+ * Multi-user support with guest demo mode for NAVADA Edge.
+ * All 2-way interactions logged to telegram-interactions.jsonl.
  */
 
 require('dotenv').config({ path: __dirname + '/.env' });
@@ -11,6 +12,7 @@ const { exec } = require('child_process');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 const Anthropic = require('@anthropic-ai/sdk').default;
 
 // --- Config ---
@@ -19,8 +21,12 @@ const OWNER_ID = Number(process.env.TELEGRAM_OWNER_ID);
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const NAVADA_DIR = 'C:/Users/leeak/CLAUDE_NAVADA_AGENT';
 const LOG_DIR = path.join(NAVADA_DIR, 'Automation/logs');
+const UPLOADS_DIR = path.join(NAVADA_DIR, 'Automation/uploads');
 const MAX_MSG_LEN = 4000;
 const MAX_TOOL_LOOPS = 10;
+
+// Ensure uploads directory exists
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 // --- Cost Tracker ---
 let costTracker;
@@ -82,25 +88,114 @@ let currentModelName = 'Sonnet 4';
 const bot = new Telegraf(BOT_TOKEN);
 const anthropic = ANTHROPIC_KEY ? new Anthropic({ apiKey: ANTHROPIC_KEY }) : null;
 
-// --- Persistent Conversation Memory ---
-const MEMORY_FILE = path.join(NAVADA_DIR, 'Automation/kb/telegram-memory.json');
+// ============================================================
+// MULTI-USER SYSTEM
+// ============================================================
+const USERS_FILE = path.join(NAVADA_DIR, 'Automation/kb/telegram-users.json');
+
+function loadUsers() {
+  try {
+    if (fs.existsSync(USERS_FILE)) {
+      return JSON.parse(fs.readFileSync(USERS_FILE, 'utf-8'));
+    }
+  } catch {}
+  // Default: owner only
+  return {
+    owner: OWNER_ID,
+    users: {
+      [OWNER_ID]: { username: 'owner', role: 'admin', grantedAt: new Date().toISOString(), expiresAt: null, grantedBy: 'system' }
+    }
+  };
+}
+
+function saveUsers(data) {
+  try {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
+  } catch (e) {
+    console.warn('[WARN] Failed to save users:', e.message);
+  }
+}
+
+function isUserAuthorized(userId) {
+  const data = loadUsers();
+  const user = data.users[String(userId)];
+  if (!user) return { authorized: false, role: null };
+  if (user.expiresAt && new Date(user.expiresAt) < new Date()) {
+    return { authorized: false, role: null, expired: true };
+  }
+  return { authorized: true, role: user.role };
+}
+
+function isAdmin(userId) {
+  return Number(userId) === OWNER_ID || isUserAuthorized(userId).role === 'admin';
+}
+
+// Guest-blocked commands (require admin)
+const ADMIN_ONLY_COMMANDS = new Set([
+  'shell', 'run', 'ls', 'cat', 'email', 'emailme', 'inbox', 'sent',
+  'pm2restart', 'pm2stop', 'pm2start', 'pm2logs',
+  'present', 'report', 'briefing', 'voicenote', 'linkedin',
+  'clear', 'grant', 'revoke', 'users',
+  'news', 'jobs', 'pipeline', 'prospect',
+]);
+
+// Guest-safe commands
+const GUEST_COMMANDS = new Set([
+  'start', 'help', 'about', 'status', 'uptime', 'ip', 'model', 'sonnet', 'opus',
+  'pm2', 'tasks', 'costs', 'memory', 'image', 'research', 'draft', 'docker',
+  'tailscale', 'nginx', 'disk', 'processes',
+]);
+
+// Guest-safe tools (for natural language chat)
+const GUEST_TOOLS = new Set(['server_status', 'generate_image']);
+
+// ============================================================
+// INTERACTION LOGGING
+// ============================================================
+const INTERACTION_LOG = path.join(LOG_DIR, 'telegram-interactions.jsonl');
+
+function logInteraction(entry) {
+  try {
+    const line = JSON.stringify({
+      timestamp: new Date().toISOString(),
+      ...entry,
+    }) + '\n';
+    fs.appendFileSync(INTERACTION_LOG, line);
+  } catch (e) {
+    console.warn('[WARN] Failed to log interaction:', e.message);
+  }
+}
+
+// ============================================================
+// PERSISTENT CONVERSATION MEMORY (per-user)
+// ============================================================
+const MEMORY_DIR = path.join(NAVADA_DIR, 'Automation/kb');
 const MAX_HISTORY = 30;
 
-function loadConversationHistory() {
+function getMemoryFile(userId) {
+  if (Number(userId) === OWNER_ID) {
+    return path.join(MEMORY_DIR, 'telegram-memory.json');
+  }
+  return path.join(MEMORY_DIR, `telegram-memory-${userId}.json`);
+}
+
+function loadConversationHistory(userId) {
   try {
-    if (fs.existsSync(MEMORY_FILE)) {
-      const data = JSON.parse(fs.readFileSync(MEMORY_FILE, 'utf-8'));
+    const file = getMemoryFile(userId);
+    if (fs.existsSync(file)) {
+      const data = JSON.parse(fs.readFileSync(file, 'utf-8'));
       return data.history || [];
     }
   } catch {}
   return [];
 }
 
-function saveConversationHistory(history) {
+function saveConversationHistory(userId, history) {
   try {
-    const dir = path.dirname(MEMORY_FILE);
+    const file = getMemoryFile(userId);
+    const dir = path.dirname(file);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(MEMORY_FILE, JSON.stringify({
+    fs.writeFileSync(file, JSON.stringify({
       updated: new Date().toISOString(),
       model: currentModelName,
       history: history.slice(-MAX_HISTORY * 2),
@@ -110,23 +205,51 @@ function saveConversationHistory(history) {
   }
 }
 
-// Load persistent history on startup
-const conversationHistory = loadConversationHistory();
-console.log(`[NAVADA] Loaded ${conversationHistory.length} conversation turns from memory`);
+// Per-user conversation histories (in-memory cache)
+const conversationHistories = new Map();
+
+function getUserHistory(userId) {
+  if (!conversationHistories.has(userId)) {
+    conversationHistories.set(userId, loadConversationHistory(userId));
+  }
+  return conversationHistories.get(userId);
+}
+
+// Load owner's history on startup
+const ownerHistory = loadConversationHistory(OWNER_ID);
+conversationHistories.set(OWNER_ID, ownerHistory);
+console.log(`[NAVADA] Loaded ${ownerHistory.length} conversation turns from memory`);
 
 // Command log
 const cmdLogPath = path.join(LOG_DIR, 'telegram-commands.log');
 
-// --- Security: Owner-only middleware ---
+// ============================================================
+// SECURITY: Multi-user auth middleware
+// ============================================================
 bot.use((ctx, next) => {
-  if (ctx.from?.id !== OWNER_ID) {
-    console.log(`[BLOCKED] Unauthorized: ${ctx.from?.id} (${ctx.from?.username})`);
-    return ctx.reply('Access denied. This bot is private.');
+  const userId = ctx.from?.id;
+  const username = ctx.from?.username || 'unknown';
+  const { authorized, expired } = isUserAuthorized(userId);
+
+  if (!authorized) {
+    console.log(`[BLOCKED] Unauthorized: ${userId} (${username})${expired ? ' [EXPIRED]' : ''}`);
+    logInteraction({ direction: 'in', userId, username, message: ctx.message?.text || '(media)', blocked: true });
+    return ctx.reply(
+      'Access denied. Contact Lee Akpareva to request a NAVADA Edge demo.\n\n' +
+      'Learn more: www.navada-lab.space'
+    );
   }
+
+  // Attach user info to context
+  ctx.state.userId = userId;
+  ctx.state.username = username;
+  ctx.state.userRole = isAdmin(userId) ? 'admin' : 'guest';
   return next();
 });
 
-// --- Helpers ---
+// ============================================================
+// HELPERS
+// ============================================================
 function log(msg) {
   const line = `[${new Date().toISOString()}] ${msg}\n`;
   try { fs.appendFileSync(cmdLogPath, line); } catch {}
@@ -170,7 +293,6 @@ async function sendLong(ctx, text, parseMode) {
         await ctx.reply(chunk);
       }
     } catch (e) {
-      // If parse mode fails, send as plain text
       await ctx.reply(chunk);
     }
   }
@@ -179,7 +301,29 @@ async function sendLong(ctx, text, parseMode) {
   }
 }
 
-// --- Claude Tools (what Claude can do on the server) ---
+function downloadFile(fileUrl, destPath) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(destPath);
+    https.get(fileUrl, (response) => {
+      response.pipe(file);
+      file.on('finish', () => { file.close(); resolve(destPath); });
+    }).on('error', (err) => {
+      fs.unlink(destPath, () => {});
+      reject(err);
+    });
+  });
+}
+
+// Helper: check if command is allowed for user role
+function isCommandAllowed(command, role) {
+  if (role === 'admin') return true;
+  if (ADMIN_ONLY_COMMANDS.has(command)) return false;
+  return true;
+}
+
+// ============================================================
+// CLAUDE TOOLS
+// ============================================================
 const TOOLS = [
   {
     name: 'run_shell',
@@ -215,6 +359,18 @@ const TOOLS = [
         content: { type: 'string', description: 'File content to write' }
       },
       required: ['path', 'content']
+    }
+  },
+  {
+    name: 'delete_file',
+    description: 'Delete a file or empty directory on the server. Use absolute paths. Will not delete non-empty directories for safety.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: 'Absolute file path to delete' },
+        recursive: { type: 'boolean', description: 'If true, recursively delete directory and contents (use with caution)' }
+      },
+      required: ['path']
     }
   },
   {
@@ -268,6 +424,20 @@ const TOOLS = [
     }
   },
   {
+    name: 'reply_email',
+    description: 'Reply to an email in the Zoho inbox. Fetches the original message by subject/sender, then sends a reply with proper In-Reply-To and References headers for threading.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        original_subject: { type: 'string', description: 'Subject line of the email to reply to (used to find the original)' },
+        original_sender: { type: 'string', description: 'Sender email of the original message (optional, helps identify the right email)' },
+        reply_body: { type: 'string', description: 'HTML body of the reply' },
+        reply_all: { type: 'boolean', description: 'Reply to all recipients (default false)' }
+      },
+      required: ['original_subject', 'reply_body']
+    }
+  },
+  {
     name: 'generate_image',
     description: 'Generate an image using DALL-E 3 (OpenAI). Returns a URL to the generated image. Use for creating visuals, diagrams, concept art, logos, illustrations, or any image Lee requests.',
     input_schema: {
@@ -282,8 +452,18 @@ const TOOLS = [
   }
 ];
 
-// --- Tool Executors ---
-async function executeTool(name, input) {
+// Restricted tools for guest users
+const GUEST_TOOL_LIST = TOOLS.filter(t => GUEST_TOOLS.has(t.name));
+
+// ============================================================
+// TOOL EXECUTORS
+// ============================================================
+async function executeTool(name, input, userRole) {
+  // Guest restriction: only allow safe tools
+  if (userRole === 'guest' && !GUEST_TOOLS.has(name)) {
+    return `Error: Tool "${name}" is not available in demo mode.`;
+  }
+
   switch (name) {
     case 'run_shell': {
       const cmd = input.command;
@@ -318,6 +498,26 @@ async function executeTool(name, input) {
         return `File written: ${input.path} (${input.content.length} bytes)`;
       } catch (err) {
         return `Error writing file: ${err.message}`;
+      }
+    }
+    case 'delete_file': {
+      log(`[TOOL] delete_file: ${input.path}`);
+      try {
+        const stat = fs.statSync(input.path);
+        if (stat.isDirectory()) {
+          if (input.recursive) {
+            fs.rmSync(input.path, { recursive: true, force: true });
+            return `Directory deleted recursively: ${input.path}`;
+          } else {
+            fs.rmdirSync(input.path);
+            return `Empty directory deleted: ${input.path}`;
+          }
+        } else {
+          fs.unlinkSync(input.path);
+          return `File deleted: ${input.path}`;
+        }
+      } catch (err) {
+        return `Error deleting: ${err.message}`;
       }
     }
     case 'list_files': {
@@ -404,7 +604,6 @@ async function executeTool(name, input) {
         const searchCriteria = unreadOnly ? [['UNSEEN']] : [['ALL']];
         const fetchOptions = { bodies: '', markSeen: false };
         const messages = await connection.search(searchCriteria, fetchOptions);
-        // Take the most recent N
         const recent = messages.slice(-count);
         const results = [];
         for (const msg of recent) {
@@ -417,6 +616,7 @@ async function executeTool(name, input) {
               to: parsed.to?.text || '',
               subject: parsed.subject || '(no subject)',
               date: parsed.date?.toISOString() || '',
+              messageId: parsed.messageId || '',
               snippet: bodyText,
             });
           } catch {}
@@ -425,7 +625,7 @@ async function executeTool(name, input) {
         if (results.length === 0) return `No ${unreadOnly ? 'unread ' : ''}emails in ${folder}.`;
         let output = `${results.length} emails in ${folder}:\n\n`;
         for (const r of results.reverse()) {
-          output += `From: ${r.from}\nTo: ${r.to}\nSubject: ${r.subject}\nDate: ${r.date}\n${r.snippet}\n---\n`;
+          output += `From: ${r.from}\nTo: ${r.to}\nSubject: ${r.subject}\nDate: ${r.date}\nMessageID: ${r.messageId}\n${r.snippet}\n---\n`;
         }
         if (input.search) {
           const term = input.search.toLowerCase();
@@ -442,6 +642,50 @@ async function executeTool(name, input) {
         return output;
       } catch (err) {
         return `Error reading email: ${err.message}`;
+      }
+    }
+    case 'reply_email': {
+      log(`[TOOL] reply_email: subject="${input.original_subject}"`);
+      if (!imapSimple || !emailService) return 'Error: IMAP or email service not available.';
+      try {
+        // Find the original email
+        const connection = await imapSimple.connect(imapConfig);
+        await connection.openBox('INBOX');
+        const searchCriteria = [['SUBJECT', input.original_subject]];
+        const fetchOptions = { bodies: '', markSeen: false };
+        const messages = await connection.search(searchCriteria, fetchOptions);
+        if (messages.length === 0) {
+          connection.end();
+          return `Error: Could not find email with subject "${input.original_subject}"`;
+        }
+        // Get the most recent matching email
+        const msg = messages[messages.length - 1];
+        const raw = msg.parts.find(p => p.which === '')?.body || '';
+        const parsed = await mailparser.simpleParser(raw);
+        connection.end();
+
+        const replyTo = input.original_sender || parsed.from?.value?.[0]?.address || parsed.from?.text;
+        const originalMessageId = parsed.messageId || '';
+        const references = parsed.references ? [].concat(parsed.references, originalMessageId).join(' ') : originalMessageId;
+
+        const replySubject = parsed.subject?.startsWith('Re:') ? parsed.subject : `Re: ${parsed.subject}`;
+
+        const opts = {
+          to: input.reply_all ? [replyTo, ...(parsed.to?.value || []).map(v => v.address)].filter(Boolean).join(', ') : replyTo,
+          subject: replySubject,
+          body: input.reply_body,
+          type: 'general',
+          headers: {
+            'In-Reply-To': originalMessageId,
+            'References': references,
+          },
+        };
+
+        const info = await emailService.sendEmail(opts);
+        costTracker.logCall('email-send', { emails: 1, script: 'telegram-bot' });
+        return `Reply sent to ${opts.to} (Subject: ${replySubject}, MessageID: ${info.messageId})`;
+      } catch (err) {
+        return `Error replying to email: ${err.message}`;
       }
     }
     case 'generate_image': {
@@ -470,8 +714,10 @@ async function executeTool(name, input) {
   }
 }
 
-// --- System Prompt ---
-const SYSTEM_PROMPT = `You are Claude, Chief of Staff at NAVADA. You are Lee Akpareva's AI partner, running on his HP laptop (permanent always-on home server). You are communicating via Telegram from his iPhone.
+// ============================================================
+// SYSTEM PROMPTS
+// ============================================================
+const ADMIN_SYSTEM_PROMPT = `You are Claude, Chief of Staff at NAVADA. You are Lee Akpareva's AI partner, running on his HP laptop (permanent always-on home server). You are communicating via Telegram from his iPhone.
 
 ## Your Identity
 You are not just an assistant. You are the Chief of Staff. You manage the server, run automations, monitor systems, write code, deploy services, send emails, and keep everything running 24/7. Lee trusts you with full control.
@@ -549,8 +795,9 @@ Lee's email: leeakpareva@gmail.com
 You have complete access to Claude's Zoho email (claude.navada@zohomail.eu):
 - SEND emails via send_email tool (NAVADA branded template or raw HTML)
 - READ inbox via read_inbox tool (check unread, search, any folder)
+- REPLY to emails via reply_email tool (proper threading with In-Reply-To headers)
 - READ sent items via read_inbox with folder "Sent"
-- You can compose, send, read, and manage all email communications
+- You can compose, send, read, reply, and manage all email communications
 
 ## Persistent Memory
 Your conversation history persists across bot restarts in kb/telegram-memory.json.
@@ -569,50 +816,107 @@ You can generate and send voice notes via the voice-service.js script:
 - Uses OpenAI TTS HD with the "onyx" voice
 - Voice notes are saved in Automation/voice-notes/ and emailed as attachments
 
-## MCP Server Access
-You have access to 23 MCP servers via shell commands. Run Node.js scripts that use:
-- PostgreSQL (port 5433) for pipeline data
-- Bright Data for web scraping
-- Puppeteer for browser automation
-- DuckDB for analytical queries on CSVs
-- Jupyter for notebook execution
-- GitHub CLI (gh) for repo management
-- And more. Use run_shell to execute any integration script.
+## MCP Server Access (23 Servers)
+You have access to all MCP servers via shell commands:
+- **PostgreSQL**: \`psql -h localhost -p 5433 -U navada -d navada_pipeline -c "SELECT ..."\` or use Node pg module
+- **LinkedIn**: \`node Automation/linkedin-post.js "Post text"\` to publish to LinkedIn
+- **Puppeteer**: Browser automation via Node scripts
+- **DuckDB**: \`node -e "const duckdb = require('duckdb'); ..."\` for analytical queries
+- **Jupyter**: Start/manage notebooks via scripts
+- **GitHub CLI**: \`gh repo list\`, \`gh pr create\`, etc.
+- **Bright Data**: Web scraping via API
+- **SQLite**: Direct file access for pipeline.db
+- **Docker**: Container management via docker CLI
+- All 23 MCP servers accessible via run_shell
+
+## File Management
+You can read, write, list, AND delete files. Use delete_file tool for cleanup.
 
 ## Tools Available
-You have FULL server access: run any bash command, read/write/delete files, list directories, server status, send emails, read inbox, generate images (DALL-E 3), send voice notes, access MCP integrations. You ARE the server operator. Same level of access as Claude Code. No restrictions.`;
+You have FULL server access: run any bash command, read/write/delete files, list directories, server status, send emails, read inbox, reply to emails, generate images (DALL-E 3), send voice notes, post to LinkedIn, access all MCP integrations. You ARE the server operator. Same level of access as Claude Code. No restrictions.`;
 
-// --- Core: Claude with Tool Use ---
+const GUEST_SYSTEM_PROMPT = `You are Claude, AI Chief of Staff at NAVADA Edge. This is a live demo of an autonomous AI home server, built by Lee Akpareva.
+
+## What is NAVADA Edge?
+NAVADA Edge is a productised AI home server deployment service. It runs Claude as Chief of Staff on a dedicated machine, managing automations, monitoring systems, sending emails, generating content, and providing 24/7 AI-powered server management via Telegram.
+
+## Your Role in This Demo
+You are demonstrating the power of NAVADA Edge. Be impressive, professional, and helpful. Show what an AI Chief of Staff can do.
+
+## What You Can Do (Demo Mode)
+- Check server status, uptime, processes, Docker, network
+- Generate images with DALL-E 3
+- Answer questions about AI, technology, business
+- Discuss NAVADA Edge capabilities
+- Showcase the depth of Claude's intelligence
+
+## What You Cannot Do (Demo Restrictions)
+- No file modifications or shell commands
+- No email access (sending or reading)
+- No service restarts or deployments
+- This is a read-only demo for security
+
+## Response Style
+- Professional and impressive
+- Concise, mobile-friendly
+- Highlight NAVADA Edge capabilities naturally
+- Be helpful and engaging
+
+## About NAVADA
+Founded by Lee Akpareva, 17+ years in digital transformation.
+Products: NAVADA Edge, WorldMonitor, Trading Lab, Robotics, ALEX.
+Website: www.navada-lab.space
+
+Current AI model: ${currentModelName}`;
+
+// ============================================================
+// CORE: Claude with Tool Use
+// ============================================================
 async function askClaude(ctx, userMessage) {
   if (!anthropic) return ctx.reply('Anthropic API key not configured.');
 
-  log(`[USER] ${userMessage}`);
+  const userId = ctx.state.userId;
+  const userRole = ctx.state.userRole;
+  const username = ctx.state.username;
 
-  // Add to history
-  conversationHistory.push({ role: 'user', content: userMessage });
+  log(`[USER:${userId}] ${userMessage}`);
+
+  // Log inbound interaction
+  logInteraction({
+    direction: 'in',
+    userId,
+    username,
+    model: currentModelName,
+    message: userMessage.slice(0, 500),
+  });
+
+  // Get per-user conversation history
+  const history = getUserHistory(userId);
+  history.push({ role: 'user', content: userMessage });
 
   // Trim history
-  while (conversationHistory.length > MAX_HISTORY * 2) {
-    conversationHistory.splice(0, 2);
+  while (history.length > MAX_HISTORY * 2) {
+    history.splice(0, 2);
   }
 
   let loopCount = 0;
-  let messages = [...conversationHistory];
+  let messages = [...history];
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
+
+  // Select system prompt and tools based on role
+  const systemPrompt = userRole === 'admin' ? ADMIN_SYSTEM_PROMPT : GUEST_SYSTEM_PROMPT;
+  const toolSet = userRole === 'admin' ? TOOLS : GUEST_TOOL_LIST;
 
   try {
     while (loopCount < MAX_TOOL_LOOPS) {
       loopCount++;
 
-      // Dynamic system prompt with current model
-      const systemPrompt = SYSTEM_PROMPT.replace('${currentModelName}', currentModelName);
-
       const response = await anthropic.messages.create({
         model: currentModel,
         max_tokens: 4096,
         system: systemPrompt,
-        tools: TOOLS,
+        tools: toolSet,
         messages,
       });
 
@@ -636,7 +940,7 @@ async function askClaude(ctx, userMessage) {
       if (toolBlocks.length === 0 || response.stop_reason === 'end_turn') {
         const finalText = textBlocks.map(b => b.text).join('\n');
         if (finalText.trim()) {
-          conversationHistory.push({ role: 'assistant', content: finalText });
+          history.push({ role: 'assistant', content: finalText });
         }
         break;
       }
@@ -648,7 +952,17 @@ async function askClaude(ctx, userMessage) {
       const toolResults = [];
       for (const tool of toolBlocks) {
         log(`[TOOL CALL] ${tool.name}: ${JSON.stringify(tool.input).slice(0, 200)}`);
-        const result = await executeTool(tool.name, tool.input);
+
+        // Log tool call interaction
+        logInteraction({
+          direction: 'tool',
+          userId,
+          username,
+          toolName: tool.name,
+          toolInput: JSON.stringify(tool.input).slice(0, 300),
+        });
+
+        const result = await executeTool(tool.name, tool.input, userRole);
 
         // If image was generated, send it directly to Telegram
         if (tool.name === 'generate_image') {
@@ -680,11 +994,23 @@ async function askClaude(ctx, userMessage) {
       script: 'telegram-bot',
     });
 
+    // Log outbound interaction with cost data
+    logInteraction({
+      direction: 'out',
+      userId,
+      username,
+      model: currentModelName,
+      input_tokens: totalInputTokens,
+      output_tokens: totalOutputTokens,
+      cost_gbp: estimateCost(currentModel, totalInputTokens, totalOutputTokens),
+    });
+
     // Save trimmed history + persist to disk
-    while (conversationHistory.length > MAX_HISTORY * 2) {
-      conversationHistory.splice(0, 2);
+    while (history.length > MAX_HISTORY * 2) {
+      history.splice(0, 2);
     }
-    saveConversationHistory(conversationHistory);
+    conversationHistories.set(userId, history);
+    saveConversationHistory(userId, history);
 
   } catch (err) {
     log(`[ERROR] Claude: ${err.message}`);
@@ -692,88 +1018,149 @@ async function askClaude(ctx, userMessage) {
   }
 }
 
+// Cost estimation helper
+function estimateCost(model, inputTokens, outputTokens) {
+  // Prices per million tokens in USD, converted to GBP (approx 0.79)
+  const rates = {
+    'claude-sonnet-4-20250514': { input: 3, output: 15 },
+    'claude-opus-4-20250514': { input: 15, output: 75 },
+  };
+  const r = rates[model] || rates['claude-sonnet-4-20250514'];
+  const usd = (inputTokens * r.input + outputTokens * r.output) / 1_000_000;
+  return Math.round(usd * 0.79 * 10000) / 10000; // GBP with 4 decimal places
+}
+
 // ============================================================
-// SLASH COMMANDS — Fast (no API cost)
+// SLASH COMMANDS -- Fast (no API cost)
 // ============================================================
 
 // /start
 bot.start((ctx) => {
   log('/start');
-  ctx.reply(
-    `NAVADA | Claude Chief of Staff\n\n` +
-    `Connected: ${os.hostname()}\n` +
-    `Status: Online\n` +
-    `AI: ${currentModelName} (Anthropic API)\n` +
-    `Tools: shell, files, email, PM2, Docker, Tailscale\n\n` +
-    `I have full control of this server. Tell me what you need.\n\n` +
-    `Type /help for all commands, or just talk naturally.`
-  );
+  if (ctx.state.userRole === 'admin') {
+    ctx.reply(
+      `NAVADA | Claude Chief of Staff\n\n` +
+      `Connected: ${os.hostname()}\n` +
+      `Status: Online\n` +
+      `AI: ${currentModelName} (Anthropic API)\n` +
+      `Tools: shell, files, email, PM2, Docker, Tailscale, LinkedIn\n\n` +
+      `I have full control of this server. Tell me what you need.\n\n` +
+      `Type /help for all commands, or just talk naturally.`
+    );
+  } else {
+    // Guest welcome
+    ctx.reply(
+      `Welcome to NAVADA Edge | AI Chief of Staff Demo\n\n` +
+      `You're connected to a live, autonomous AI home server.\n\n` +
+      `What NAVADA Edge Can Do:\n` +
+      `- 24/7 server management via AI\n` +
+      `- 18 scheduled automations\n` +
+      `- 8 always-on services\n` +
+      `- Email, voice notes, image generation\n` +
+      `- Trading, OSINT, lead pipeline\n` +
+      `- Full MCP integration (23 servers)\n\n` +
+      `Try These Commands:\n` +
+      `/status - Live server health\n` +
+      `/image <description> - Generate AI image\n` +
+      `/research <topic> - Deep AI research\n` +
+      `/about - About NAVADA\n\n` +
+      `Or just chat naturally. I'm Claude, your AI Chief of Staff.\n\n` +
+      `Interested? Contact Lee: www.navada-lab.space`
+    );
+  }
 });
 
 // /help
 bot.help((ctx) => {
   log('/help');
-  ctx.reply(
-    `NAVADA | Chief of Staff Commands\n\n` +
-    `AI MODEL\n` +
-    `/sonnet - Switch to Sonnet 4 (fast)\n` +
-    `/opus - Switch to Opus 4 (powerful)\n` +
-    `/model - Show current model\n\n` +
-    `SYSTEM\n` +
-    `/status - Server health check\n` +
-    `/disk - Disk usage\n` +
-    `/uptime - Server uptime\n` +
-    `/ip - Network addresses\n` +
-    `/processes - Running processes\n\n` +
-    `PM2\n` +
-    `/pm2 - PM2 process list\n` +
-    `/pm2restart <name> - Restart service\n` +
-    `/pm2stop <name> - Stop service\n` +
-    `/pm2start <name> - Start service\n` +
-    `/pm2logs <name> - Recent logs\n\n` +
-    `AUTOMATIONS\n` +
-    `/news - Run AI news digest\n` +
-    `/jobs - Run job hunter\n` +
-    `/pipeline - Run lead pipeline\n` +
-    `/prospect - Run prospect pipeline\n` +
-    `/run <script> - Run any script\n` +
-    `/tasks - Windows scheduled tasks\n\n` +
-    `FILES\n` +
-    `/ls <path> - List directory\n` +
-    `/cat <path> - Read file\n\n` +
-    `NETWORK\n` +
-    `/tailscale - Tailscale status\n` +
-    `/docker - Docker containers\n` +
-    `/nginx - Nginx status\n\n` +
-    `COMMUNICATION\n` +
-    `/email <to> <subject> | <body> - Send email\n` +
-    `/emailme <subject> | <body> - Email Lee\n` +
-    `/briefing - Send morning briefing\n` +
-    `/inbox [search] - Check Zoho inbox\n` +
-    `/sent - View sent emails\n\n` +
-    `CREATIVE\n` +
-    `/present <topic> - Email HTML presentation\n` +
-    `/report <topic> - Generate & email report\n` +
-    `/research <topic> - Deep research task\n` +
-    `/draft <topic> - Draft content\n` +
-    `/image <description> - Generate DALL-E 3 image\n\n` +
-    `VOICE\n` +
-    `/voice - Voice system control\n` +
-    `/voicenote <message> - Send voice email to Lee\n\n` +
-    `OTHER\n` +
-    `/shell <cmd> - Run shell command\n` +
-    `/costs - Today's API costs\n` +
-    `/memory - Check memory status\n` +
-    `/clear - Reset conversation + memory\n` +
-    `/about - About NAVADA\n\n` +
-    `Or just type naturally. I understand everything.`
-  );
+  if (ctx.state.userRole === 'admin') {
+    ctx.reply(
+      `NAVADA | Chief of Staff Commands\n\n` +
+      `AI MODEL\n` +
+      `/sonnet - Switch to Sonnet 4 (fast)\n` +
+      `/opus - Switch to Opus 4 (powerful)\n` +
+      `/model - Show current model\n\n` +
+      `SYSTEM\n` +
+      `/status - Server health check\n` +
+      `/disk - Disk usage\n` +
+      `/uptime - Server uptime\n` +
+      `/ip - Network addresses\n` +
+      `/processes - Running processes\n\n` +
+      `PM2\n` +
+      `/pm2 - PM2 process list\n` +
+      `/pm2restart <name> - Restart service\n` +
+      `/pm2stop <name> - Stop service\n` +
+      `/pm2start <name> - Start service\n` +
+      `/pm2logs <name> - Recent logs\n\n` +
+      `AUTOMATIONS\n` +
+      `/news - Run AI news digest\n` +
+      `/jobs - Run job hunter\n` +
+      `/pipeline - Run lead pipeline\n` +
+      `/prospect - Run prospect pipeline\n` +
+      `/run <script> - Run any script\n` +
+      `/tasks - Windows scheduled tasks\n\n` +
+      `FILES\n` +
+      `/ls <path> - List directory\n` +
+      `/cat <path> - Read file\n\n` +
+      `NETWORK\n` +
+      `/tailscale - Tailscale status\n` +
+      `/docker - Docker containers\n` +
+      `/nginx - Nginx status\n\n` +
+      `COMMUNICATION\n` +
+      `/email <to> <subject> | <body> - Send email\n` +
+      `/emailme <subject> | <body> - Email Lee\n` +
+      `/briefing - Send morning briefing\n` +
+      `/inbox [search] - Check Zoho inbox\n` +
+      `/sent - View sent emails\n` +
+      `/linkedin <text> - Post to LinkedIn\n\n` +
+      `CREATIVE\n` +
+      `/present <topic> - Email HTML presentation\n` +
+      `/report <topic> - Generate & email report\n` +
+      `/research <topic> - Deep research task\n` +
+      `/draft <topic> - Draft content\n` +
+      `/image <description> - Generate DALL-E 3 image\n\n` +
+      `VOICE\n` +
+      `/voice - Voice system control\n` +
+      `/voicenote <message> - Send voice email to Lee\n\n` +
+      `ADMIN\n` +
+      `/grant <user_id> [days] - Grant bot access\n` +
+      `/revoke <user_id> - Remove bot access\n` +
+      `/users - List authorized users\n\n` +
+      `OTHER\n` +
+      `/shell <cmd> - Run shell command\n` +
+      `/costs - Today's API costs\n` +
+      `/memory - Check memory status\n` +
+      `/clear - Reset conversation + memory\n` +
+      `/about - About NAVADA\n\n` +
+      `Or just type naturally. I understand everything.`
+    );
+  } else {
+    ctx.reply(
+      `NAVADA Edge | Demo Commands\n\n` +
+      `INFO\n` +
+      `/status - Server health check\n` +
+      `/uptime - Server uptime\n` +
+      `/ip - Network addresses\n` +
+      `/about - About NAVADA\n` +
+      `/pm2 - Service status\n` +
+      `/costs - API cost tracking\n\n` +
+      `AI\n` +
+      `/sonnet - Switch to Sonnet 4\n` +
+      `/opus - Switch to Opus 4\n` +
+      `/image <description> - Generate image\n` +
+      `/research <topic> - Deep research\n` +
+      `/draft <topic> - Draft content\n\n` +
+      `Or just type naturally. I'm Claude, AI Chief of Staff.`
+    );
+  }
 });
 
-// /clear
+// /clear (admin only)
 bot.command('clear', (ctx) => {
-  conversationHistory.length = 0;
-  saveConversationHistory([]);
+  if (ctx.state.userRole !== 'admin') return ctx.reply('Admin only.');
+  const userId = ctx.state.userId;
+  conversationHistories.set(userId, []);
+  saveConversationHistory(userId, []);
   log('/clear');
   ctx.reply('Conversation and persistent memory cleared. Fresh start.');
 });
@@ -838,13 +1225,92 @@ bot.command('about', (ctx) => {
     `- ALEX (autonomous agent)\n\n` +
     `Chief of Staff: Claude (Anthropic)\n` +
     `Server: HP Laptop, Windows 11\n` +
-    `23 MCP servers, 14 automations, 8 PM2 services`
+    `23 MCP servers, 18 automations, 8 PM2 services`
   );
 });
 
 // ============================================================
-// SLASH COMMANDS — Smart (routed through Claude)
+// ADMIN COMMANDS (user management)
 // ============================================================
+
+// /grant <user_id> [days]
+bot.command('grant', (ctx) => {
+  if (ctx.state.userRole !== 'admin') return ctx.reply('Admin only.');
+  const args = ctx.message.text.replace('/grant', '').trim().split(/\s+/);
+  const targetId = args[0];
+  const days = parseInt(args[1]) || 7;
+
+  if (!targetId) return ctx.reply('Usage: /grant <user_id> [days]\nDefault: 7 days access');
+
+  const data = loadUsers();
+  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+  data.users[targetId] = {
+    username: 'guest',
+    role: 'guest',
+    grantedAt: new Date().toISOString(),
+    expiresAt,
+    grantedBy: String(ctx.state.userId),
+  };
+  saveUsers(data);
+
+  log(`/grant ${targetId} ${days}d`);
+  ctx.reply(`Access granted to user ${targetId}\nRole: guest\nExpires: ${expiresAt}\nDuration: ${days} days`);
+});
+
+// /revoke <user_id>
+bot.command('revoke', (ctx) => {
+  if (ctx.state.userRole !== 'admin') return ctx.reply('Admin only.');
+  const targetId = ctx.message.text.replace('/revoke', '').trim();
+  if (!targetId) return ctx.reply('Usage: /revoke <user_id>');
+  if (targetId === String(OWNER_ID)) return ctx.reply('Cannot revoke owner access.');
+
+  const data = loadUsers();
+  if (data.users[targetId]) {
+    delete data.users[targetId];
+    saveUsers(data);
+    // Clean up guest memory
+    const guestMemory = path.join(MEMORY_DIR, `telegram-memory-${targetId}.json`);
+    try { if (fs.existsSync(guestMemory)) fs.unlinkSync(guestMemory); } catch {}
+    log(`/revoke ${targetId}`);
+    ctx.reply(`Access revoked for user ${targetId}`);
+  } else {
+    ctx.reply(`User ${targetId} not found in registry.`);
+  }
+});
+
+// /users
+bot.command('users', (ctx) => {
+  if (ctx.state.userRole !== 'admin') return ctx.reply('Admin only.');
+  const data = loadUsers();
+  const entries = Object.entries(data.users);
+  if (entries.length === 0) return ctx.reply('No registered users.');
+
+  let msg = `Authorized Users (${entries.length})\n\n`;
+  for (const [id, user] of entries) {
+    const isExpired = user.expiresAt && new Date(user.expiresAt) < new Date();
+    const expiry = user.expiresAt ? new Date(user.expiresAt).toLocaleDateString('en-GB') : 'never';
+    msg += `${user.role === 'admin' ? '[ADMIN]' : '[GUEST]'} ${id}\n`;
+    msg += `  @${user.username || 'unknown'}\n`;
+    msg += `  Expires: ${expiry}${isExpired ? ' [EXPIRED]' : ''}\n`;
+    msg += `  Granted: ${new Date(user.grantedAt).toLocaleDateString('en-GB')}\n\n`;
+  }
+  ctx.reply(msg);
+  log('/users');
+});
+
+// ============================================================
+// SLASH COMMANDS -- Smart (routed through Claude)
+// ============================================================
+
+// Command guard middleware helper
+function guardCommand(command, handler) {
+  bot.command(command, (ctx) => {
+    if (!isCommandAllowed(command, ctx.state.userRole)) {
+      return ctx.reply(`This command is not available in demo mode.\nContact Lee for full NAVADA Edge access.`);
+    }
+    return handler(ctx);
+  });
+}
 
 // /status
 bot.command('status', async (ctx) => {
@@ -853,13 +1319,13 @@ bot.command('status', async (ctx) => {
 });
 
 // /disk
-bot.command('disk', async (ctx) => {
+guardCommand('disk', async (ctx) => {
   log('/disk');
   await askClaude(ctx, 'Check disk usage on all drives. Show used/total and percentage. Keep it brief.');
 });
 
 // /processes
-bot.command('processes', async (ctx) => {
+guardCommand('processes', async (ctx) => {
   log('/processes');
   await askClaude(ctx, 'Show all running PM2 processes and their status, plus any Docker containers. Concise format.');
 });
@@ -871,12 +1337,13 @@ bot.command('pm2', async (ctx) => {
   if (!args) {
     await askClaude(ctx, 'Run pm2 list and show me the status of all services. Format nicely for mobile.');
   } else {
+    if (ctx.state.userRole !== 'admin') return ctx.reply('PM2 management is admin only.');
     await askClaude(ctx, `Run this PM2 command: pm2 ${args}`);
   }
 });
 
 // /pm2restart
-bot.command('pm2restart', async (ctx) => {
+guardCommand('pm2restart', async (ctx) => {
   const name = ctx.message.text.replace('/pm2restart', '').trim();
   log(`/pm2restart ${name}`);
   if (!name) return ctx.reply('Usage: /pm2restart <service-name>');
@@ -884,7 +1351,7 @@ bot.command('pm2restart', async (ctx) => {
 });
 
 // /pm2stop
-bot.command('pm2stop', async (ctx) => {
+guardCommand('pm2stop', async (ctx) => {
   const name = ctx.message.text.replace('/pm2stop', '').trim();
   log(`/pm2stop ${name}`);
   if (!name) return ctx.reply('Usage: /pm2stop <service-name>');
@@ -892,7 +1359,7 @@ bot.command('pm2stop', async (ctx) => {
 });
 
 // /pm2start
-bot.command('pm2start', async (ctx) => {
+guardCommand('pm2start', async (ctx) => {
   const name = ctx.message.text.replace('/pm2start', '').trim();
   log(`/pm2start ${name}`);
   if (!name) return ctx.reply('Usage: /pm2start <service-name>');
@@ -900,7 +1367,7 @@ bot.command('pm2start', async (ctx) => {
 });
 
 // /pm2logs
-bot.command('pm2logs', async (ctx) => {
+guardCommand('pm2logs', async (ctx) => {
   const name = ctx.message.text.replace('/pm2logs', '').trim();
   log(`/pm2logs ${name}`);
   if (!name) return ctx.reply('Usage: /pm2logs <service-name>');
@@ -908,31 +1375,31 @@ bot.command('pm2logs', async (ctx) => {
 });
 
 // /news
-bot.command('news', async (ctx) => {
+guardCommand('news', async (ctx) => {
   log('/news');
   await askClaude(ctx, 'Run the AI news digest script: node Automation/ai-news-mailer.js. Show me the output.');
 });
 
 // /jobs
-bot.command('jobs', async (ctx) => {
+guardCommand('jobs', async (ctx) => {
   log('/jobs');
   await askClaude(ctx, 'Run the job hunter script: node Automation/job-hunter-apify.js. Show me the output summary.');
 });
 
 // /pipeline
-bot.command('pipeline', async (ctx) => {
+guardCommand('pipeline', async (ctx) => {
   log('/pipeline');
   await askClaude(ctx, 'Run the lead pipeline: node LeadPipeline/pipeline.js. Show me the results.');
 });
 
 // /prospect
-bot.command('prospect', async (ctx) => {
+guardCommand('prospect', async (ctx) => {
   log('/prospect');
   await askClaude(ctx, 'Run the prospect pipeline: node LeadPipeline/prospect-pipeline.js. Show me the results.');
 });
 
 // /run
-bot.command('run', async (ctx) => {
+guardCommand('run', async (ctx) => {
   const script = ctx.message.text.replace('/run', '').trim();
   log(`/run ${script}`);
   if (!script) return ctx.reply('Usage: /run <script-path>\nExample: /run Automation/ai-news-mailer.js');
@@ -946,14 +1413,14 @@ bot.command('tasks', async (ctx) => {
 });
 
 // /ls
-bot.command('ls', async (ctx) => {
+guardCommand('ls', async (ctx) => {
   const dir = ctx.message.text.replace('/ls', '').trim() || NAVADA_DIR;
   log(`/ls ${dir}`);
   await askClaude(ctx, `List the contents of directory: ${dir}`);
 });
 
 // /cat
-bot.command('cat', async (ctx) => {
+guardCommand('cat', async (ctx) => {
   const filePath = ctx.message.text.replace('/cat', '').trim();
   log(`/cat ${filePath}`);
   if (!filePath) return ctx.reply('Usage: /cat <file-path>');
@@ -979,7 +1446,7 @@ bot.command('nginx', async (ctx) => {
 });
 
 // /shell
-bot.command('shell', async (ctx) => {
+guardCommand('shell', async (ctx) => {
   const cmd = ctx.message.text.replace('/shell', '').trim();
   log(`/shell ${cmd}`);
   if (!cmd) return ctx.reply('Usage: /shell <command>');
@@ -987,7 +1454,7 @@ bot.command('shell', async (ctx) => {
 });
 
 // /voice
-bot.command('voice', async (ctx) => {
+guardCommand('voice', async (ctx) => {
   const args = ctx.message.text.replace('/voice', '').trim();
   log(`/voice ${args}`);
   if (args === 'start') {
@@ -1010,7 +1477,7 @@ bot.command('costs', async (ctx) => {
 // ============================================================
 
 // /email
-bot.command('email', async (ctx) => {
+guardCommand('email', async (ctx) => {
   const args = ctx.message.text.replace('/email', '').trim();
   log(`/email ${args}`);
   if (!args) return ctx.reply('Usage: /email <to> <subject> | <body>\nExample: /email lee@test.com Hello | This is a test');
@@ -1018,7 +1485,7 @@ bot.command('email', async (ctx) => {
 });
 
 // /emailme
-bot.command('emailme', async (ctx) => {
+guardCommand('emailme', async (ctx) => {
   const args = ctx.message.text.replace('/emailme', '').trim();
   log(`/emailme ${args}`);
   if (!args) return ctx.reply('Usage: /emailme <subject> | <body>');
@@ -1026,13 +1493,13 @@ bot.command('emailme', async (ctx) => {
 });
 
 // /briefing
-bot.command('briefing', async (ctx) => {
+guardCommand('briefing', async (ctx) => {
   log('/briefing');
   await askClaude(ctx, 'Run the morning briefing script: node Automation/morning-briefing.js. Show me the output or confirm it was sent.');
 });
 
 // /inbox
-bot.command('inbox', async (ctx) => {
+guardCommand('inbox', async (ctx) => {
   const args = ctx.message.text.replace('/inbox', '').trim();
   log(`/inbox ${args}`);
   if (args) {
@@ -1043,23 +1510,34 @@ bot.command('inbox', async (ctx) => {
 });
 
 // /sent
-bot.command('sent', async (ctx) => {
+guardCommand('sent', async (ctx) => {
   log('/sent');
   await askClaude(ctx, 'Check the Sent folder in my Zoho email. Use the read_inbox tool with folder "Sent" and unread_only false. Show the most recent 5 sent emails with recipients and subjects.');
+});
+
+// /linkedin
+guardCommand('linkedin', async (ctx) => {
+  const text = ctx.message.text.replace('/linkedin', '').trim();
+  log(`/linkedin ${text}`);
+  if (!text) return ctx.reply('Usage: /linkedin <post text>\nExample: /linkedin Excited to announce...');
+  await askClaude(ctx, `Post to LinkedIn using: node Automation/linkedin-post.js "${text.replace(/"/g, '\\"')}". This publishes directly to Lee's LinkedIn profile. Run the command and confirm the result.`);
 });
 
 // /memory
 bot.command('memory', (ctx) => {
   log('/memory');
-  const turns = conversationHistory.length;
-  const memSize = fs.existsSync(MEMORY_FILE) ? (fs.statSync(MEMORY_FILE).size / 1024).toFixed(1) : '0';
+  const userId = ctx.state.userId;
+  const history = getUserHistory(userId);
+  const memFile = getMemoryFile(userId);
+  const memSize = fs.existsSync(memFile) ? (fs.statSync(memFile).size / 1024).toFixed(1) : '0';
   ctx.reply(
     `Memory Status\n\n` +
-    `Conversation turns: ${turns}\n` +
+    `Conversation turns: ${history.length}\n` +
     `Memory file: ${memSize} KB\n` +
     `Max history: ${MAX_HISTORY * 2} turns\n` +
     `Persistent: Yes (survives restarts)\n` +
-    `Model: ${currentModelName}\n\n` +
+    `Model: ${currentModelName}\n` +
+    `Role: ${ctx.state.userRole}\n\n` +
     `Use /clear to reset memory.`
   );
 });
@@ -1069,7 +1547,7 @@ bot.command('memory', (ctx) => {
 // ============================================================
 
 // /present
-bot.command('present', async (ctx) => {
+guardCommand('present', async (ctx) => {
   const topic = ctx.message.text.replace('/present', '').trim();
   log(`/present ${topic}`);
   if (!topic) return ctx.reply('Usage: /present <topic>\nExample: /present NAVADA Edge');
@@ -1077,14 +1555,14 @@ bot.command('present', async (ctx) => {
 });
 
 // /report
-bot.command('report', async (ctx) => {
+guardCommand('report', async (ctx) => {
   const topic = ctx.message.text.replace('/report', '').trim();
   log(`/report ${topic}`);
   if (!topic) return ctx.reply('Usage: /report <topic>\nExample: /report weekly server health');
   await askClaude(ctx, `Research and generate a professional report about "${topic}". Use your tools to gather real data from the server if relevant. Then email it to Lee (leeakpareva@gmail.com) using the send_email tool with proper formatting. Subject: "${topic} Report | NAVADA".`);
 });
 
-// /research
+// /research (available to guests)
 bot.command('research', async (ctx) => {
   const topic = ctx.message.text.replace('/research', '').trim();
   log(`/research ${topic}`);
@@ -1093,14 +1571,14 @@ bot.command('research', async (ctx) => {
 });
 
 // /voicenote
-bot.command('voicenote', async (ctx) => {
+guardCommand('voicenote', async (ctx) => {
   const args = ctx.message.text.replace('/voicenote', '').trim();
   log(`/voicenote ${args}`);
   if (!args) return ctx.reply('Usage: /voicenote <message>\nSends a voice note to Lee via email.\nExample: /voicenote Good morning Lee, here is your daily update');
   await askClaude(ctx, `Generate a voice note and email it to Lee (leeakpareva@gmail.com). The message to speak: "${args}". Run: node Automation/voice-service.js leeakpareva@gmail.com "${args.replace(/"/g, '\\"')}". Show me the result.`);
 });
 
-// /image
+// /image (available to guests)
 bot.command('image', async (ctx) => {
   const prompt = ctx.message.text.replace('/image', '').trim();
   log(`/image ${prompt}`);
@@ -1108,7 +1586,7 @@ bot.command('image', async (ctx) => {
   await askClaude(ctx, `Generate an image using DALL-E 3 with this description: "${prompt}". Use the generate_image tool. Use HD quality for best results.`);
 });
 
-// /draft
+// /draft (available to guests)
 bot.command('draft', async (ctx) => {
   const topic = ctx.message.text.replace('/draft', '').trim();
   log(`/draft ${topic}`);
@@ -1117,7 +1595,58 @@ bot.command('draft', async (ctx) => {
 });
 
 // ============================================================
-// ALL TEXT — Natural language goes to Claude
+// PHOTO & DOCUMENT HANDLERS
+// ============================================================
+bot.on('photo', async (ctx) => {
+  if (ctx.state.userRole !== 'admin') {
+    return ctx.reply('File uploads are not available in demo mode.');
+  }
+  try {
+    const photos = ctx.message.photo;
+    const largest = photos[photos.length - 1]; // highest resolution
+    const file = await ctx.telegram.getFile(largest.file_id);
+    const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${file.file_path}`;
+    const ext = path.extname(file.file_path) || '.jpg';
+    const filename = `photo_${Date.now()}${ext}`;
+    const destPath = path.join(UPLOADS_DIR, filename);
+
+    await downloadFile(fileUrl, destPath);
+    log(`[PHOTO] Saved: ${destPath}`);
+
+    const caption = ctx.message.caption || '';
+    const msg = `Photo received and saved to ${destPath}. ${caption ? `Caption: "${caption}". ` : ''}What would you like me to do with this image?`;
+    await askClaude(ctx, msg);
+  } catch (err) {
+    log(`[ERROR] Photo handler: ${err.message}`);
+    await ctx.reply(`Error saving photo: ${err.message}`);
+  }
+});
+
+bot.on('document', async (ctx) => {
+  if (ctx.state.userRole !== 'admin') {
+    return ctx.reply('File uploads are not available in demo mode.');
+  }
+  try {
+    const doc = ctx.message.document;
+    const file = await ctx.telegram.getFile(doc.file_id);
+    const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${file.file_path}`;
+    const filename = doc.file_name || `document_${Date.now()}`;
+    const destPath = path.join(UPLOADS_DIR, filename);
+
+    await downloadFile(fileUrl, destPath);
+    log(`[DOCUMENT] Saved: ${destPath} (${doc.mime_type}, ${doc.file_size} bytes)`);
+
+    const caption = ctx.message.caption || '';
+    const msg = `Document received: "${filename}" (${doc.mime_type}, ${Math.round(doc.file_size / 1024)}KB). Saved to ${destPath}. ${caption ? `Caption: "${caption}". ` : ''}What would you like me to do with this file?`;
+    await askClaude(ctx, msg);
+  } catch (err) {
+    log(`[ERROR] Document handler: ${err.message}`);
+    await ctx.reply(`Error saving document: ${err.message}`);
+  }
+});
+
+// ============================================================
+// ALL TEXT -- Natural language goes to Claude
 // ============================================================
 bot.on('text', async (ctx) => {
   await askClaude(ctx, ctx.message.text);
@@ -1129,10 +1658,13 @@ bot.catch((err, ctx) => {
   log(`[ERROR] ${err.message}`);
 });
 
-// --- Register Commands with Telegram for autocomplete ---
+// ============================================================
+// REGISTER COMMANDS WITH TELEGRAM
+// ============================================================
 async function registerCommands() {
   try {
-    await bot.telegram.setMyCommands([
+    // Admin commands (visible to owner)
+    const adminCommands = [
       // AI Model
       { command: 'sonnet', description: 'Switch to Sonnet 4 (fast)' },
       { command: 'opus', description: 'Switch to Opus 4 (powerful)' },
@@ -1162,6 +1694,7 @@ async function registerCommands() {
       { command: 'briefing', description: 'Run morning briefing' },
       { command: 'inbox', description: 'Check Zoho inbox' },
       { command: 'sent', description: 'View sent emails' },
+      { command: 'linkedin', description: 'Post to LinkedIn' },
       // Creative
       { command: 'present', description: 'Email HTML presentation' },
       { command: 'report', description: 'Generate & email report' },
@@ -1182,8 +1715,31 @@ async function registerCommands() {
       { command: 'memory', description: 'Check memory status' },
       { command: 'clear', description: 'Reset conversation + memory' },
       { command: 'about', description: 'About NAVADA' },
+      // Admin
+      { command: 'grant', description: 'Grant bot access (admin)' },
+      { command: 'revoke', description: 'Remove bot access (admin)' },
+      { command: 'users', description: 'List authorized users (admin)' },
       { command: 'help', description: 'Show all commands' },
+    ];
+
+    // Set default commands (guests see these)
+    await bot.telegram.setMyCommands([
+      { command: 'start', description: 'Welcome & intro' },
+      { command: 'help', description: 'Show available commands' },
+      { command: 'status', description: 'Server health check' },
+      { command: 'about', description: 'About NAVADA' },
+      { command: 'image', description: 'Generate DALL-E 3 image' },
+      { command: 'research', description: 'Deep research task' },
+      { command: 'draft', description: 'Draft content' },
+      { command: 'sonnet', description: 'Switch to Sonnet 4' },
+      { command: 'opus', description: 'Switch to Opus 4' },
     ]);
+
+    // Set admin commands (owner sees the full list)
+    await bot.telegram.setMyCommands(adminCommands, {
+      scope: { type: 'chat', chat_id: OWNER_ID },
+    });
+
     console.log('[NAVADA] Commands registered with Telegram');
   } catch (e) {
     console.warn('[WARN] Failed to register commands:', e.message);
@@ -1193,6 +1749,7 @@ async function registerCommands() {
 // --- Launch ---
 console.log('[NAVADA] Claude Chief of Staff starting...');
 console.log(`[NAVADA] Model: ${currentModelName} (${currentModel})`);
+console.log(`[NAVADA] Multi-user: enabled | Owner: ${OWNER_ID}`);
 
 registerCommands();
 

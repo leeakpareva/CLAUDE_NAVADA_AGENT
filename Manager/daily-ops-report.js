@@ -18,6 +18,8 @@ const LOGS_DIR = path.join(__dirname, '..', 'Automation', 'logs');
 const VOICE_LOG = path.join(__dirname, '..', 'Automation', 'logs', 'voice-command.log');
 const PM2_VOICE_LOG = path.join(process.env.USERPROFILE || 'C:\\Users\\leeak', '.pm2', 'logs', 'voice-command-out.log');
 const JOBS_TRACKER = path.join(__dirname, '..', 'Automation', 'jobs-tracker.json');
+const TELEGRAM_LOG = path.join(__dirname, '..', 'Automation', 'logs', 'telegram-interactions.jsonl');
+const COST_LOG = path.join(__dirname, 'cost-log.json');
 
 function getToday() {
   return new Date().toISOString().split('T')[0];
@@ -70,6 +72,53 @@ function scanJobActivity(date) {
   } catch (e) { return { found: 0, applied: 0, total: 0 }; }
 }
 
+function scanTelegramActivity(date) {
+  const stats = { messagesIn: 0, messagesOut: 0, toolCalls: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCostGbp: 0, byModel: {} };
+  try {
+    // Parse telegram-interactions.jsonl for message counts
+    if (fs.existsSync(TELEGRAM_LOG)) {
+      const lines = fs.readFileSync(TELEGRAM_LOG, 'utf8').split('\n').filter(Boolean);
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line);
+          if (!entry.timestamp || !entry.timestamp.startsWith(date)) continue;
+          if (entry.direction === 'in') stats.messagesIn++;
+          else if (entry.direction === 'out') {
+            stats.messagesOut++;
+            stats.totalInputTokens += entry.input_tokens || 0;
+            stats.totalOutputTokens += entry.output_tokens || 0;
+            stats.totalCostGbp += entry.cost_gbp || 0;
+            const model = entry.model || 'unknown';
+            if (!stats.byModel[model]) stats.byModel[model] = { calls: 0, cost_gbp: 0, input_tokens: 0, output_tokens: 0 };
+            stats.byModel[model].calls++;
+            stats.byModel[model].cost_gbp += entry.cost_gbp || 0;
+            stats.byModel[model].input_tokens += entry.input_tokens || 0;
+            stats.byModel[model].output_tokens += entry.output_tokens || 0;
+          } else if (entry.direction === 'tool') {
+            stats.toolCalls++;
+          }
+        } catch {}
+      }
+    }
+    // Also check cost-log.json for telegram-bot script costs (more accurate billing data)
+    if (fs.existsSync(COST_LOG)) {
+      try {
+        const costData = JSON.parse(fs.readFileSync(COST_LOG, 'utf8'));
+        const todayEntries = (costData.entries || []).filter(e =>
+          e.timestamp && e.timestamp.startsWith(date) && e.script === 'telegram-bot'
+        );
+        if (todayEntries.length > 0 && stats.totalCostGbp === 0) {
+          // Fallback: use cost-log if interaction log didn't have cost data
+          for (const e of todayEntries) {
+            stats.totalCostGbp += e.cost_gbp || 0;
+          }
+        }
+      } catch {}
+    }
+  } catch (e) { /* */ }
+  return stats;
+}
+
 function getPM2Status() {
   try {
     const { execSync } = require('child_process');
@@ -95,6 +144,7 @@ function buildReport(date) {
   const tasks = scanTaskLogs(date);
   const voice = scanVoiceActivity(date);
   const jobs = scanJobActivity(date);
+  const telegram = scanTelegramActivity(date);
   const pm2 = getPM2Status();
 
   const dateObj = new Date(date + 'T00:00:00');
@@ -169,24 +219,29 @@ function buildReport(date) {
     </tr></table>
   </td></tr>`);
 
-  // ROW: Summary stats
+  // ROW: Summary stats (5 columns)
+  const telegramTotal = telegram.messagesIn + telegram.messagesOut;
   rows.push(`<tr><td bgcolor="${CD}" style="background-color:${CD};padding:28px ${P};">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
-      <td width="25%" bgcolor="${CD}" style="background-color:${CD};text-align:center;padding:8px 4px;">
-        <div style="font-size:32px;font-weight:700;color:${W};font-family:${MN};">${fmtCost(costs.total_cost_gbp)}</div>
+      <td width="20%" bgcolor="${CD}" style="background-color:${CD};text-align:center;padding:8px 4px;">
+        <div style="font-size:28px;font-weight:700;color:${W};font-family:${MN};">${fmtCost(costs.total_cost_gbp)}</div>
         <div style="font-size:10px;color:${DM};text-transform:uppercase;letter-spacing:0.1em;margin-top:8px;">AI Spend</div>
       </td>
-      <td width="25%" bgcolor="${CD}" style="background-color:${CD};text-align:center;padding:8px 4px;">
-        <div style="font-size:32px;font-weight:700;color:${W};font-family:${MN};">${costs.total_calls}</div>
+      <td width="20%" bgcolor="${CD}" style="background-color:${CD};text-align:center;padding:8px 4px;">
+        <div style="font-size:28px;font-weight:700;color:${W};font-family:${MN};">${costs.total_calls}</div>
         <div style="font-size:10px;color:${DM};text-transform:uppercase;letter-spacing:0.1em;margin-top:8px;">API Calls</div>
       </td>
-      <td width="25%" bgcolor="${CD}" style="background-color:${CD};text-align:center;padding:8px 4px;">
-        <div style="font-size:32px;font-weight:700;color:${W};font-family:${MN};">${tasksOk}/${uniqueTasks.length}</div>
+      <td width="20%" bgcolor="${CD}" style="background-color:${CD};text-align:center;padding:8px 4px;">
+        <div style="font-size:28px;font-weight:700;color:${W};font-family:${MN};">${tasksOk}/${uniqueTasks.length}</div>
         <div style="font-size:10px;color:${DM};text-transform:uppercase;letter-spacing:0.1em;margin-top:8px;">Tasks OK</div>
       </td>
-      <td width="25%" bgcolor="${CD}" style="background-color:${CD};text-align:center;padding:8px 4px;">
-        <div style="font-size:32px;font-weight:700;color:${W};font-family:${MN};">${servicesOnline}</div>
+      <td width="20%" bgcolor="${CD}" style="background-color:${CD};text-align:center;padding:8px 4px;">
+        <div style="font-size:28px;font-weight:700;color:${W};font-family:${MN};">${servicesOnline}</div>
         <div style="font-size:10px;color:${DM};text-transform:uppercase;letter-spacing:0.1em;margin-top:8px;">Services Up</div>
+      </td>
+      <td width="20%" bgcolor="${CD}" style="background-color:${CD};text-align:center;padding:8px 4px;">
+        <div style="font-size:28px;font-weight:700;color:${W};font-family:${MN};">${telegramTotal}</div>
+        <div style="font-size:10px;color:${DM};text-transform:uppercase;letter-spacing:0.1em;margin-top:8px;">Telegram</div>
       </td>
     </tr></table>
   </td></tr>`);
@@ -259,6 +314,45 @@ function buildReport(date) {
       <td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${voice.errors}</td></tr>`;
     rows.push(`<tr><td bgcolor="${BG}" style="background-color:${BG};padding:24px ${P} 20px ${P};">
       ${sh('Voice System')}<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">${voiceInner}</table>
+    </td></tr>`);
+  }
+
+  // TELEGRAM GATEWAY (conditional — only shows when Telegram was used, as this is the cost channel)
+  const hasTelegram = telegram.messagesIn > 0 || telegram.messagesOut > 0;
+  if (hasTelegram) {
+    rows.push(divRow);
+    const fmtTokens = (n) => n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+    let tgInner = `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${GR};">Messages received</td>
+          <td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${telegram.messagesIn}</td></tr>
+      <tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${GR};">Responses sent</td>
+          <td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${telegram.messagesOut}</td></tr>
+      <tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${GR};">Tool calls</td>
+          <td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${telegram.toolCalls}</td></tr>
+      <tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${GR};">Input tokens</td>
+          <td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${fmtTokens(telegram.totalInputTokens)}</td></tr>
+      <tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${GR};">Output tokens</td>
+          <td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};">${fmtTokens(telegram.totalOutputTokens)}</td></tr>
+      <tr><td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${GR};font-weight:700;">Telegram cost</td>
+          <td bgcolor="${BG}" style="background-color:${BG};padding:8px 0;font-size:14px;color:${W};text-align:right;font-family:${MN};font-weight:700;">${fmtCost(telegram.totalCostGbp)}</td></tr>
+    </table>`;
+    // Model breakdown if multiple models used
+    const tgModels = Object.entries(telegram.byModel);
+    if (tgModels.length > 0) {
+      const mRows = tgModels.map(([m, d]) =>
+        `<tr><td bgcolor="${BG}" style="background-color:${BG};padding:6px 0;font-size:13px;color:${GR};">${m}</td>` +
+        `<td bgcolor="${BG}" style="background-color:${BG};padding:6px 0;font-size:13px;color:${W};text-align:center;font-family:${MN};">${d.calls}</td>` +
+        `<td bgcolor="${BG}" style="background-color:${BG};padding:6px 0;font-size:13px;color:${W};text-align:right;font-family:${MN};">${fmtCost(d.cost_gbp)}</td></tr>`
+      ).join('');
+      tgInner += `<div style="margin-top:16px;margin-bottom:12px;font-size:11px;font-weight:700;color:${DM};letter-spacing:0.12em;text-transform:uppercase;">By Model</div>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+          <tr><td bgcolor="${BG}" style="background-color:${BG};padding:4px 0;font-size:11px;color:${DM};text-transform:uppercase;">Model</td>
+              <td bgcolor="${BG}" style="background-color:${BG};padding:4px 0;font-size:11px;color:${DM};text-align:center;text-transform:uppercase;">Calls</td>
+              <td bgcolor="${BG}" style="background-color:${BG};padding:4px 0;font-size:11px;color:${DM};text-align:right;text-transform:uppercase;">Cost</td></tr>
+          ${mRows}</table>`;
+    }
+    rows.push(`<tr><td bgcolor="${BG}" style="background-color:${BG};padding:24px ${P} 20px ${P};">
+      ${sh('Telegram Gateway')}${tgInner}
     </td></tr>`);
   }
 
@@ -337,7 +431,7 @@ function buildReport(date) {
       <a href="https://www.navada-lab.space" style="color:#444;text-decoration:none;">navada-lab.space</a></div>
   </td></tr>`);
 
-  const preheaderText = `${fmtCost(costs.total_cost_gbp)} spent | ${costs.total_calls} calls | ${tasksOk}/${uniqueTasks.length} tasks OK | ${servicesOnline} services up`;
+  const preheaderText = `${fmtCost(costs.total_cost_gbp)} spent | ${costs.total_calls} calls | ${tasksOk}/${uniqueTasks.length} tasks OK | ${servicesOnline} services | ${telegramTotal} telegram`;
 
   return `<!DOCTYPE html>
 <html lang="en">

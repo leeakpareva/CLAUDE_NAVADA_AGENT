@@ -56,7 +56,7 @@ function checkAndRun() {
         execSync(`${PY} ${task.script}`, {
           cwd: TRADING_DIR,
           encoding: 'utf-8',
-          timeout: 300000, // 5 min timeout
+          timeout: 900000, // 15 min timeout
           stdio: 'inherit',
         });
         log(`Completed: ${task.label}`);
