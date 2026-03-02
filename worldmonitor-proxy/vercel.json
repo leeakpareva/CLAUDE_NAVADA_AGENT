@@ -1,5 +1,14 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "https://navada.tail394c36.ts.net/$1" }
+    { "source": "/api/trading/:path*", "destination": "https://navada.tail394c36.ts.net/api/trading/:path*" },
+    { "source": "/api/:path*", "destination": "https://navada.tail394c36.ts.net/api/:path*" }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
   ]
 }

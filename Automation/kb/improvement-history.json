@@ -161,6 +161,249 @@
       "scannedAt": "2026-02-26T09:06:55.385Z",
       "sentAt": "2026-02-28T20:36:02.097Z",
       "approvedItems": []
+    },
+    {
+      "week": 9,
+      "year": 2026,
+      "findings": [
+        {
+          "id": 1,
+          "category": "BUG",
+          "title": "IMAP Connection Instability – inbox-responder & vc-monitor",
+          "description": "Both services show repeated ECONNRESET and connection timeout errors on 2026-02-28. inbox-responder.log reports 5+ IMAP failures in the last 3 hours; vc-monitor.log shows similar pattern. Root cause likely: Zoho Mail IMAP server drops idle connections or network instability. Impact: Email monitoring and VC response detection failing intermittently.",
+          "action": "Add exponential backoff retry (max 5 retries, 30s–5min delay) to IMAP connection handlers in Automation/inbox-responder.js and Automation/vc-response-monitor.js. Verify ZOHO_IMAP credentials in .env. Enable keep-alive on IMAP socket to prevent idle timeout.",
+          "priority": "high",
+          "effort": "30min"
+        },
+        {
+          "id": 2,
+          "category": "BUG",
+          "title": "Voice Command System – Excessive Logging & Repeated Errors",
+          "description": "voice-command.log is 3.3MB with continuous [Errno -9999] 'Unanticipated host error' in listen loop since 2026-02-28 21:07. Service stuck in error loop, generating thousands of logs per hour. Root cause: Audio device driver issue or microphone disconnection. Impact: Log spam masks real issues; prevents diagnostics.",
+          "action": "Implement exponential backoff + circuit breaker in voice-command.js listen loop (max 3 consecutive errors → pause 60s). Add log rate limiting to 1 error per 10s. Restart voice service. Check audio device: Run `python -m sounddevice` to verify microphone connectivity.",
+          "priority": "high",
+          "effort": "1hr"
+        },
+        {
+          "id": 3,
+          "category": "BUG",
+          "title": "Claude Code Nested Session Error – Self-Improve Automation Broken",
+          "description": "self-improve.log (2026-02-28 20:40:45) shows 'Claude Code cannot be launched inside another Claude Code session.' This breaks the weekly Self-Improve-Weekly task (every Mon 10:00 AM). Ralph fallback partially works but produces incomplete findings (5 findings reported as stale). Impact: Automated codebase improvements not running.",
+          "action": "Refactor Automation/self-improve.js to skip nested Claude Code call. Use Ralph alone + direct file analysis (Glob + Grep) for findings. Call external `claude` binary via shell spawn with CLAUDECODE env var unset if nested session absolutely required.",
+          "priority": "high",
+          "effort": "1hr"
+        },
+        {
+          "id": 4,
+          "category": "SECURITY",
+          "title": "Node.js url.parse() Deprecation – CVE Risk in ai-news-digest",
+          "description": "ai-news-digest_20260226_070000.log shows DEP0169 deprecation warning: 'url.parse() behavior is not standardized and prone to errors that have security implications.' File likely: Automation/ai-news-mailer.js. Impact: Potential parsing vulnerabilities in URL handling.",
+          "action": "Replace all `url.parse()` calls with WHATWG URL API: `new URL(urlString)` in Automation/ai-news-mailer.js (and any other scripts using url.parse). Test with sample AI news URLs post-fix.",
+          "priority": "medium",
+          "effort": "30min"
+        },
+        {
+          "id": 5,
+          "category": "SECURITY",
+          "title": "Jupyter XSRF Token Validation Failure",
+          "description": "jupyter.log shows repeated HTTP 403 errors: '_xsrf' argument missing from POST to /api/kernels (2026-02-27 02:32:03). Indicates kernel API calls lack XSRF token or Jupyter security policy misconfigured. Impact: Kernel spawn requests blocked; Jupyter Lab unusable for programmatic access.",
+          "action": "Add XSRF token header to Jupyter kernel API calls. If using jupyter_client, upgrade to latest version. Alternatively, disable XSRF checks if running on localhost-only (--NotebookApp.disable_check_xsrf=True in jupyter config).",
+          "priority": "medium",
+          "effort": "30min"
+        },
+        {
+          "id": 6,
+          "category": "MAINTENANCE",
+          "title": "Log File Bloat & Missing Rotation – voice-command.log at 3.3MB",
+          "description": "voice-command.log is 3.3MB (3M+ lines) filling disk. No PM2 log rotation configured. Other large logs: jupyter.log (567 lines but may grow). Impact: Disk space waste; slow diagnostics; difficulty identifying new errors in massive files.",
+          "action": "Configure PM2 ecosystem.config.js log rotation: Add `max_size: '10M'` and `max_file: 5` to voice-command and all long-running services. Restart PM2. Example: `{'name': 'voice-command', 'script': '...', 'max_size': '10M', 'max_file': 5}`.",
+          "priority": "medium",
+          "effort": "30min"
+        },
+        {
+          "id": 7,
+          "category": "MAINTENANCE",
+          "title": "Docker Compose Version Attribute Deprecated",
+          "description": "infrastructure-startup.log (2026-02-28 00:57:23) warning: 'the attribute `version` is obsolete' in docker-compose.yml. Compose v2+ no longer uses version field. File: CLAUDE_NAVADA_AGENT/infrastructure/docker-compose.yml.",
+          "action": "Remove the `version:` line (likely `version: '3.8'` or similar) from infrastructure/docker-compose.yml. Test with `docker compose up -d` to confirm no errors.",
+          "priority": "low",
+          "effort": "5min"
+        },
+        {
+          "id": 8,
+          "category": "MAINTENANCE",
+          "title": "TensorBoard Dependency Missing – pkg_resources Error",
+          "description": "tensorboard.log shows `ModuleNotFoundError: No module named 'pkg_resources'`. TensorBoard import fails on startup. Impact: MLFlow dashboard & TensorBoard metrics unavailable.",
+          "action": "Run `pip install setuptools` to restore pkg_resources. If TensorBoard unused, disable it from PM2 ecosystem to reduce noise. Otherwise, verify TensorBoard version compatibility with Python 3.12 (current NAVADA Python version).",
+          "priority": "low",
+          "effort": "5min"
+        }
+      ],
+      "scannedAt": "2026-02-28T21:08:52.505Z",
+      "sentAt": "2026-02-28T21:10:07.219Z",
+      "approvedItems": []
+    },
+    {
+      "week": 9,
+      "year": 2026,
+      "findings": [
+        {
+          "id": 1,
+          "category": "PERFORMANCE",
+          "title": "Voice command service log explosion (3.3M lines)",
+          "description": "Automation/logs/voice-command.log has grown to 3.3M+ lines with repetitive '[STANDBY] Listen error: [Errno -9999] Unanticipated host error' entries. This is consuming massive disk space and degrading system performance. The error indicates the voice listener loop has no backoff/retry delay—it's failing and immediately retrying thousands of times per hour.",
+          "action": "1) Stop voice-command service (pm2 stop voice-command). 2) Truncate the log: echo > Automation/logs/voice-command.log. 3) Fix Automation/voice-command.js: add exponential backoff to audio device error handling (min 5s delay between reconnection attempts). 4) Add log rotation: use pm2 logrotate or implement max file size check in script. 5) Restart and monitor.",
+          "priority": "high",
+          "effort": "30min"
+        },
+        {
+          "id": 2,
+          "category": "BUG",
+          "title": "IMAP connection instability across email services",
+          "description": "Both inbox-responder.log and vc-monitor.log show repeated 'read ECONNRESET' and 'Timed out while connecting to server' errors starting ~2026-02-28T20:30Z. This pattern suggests a network/DNS/firewall issue affecting Zoho IMAP connectivity. Email monitoring is silently failing when connections drop.",
+          "action": "1) Check network connectivity: ping zoho.com, test IMAP port 993 (telnet imap.zoho.com 993). 2) Verify firewall rules allow outbound 993/imap.zoho.com. 3) Add connection retry logic with exponential backoff in Automation/inbox-responder.js (currently has no retry). 4) Implement connection pooling to reuse IMAP connection. 5) Add Prometheus metric for IMAP connection health.",
+          "priority": "high",
+          "effort": "1hr"
+        },
+        {
+          "id": 3,
+          "category": "BUG",
+          "title": "Self-improve automation hitting max turns and timeout",
+          "description": "Automation/self-improve.js has multiple failures: (1) Error: Reached max turns (15) at 2026-02-28T20:45:55Z, (2) ETIMEDOUT spawn error at 2026-02-28T21:03:34Z, (3) Claude Code session error 'cannot be launched inside another Claude Code session'. The script spawns Claude Code as a subprocess, which breaks when running under Claude Code itself. Max turns indicates the scan completes but hits API rate limits.",
+          "action": "1) Remove Claude Code spawning from self-improve.js—use direct API calls instead (Anthropic SDK). 2) Implement pagination for large diagnostics (split into batches if >50 log files). 3) Add timeout parameter (default 30s per request, configurable). 4) Cache diagnostics to avoid re-scanning on retry. 5) Add dry-run mode to test without spawning. Reference: Automation/self-improve.js line where it calls 'claude-code' subprocess.",
+          "priority": "high",
+          "effort": "2hr+"
+        },
+        {
+          "id": 4,
+          "category": "BUG",
+          "title": "TensorBoard service broken—missing pkg_resources",
+          "description": "Automation/logs/tensorboard.log shows 'ModuleNotFoundError: No module named pkg_resources'. This is a setuptools dependency issue. TensorBoard is listed in infrastructure but non-functional, likely wasting resources or causing silent failures during model logging.",
+          "action": "1) Stop TensorBoard: pm2 stop tensorboard (if running). 2) Run: pip install --upgrade setuptools. 3) Verify: py -m tensorboard --version. 4) If still broken, remove from PM2 until needed or replace with lightweight alternative (e.g., WandB for model tracking). 5) Test: py -m tensorboard --logdir ./mlruns --port 6006.",
+          "priority": "medium",
+          "effort": "30min"
+        },
+        {
+          "id": 5,
+          "category": "MAINTENANCE",
+          "title": "Node.js url.parse() deprecation warning in production",
+          "description": "Automation/logs/ai-news-digest_20260226_070000.log shows deprecation warning: 'url.parse() behavior is not standardized and prone to errors...Use WHATWG URL API instead.' This will break in Node.js 24+. Currently suppressed but indicates outdated code pattern.",
+          "action": "1) Find all url.parse() calls: grep -r \"url.parse\" Automation/ --include=\"*.js\". 2) Replace with new URL() API: change 'url.parse(str)' to 'new URL(str)'. 3) Test each automation script after change. 4) Add '--trace-deprecation' to package.json scripts to catch other warnings. Reference: likely in ai-news-digest.js and any scrapers using URL parsing.",
+          "priority": "medium",
+          "effort": "30min"
+        },
+        {
+          "id": 6,
+          "category": "SECURITY",
+          "title": "Jupyter XSRF token validation failing",
+          "description": "Automation/logs/jupyter.log and jupyter-error.log show repeated 403 Forbidden errors: '_xsrf argument missing from POST'. Jupyter's XSRF protection is working, but clients attempting to create kernels aren't sending the token. This indicates either misconfigured Jupyter clients or API calls bypassing token validation.",
+          "action": "1) Identify which client is making POST requests to /api/kernels without XSRF token. 2) Check if Jupyter is accessed via nginx reverse proxy (CLAUDE.md mentions nginx on :8080) — proxy may be stripping headers. 3) Verify nginx config in infrastructure/nginx/conf.d/default.conf includes: proxy_pass_request_headers on; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; 4) Alternatively, disable XSRF for localhost-only access: jupyter lab --NotebookApp.disable_check_xsrf=True (only if trusted network).",
+          "priority": "medium",
+          "effort": "1hr"
+        },
+        {
+          "id": 7,
+          "category": "MAINTENANCE",
+          "title": "Docker Compose schema version obsolete",
+          "description": "infrastructure-startup.log shows warning: 'the attribute `version` is obsolete, it will be ignored'. Docker Compose v2 no longer uses the version field. Current compose file is syntactically valid but outdated.",
+          "action": "1) Edit infrastructure/docker-compose.yml. 2) Remove or update the 'version: \"3.x\"' line at the top (if present). 3) Ensure services are defined per v2+ spec. 4) Run: docker compose config to validate. 5) Test: docker compose up -d && docker compose ps.",
+          "priority": "low",
+          "effort": "5min"
+        },
+        {
+          "id": 8,
+          "category": "MAINTENANCE",
+          "title": "Infrastructure startup log encoding corruption",
+          "description": "infrastructure-startup.log tail shows null bytes and character encoding issues: '\\u0000' repeated throughout (e.g., '2\\u00000\\u00020\\u00026...'). This is likely a UTF-16 or binary encoding issue causing garbled output. Does not affect functionality but makes debugging harder.",
+          "action": "1) Check how infrastructure startup logs are captured: likely shell redirection issue. 2) If using PowerShell, ensure UTF-8 encoding: [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(). 3) If using cmd.exe, ensure log file is created with UTF-8: chcp 65001. 4) Alternatively, pipe to 'Out-File -Encoding UTF8' in PowerShell. 5) Truncate corrupted log and restart containers.",
+          "priority": "low",
+          "effort": "30min"
+        }
+      ],
+      "scannedAt": "2026-02-28T21:12:05.342Z",
+      "sentAt": "2026-02-28T21:12:06.619Z",
+      "approvedItems": []
+    },
+    {
+      "week": 9,
+      "year": 2026,
+      "findings": [
+        {
+          "id": 1,
+          "category": "BUG",
+          "title": "IMAP Connection Instability Crashing Email Services",
+          "description": "inbox-responder.log and vc-monitor.log show repeated ECONNRESET and timeout errors on IMAP connections (Feb 28 - Mar 2). This is causing email monitoring to fail intermittently and accumulating unhandled connection resets. Multiple services depend on stable IMAP connectivity (inbox-responder, vc-monitor, inbox-monitor).",
+          "action": "Implement IMAP connection pooling with exponential backoff retry logic in Automation/inbox-responder.js and vc-monitor.js. Add heartbeat/NOOP commands to keep connections alive. Consider upgrading node-imap to latest version and enabling connection timeout recovery.",
+          "priority": "high",
+          "effort": "1hr"
+        },
+        {
+          "id": 2,
+          "category": "PERFORMANCE",
+          "title": "Voice Command Service Stuck in Error Loop (3.3M Log)",
+          "description": "voice-command.log has grown to 3.3 million lines with repeated '[STANDBY] Listen error: [Errno -9999] Unanticipated host error' every ~100ms. This indicates audio device failure but service is not exiting gracefully. Massive log file is consuming disk space and degrading system performance.",
+          "action": "Fix audio device initialization in voice-command service (likely C:\\Users\\leeak\\Automation\\voice-command.js or similar). Add error threshold to exit service after N consecutive failures instead of looping. Implement log rotation with max 10MB per file. Check Windows audio device availability before starting service.",
+          "priority": "high",
+          "effort": "1hr"
+        },
+        {
+          "id": 3,
+          "category": "BUG",
+          "title": "PDF Generation Fails on Non-ASCII Characters",
+          "description": "weekly-report_20260301_180000.log shows FPDFUnicodeEncodingException when gen-report.py tries to include titles with non-ASCII characters (Chinese, emoji, accents). Report generation fails completely, breaking weekly email digest.",
+          "action": "Update C:\\Users\\leeak\\Alex\\Automation\\reports\\gen-report.py to use Unicode font in FPDF. Change font from 'helveticaB' to 'DejaVu' or embed TrueType font. Test with sample non-ASCII content before next scheduled run.",
+          "priority": "high",
+          "effort": "30min"
+        },
+        {
+          "id": 4,
+          "category": "SECURITY",
+          "title": "Deprecated Node.js url.parse() in ai-news-digest",
+          "description": "ai-news-digest_20260226_070000.log contains Node.js DEP0169 deprecation warning: 'url.parse() behavior is not standardized and prone to errors that have security implications'. Service is still functional but using vulnerable URL parsing method.",
+          "action": "Replace url.parse() calls with WHATWG URL API (new URL()) in Automation/ai-news-mailer.js. Run: grep -r 'url.parse' Automation/ to find all instances and update them.",
+          "priority": "high",
+          "effort": "30min"
+        },
+        {
+          "id": 5,
+          "category": "BUG",
+          "title": "TensorBoard Won't Start - Missing pkg_resources Module",
+          "description": "tensorboard.log shows ModuleNotFoundError on startup. TensorBoard service is unavailable. This breaks ML experiment tracking if MLflow integration depends on it.",
+          "action": "Run: pip install setuptools (pkg_resources is part of setuptools). Verify: py -m tensorboard --version. If still failing, rebuild Python environment or use: pip install --upgrade tensorboard.",
+          "priority": "medium",
+          "effort": "30min"
+        },
+        {
+          "id": 6,
+          "category": "MAINTENANCE",
+          "title": "Docker Compose Version Attribute Deprecated",
+          "description": "infrastructure-startup.log shows warning: 'version attribute is obsolete, it will be ignored, please remove it' from docker-compose. While not breaking functionality, this will fail in future Docker Compose versions.",
+          "action": "Remove 'version: 3' line from C:\\Users\\leeak\\CLAUDE_NAVADA_AGENT\\infrastructure\\docker-compose.yml. Test: docker compose up -d from infrastructure/ directory.",
+          "priority": "medium",
+          "effort": "5min"
+        },
+        {
+          "id": 7,
+          "category": "SECURITY",
+          "title": "Jupyter Server XSRF Token Validation Errors",
+          "description": "jupyter-error.log shows multiple '403 POST /api/kernels' errors with missing _xsrf token (Feb 27 02:32). Indicates either XSRF protection misconfiguration or client not sending tokens properly. Could indicate security bypass vulnerability.",
+          "action": "Check Jupyter config in .jupyter/jupyter_server_config.py. Verify: c.ServerApp.disable_check_xsrf = False is NOT set. Ensure clients (like VS Code, Excalidraw) are sending XSRF tokens. Test with: curl -X POST http://127.0.0.1:8888/api/kernels (should fail with XSRF error, not 500).",
+          "priority": "medium",
+          "effort": "30min"
+        },
+        {
+          "id": 8,
+          "category": "IDEA",
+          "title": "Add Centralized Log Rotation and Monitoring",
+          "description": "Multiple services accumulating large log files (voice-command.log 3.3M, infrastructure-startup.log corrupted). No centralized log management. Diagnostic report shows 'pm2 unavailable' and 'npm audit' command failures.",
+          "action": "Implement log rotation in PM2 ecosystem.config.js: add 'max_size: 10M' and 'max_file: 5' per app. Create C:\\Users\\leeak\\Automation\\logs\\monitor.js to warn when logs exceed 50MB combined. Add to weekly-report task.",
+          "priority": "low",
+          "effort": "1hr"
+        }
+      ],
+      "scannedAt": "2026-03-02T10:00:43.100Z",
+      "sentAt": "2026-03-02T10:00:44.558Z",
+      "approvedItems": []
     }
   ]
 }

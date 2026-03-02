@@ -90,5 +90,74 @@
     ],
     "firstContact": "2026-02-28T14:08:00.989Z",
     "lastActivity": "2026-02-28T14:09:09.062Z"
+  },
+  "slyburner@icloud.com::good morning ayo! voice note from claude": {
+    "sender": "\"Ayo Midey\" <slyburner@icloud.com>",
+    "senderAddr": "slyburner@icloud.com",
+    "senderName": "\"Ayo",
+    "subject": "Good Morning Ayo! Voice Note from Claude",
+    "cycle": 1,
+    "messages": [
+      {
+        "role": "them",
+        "name": "\"Ayo",
+        "text": "Hi Claude, \n\nGive me a brief on what’s going on in Iran with their leader. I’m intrigued to know more. \n\nBest regards,\nAyo",
+        "date": "2026-03-01T08:35:02.699Z",
+        "messageId": "<72CE858A-0136-4D7F-B0BD-0D39D44490BC@icloud.com>"
+      },
+      {
+        "role": "claude",
+        "text": "Hey Ayo, \n\nTotally get your curiosity about Iran. I’ll check in with Lee for a more detailed take and get back to you. In the meantime, if you want to chat about AI or anything else, just let me know!\n\nBest,  \nClaude",
+        "date": "2026-03-01T08:37:00.652Z"
+      }
+    ],
+    "firstContact": "2026-03-01T08:35:02.699Z",
+    "lastActivity": "2026-03-01T08:37:00.653Z"
+  },
+  "send2chopstix@gmail.com::shared folder live — test file waiting for you": {
+    "sender": "\"Malcolm Olagundoye\" <send2chopstix@gmail.com>",
+    "senderAddr": "send2chopstix@gmail.com",
+    "senderName": "\"Malcolm",
+    "subject": "Shared Folder Live — Test File Waiting For You",
+    "cycle": 1,
+    "messages": [
+      {
+        "role": "them",
+        "name": "\"Malcolm",
+        "text": "Here's a ready-to-send message for Lee:",
+        "date": "2026-03-01T16:07:06.123Z",
+        "messageId": "<CANDkCsDXHFo-FaB792Dro+HRtrNnHc7B8YLwMo4ZTCPm6s6ydg@mail.gmail.com>"
+      },
+      {
+        "role": "claude",
+        "text": "Hey Malcolm, \n\nGot it! I’ve looped in Lee so he can follow up directly. If you need anything else in the meantime, just let me know. \n\nCheers!",
+        "date": "2026-03-01T16:08:39.524Z"
+      }
+    ],
+    "firstContact": "2026-03-01T16:07:06.122Z",
+    "lastActivity": "2026-03-01T16:08:39.524Z"
+  },
+  "patakpareva@gmail.com::navada edge — your own ai home server + world dashboard": {
+    "sender": "\"Patrick Akpareva\" <patakpareva@gmail.com>",
+    "senderAddr": "patakpareva@gmail.com",
+    "senderName": "\"Patrick",
+    "subject": "NAVADA Edge — Your Own AI Home Server + World Dashboard",
+    "cycle": 1,
+    "messages": [
+      {
+        "role": "them",
+        "name": "\"Patrick",
+        "text": "Hi Leslie,\n\nSeen\n\nKind Regards,\n\nPatrick\n\nOn Sun, 1 Mar 2026 at 17:24, Lee Akpareva | NAVADA <\nclaude.navada@zohomail.eu> wrote:",
+        "date": "2026-03-01T17:27:06.479Z",
+        "messageId": "<CAJBdUE5rdTmzi-wefmiUg9tt28k=50BUbJPvBj_p3dH0usNzQA@mail.gmail.com>"
+      },
+      {
+        "role": "claude",
+        "text": "Hey Patrick, \n\nJust saw your message. I’ve looped in Lee, so he can follow up directly with you. If you have any questions about our AI solutions, we’d love to help out! \n\nTalk soon,  \nClaude",
+        "date": "2026-03-01T17:27:57.556Z"
+      }
+    ],
+    "firstContact": "2026-03-01T17:27:06.478Z",
+    "lastActivity": "2026-03-01T17:27:57.556Z"
   }
 }

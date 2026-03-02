@@ -79,46 +79,106 @@ function getWeekNumber() {
 }
 
 /**
- * The prompt Ralph feeds to Claude Code for research-only scanning
+ * Pre-gather system diagnostics in Node.js (fast, no AI needed)
+ * Returns a structured report that Claude can analyze in 1-2 turns
  */
-function buildResearchPrompt() {
-  return `You are running as part of the NAVADA Self-Improvement System. Your job is to RESEARCH ONLY — do NOT modify any files except the improvement log.
+function gatherDiagnostics() {
+  const diag = { logs: {}, disk: '', pm2: '', tempFiles: 0, tempSize: '', npmAudit: '', errors: [] };
 
-TASK: Scan the NAVADA server and identify improvements, bugs, security issues, and opportunities.
+  const safeExec = (cmd, opts = {}) => {
+    try {
+      return execSync(cmd, { encoding: 'utf8', timeout: 15000, stdio: 'pipe', ...opts }).trim();
+    } catch (e) {
+      return `ERROR: ${e.message?.substring(0, 100)}`;
+    }
+  };
 
-SCAN CHECKLIST:
-1. AUTOMATIONS — Check all scripts in C:/Users/leeak/CLAUDE_NAVADA_AGENT/Automation/:
-   - Are scheduled tasks (ai-news-mailer.js, job-hunter-apify.js, uk-us-economy-report.py) working?
-   - Check logs/ for recent errors or failures
-   - Are any API tokens expiring soon?
-   - Is inbox-auto-responder.js running in PM2?
+  // Check recent log files for errors
+  const logsDir = path.join(__dirname, 'logs');
+  try {
+    const logFiles = fs.readdirSync(logsDir).filter(f => f.endsWith('.log'));
+    for (const file of logFiles) {
+      try {
+        const content = fs.readFileSync(path.join(logsDir, file), 'utf8');
+        const lines = content.split('\n').filter(l => l.trim());
+        const last20 = lines.slice(-20).join('\n');
+        const errorLines = lines.filter(l => /error|fail|crash|exception|ENOENT|ECONNREFUSED/i.test(l));
+        diag.logs[file] = { totalLines: lines.length, recentErrors: errorLines.slice(-5), tail: last20 };
+      } catch (e) { /* skip */ }
+    }
+  } catch (e) { /* no logs dir */ }
 
-2. SECURITY — Check for vulnerabilities:
-   - Any secrets committed to git or exposed?
-   - SSH config still hardened?
-   - .env file permissions?
-   - Any packages with known vulnerabilities (npm audit)?
+  // Disk space
+  diag.disk = safeExec('df -h / 2>/dev/null || wmic logicaldisk get size,freespace,caption 2>/dev/null || echo "disk check unavailable"');
 
-3. MCP SERVERS — Are all 23 MCP servers responsive?
-   - Check for any that have been deprecated or have updates
+  // PM2 status
+  diag.pm2 = safeExec('pm2 jlist 2>/dev/null || echo "pm2 unavailable"');
 
-4. PERFORMANCE — Check system health:
-   - Disk space usage
-   - Node.js / Python package sizes
-   - Any temp files that need cleanup?
+  // Temp files
+  const tempDir = path.join(__dirname, 'temp');
+  try {
+    if (fs.existsSync(tempDir)) {
+      const files = fs.readdirSync(tempDir);
+      diag.tempFiles = files.length;
+      let totalBytes = 0;
+      for (const f of files) {
+        try { totalBytes += fs.statSync(path.join(tempDir, f)).size; } catch (e) { /* skip */ }
+      }
+      diag.tempSize = `${(totalBytes / 1024 / 1024).toFixed(1)}MB`;
+    }
+  } catch (e) { /* no temp dir */ }
 
-5. NEW TOOLS & IDEAS — Research opportunities:
-   - Any new MCP servers worth adding?
-   - Workflow improvements?
-   - New automations that would help Lee?
+  // npm audit (quick)
+  diag.npmAudit = safeExec('npm audit --json 2>/dev/null | head -50', { cwd: __dirname });
 
-OUTPUT FORMAT:
-After scanning, write your findings to the improvement log file at:
-C:/Users/leeak/CLAUDE_NAVADA_AGENT/Automation/kb/improvement-log.json
+  // Check scheduled task scripts exist
+  const scripts = ['ai-news-mailer.js', 'job-hunter-apify.js', 'uk-us-economy-report.py'];
+  for (const s of scripts) {
+    if (!fs.existsSync(path.join(__dirname, s))) {
+      diag.errors.push(`Missing script: ${s}`);
+    }
+  }
 
-Use this exact JSON format:
+  // Check .env exists and has content
+  const envPath = path.join(__dirname, '.env');
+  try {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    const keyCount = envContent.split('\n').filter(l => l.includes('=')).length;
+    diag.envKeys = keyCount;
+  } catch (e) {
+    diag.errors.push('.env file missing or unreadable');
+  }
+
+  return diag;
+}
+
+/**
+ * Run the research scan: pre-gather diagnostics then ask Claude to analyze
+ */
+async function runResearchScan() {
+  log('=== NAVADA Self-Improvement Scan Starting ===');
+
+  fs.mkdirSync(path.join(__dirname, 'kb'), { recursive: true });
+  fs.mkdirSync(path.join(__dirname, 'logs'), { recursive: true });
+
+  // Phase 1: Gather diagnostics (fast, ~5 seconds)
+  log('Phase 1: Gathering system diagnostics...');
+  const diag = gatherDiagnostics();
+  log(`Diagnostics gathered: ${Object.keys(diag.logs).length} log files, ${diag.tempFiles} temp files, ${diag.errors.length} errors`);
+
+  // Phase 2: Ask Claude to analyze and produce findings (1-2 turns)
+  log('Phase 2: Sending to Claude for analysis...');
+
+  const prompt = `Analyze this NAVADA server diagnostic report and produce improvement findings.
+
+SYSTEM DIAGNOSTICS:
+${JSON.stringify(diag, null, 2)}
+
+Based on this data, identify the most important bugs, security issues, performance problems, and improvement ideas for the NAVADA home server (Windows 11, Node.js automation scripts, 23 MCP servers, PM2 services).
+
+Respond with ONLY a JSON block:
+\`\`\`json
 {
-  "week": <week_number>,
   "findings": [
     {
       "id": 1,
@@ -129,100 +189,101 @@ Use this exact JSON format:
       "priority": "high|medium|low",
       "effort": "5min|30min|1hr|2hr+"
     }
-  ],
-  "scannedAt": "<ISO timestamp>",
-  "sentAt": null
+  ]
 }
+\`\`\`
+Maximum 8 findings. Prioritise the most impactful. Be specific with file paths.`;
 
-RULES:
-- DO NOT modify any code, configs, or files other than the improvement log
-- DO NOT install, uninstall, or update any packages
-- DO NOT restart any services
-- DO NOT send any emails
-- ONLY read files, check logs, run diagnostic commands (npm audit, disk space, etc.)
-- Be specific — include file paths, line numbers, error messages
-- Maximum 10 findings per scan (prioritise the most important)
-- When complete, output: <promise>COMPLETE</promise>`;
-}
+  // Clean env so Claude Code can spawn
+  const cleanEnv = { ...process.env };
+  delete cleanEnv.CLAUDECODE;
 
-/**
- * Run the research scan using Ralph + Claude Code
- */
-async function runResearchScan() {
-  log('=== NAVADA Self-Improvement Scan Starting ===');
-
-  // Ensure directories exist
-  fs.mkdirSync(path.join(__dirname, 'kb'), { recursive: true });
-  fs.mkdirSync(path.join(__dirname, 'logs'), { recursive: true });
-
-  const prompt = buildResearchPrompt();
-  const promptFile = path.join(__dirname, 'kb', 'self-improve-prompt.md');
-  fs.writeFileSync(promptFile, prompt);
-
-  log('Research prompt written. Launching Claude Code scan...');
-
-  // Clear old log so we can verify a fresh scan actually writes new findings
-  const oldLog = getLog();
-  const oldWeek = oldLog.week;
-
-  let scanSuccess = false;
-
-  // Primary: Direct Claude Code in print mode (reliable on Windows)
+  let output = '';
   try {
-    const promptText = fs.readFileSync(promptFile, 'utf8');
-    const result = execSync(
-      `claude -p --model sonnet --max-turns 15 --allowedTools "Read Glob Grep Bash Write Edit"`,
+    output = execSync(
+      `claude -p --model haiku --max-turns 3`,
       {
         cwd: path.join(__dirname, '..'),
         encoding: 'utf8',
-        timeout: 600000, // 10 min max
-        input: promptText,
+        timeout: 120000, // 2 min is plenty for analysis
+        input: prompt,
+        env: cleanEnv,
       }
     );
-    log('Claude Code scan completed.');
-    log(result.substring(Math.max(0, result.length - 500)));
-    scanSuccess = true;
+    log('Claude analysis completed.');
   } catch (e) {
-    log(`Claude Code scan error: ${e.message?.substring(0, 300)}`);
+    output = e.stdout || '';
+    log(`Claude analysis error: ${e.message?.substring(0, 200)}`);
   }
 
-  // Fallback: Ralph + Claude Code (if direct failed)
-  if (!scanSuccess) {
-    log('Trying Ralph + Claude Code fallback...');
+  // Parse findings from Claude's output
+  const findings = parseFindings(output);
+
+  if (findings.length > 0) {
+    const logData = {
+      week: getWeekNumber(),
+      findings,
+      scannedAt: new Date().toISOString(),
+      sentAt: null,
+    };
+    saveLog(logData);
+    log(`Scan complete: ${findings.length} new findings logged (week ${logData.week}).`);
+    return logData;
+  }
+
+  // Fallback to existing log
+  const oldLog = getLog();
+  if (oldLog.findings && oldLog.findings.length > 0) {
+    log(`Analysis produced no parseable findings. Using existing log (${oldLog.findings.length} findings).`);
+    return oldLog;
+  }
+
+  log('Warning: No findings from analysis and no existing log.');
+  return { week: getWeekNumber(), findings: [], scannedAt: new Date().toISOString(), sentAt: null };
+}
+
+/**
+ * Extract JSON findings array from Claude's text output
+ */
+function parseFindings(text) {
+  if (!text) return [];
+
+  // Try to extract JSON from markdown code block
+  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  if (codeBlockMatch) {
     try {
-      const env = {
-        ...process.env,
-        PATH: `C:\\Users\\leeak\\.bun\\bin;${process.env.PATH}`,
-      };
-
-      execSync(
-        `ralph --prompt-file "${promptFile}" --agent claude-code --max-iterations 3 --min-iterations 1 --no-questions`,
-        {
-          cwd: __dirname,
-          encoding: 'utf8',
-          timeout: 600000,
-          env,
-          stdio: 'pipe',
-        }
-      );
-      log('Ralph scan completed.');
-      scanSuccess = true;
-    } catch (e2) {
-      log(`Ralph scan also failed: ${e2.message?.substring(0, 200)}`);
-    }
+      const parsed = JSON.parse(codeBlockMatch[1]);
+      if (parsed.findings && Array.isArray(parsed.findings)) {
+        return parsed.findings.map((f, i) => ({ ...f, id: f.id || i + 1 }));
+      }
+    } catch (e) { /* try next method */ }
   }
 
-  // Verify the log was written with fresh data
-  const logData = getLog();
-  if (logData.findings && logData.findings.length > 0 && logData.week !== oldWeek) {
-    log(`Scan complete: ${logData.findings.length} new findings logged (week ${logData.week}).`);
-  } else if (logData.findings && logData.findings.length > 0) {
-    log(`Scan complete: ${logData.findings.length} findings in log (may be from previous scan).`);
-  } else {
-    log('Warning: No findings were logged. Check if Claude Code wrote to the correct file.');
+  // Try to find raw JSON object with findings
+  const jsonMatch = text.match(/\{[\s\S]*"findings"\s*:\s*\[[\s\S]*\]\s*\}/);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.findings && Array.isArray(parsed.findings)) {
+        return parsed.findings.map((f, i) => ({ ...f, id: f.id || i + 1 }));
+      }
+    } catch (e) { /* try next method */ }
   }
 
-  return logData;
+  // Try to find a JSON array directly
+  const arrayMatch = text.match(/\[\s*\{[\s\S]*?"category"[\s\S]*?\}\s*\]/);
+  if (arrayMatch) {
+    try {
+      const parsed = JSON.parse(arrayMatch[0]);
+      if (Array.isArray(parsed)) {
+        return parsed.map((f, i) => ({ ...f, id: f.id || i + 1 }));
+      }
+    } catch (e) { /* failed to parse */ }
+  }
+
+  log('Could not parse findings JSON from Claude output.');
+  log('Output tail: ' + text.substring(Math.max(0, text.length - 300)));
+  return [];
 }
 
 /**
@@ -279,20 +340,10 @@ async function sendWeeklyDigest() {
     ${p('Reply with the numbers to approve, and I\'ll get them done.')}
   `;
 
-  // Send to Lee
+  // Send to Lee (single email with CC)
   await sendEmail({
     to: RECIPIENT,
-    subject: `NAVADA Weekly Improvement Report — Week ${weekNum}, ${year}`,
-    heading: `Self-Improvement Report`,
-    body,
-    type: 'report',
-    preheader: `${logData.findings.length} findings — reply to approve actions`,
-    footerNote: `NAVADA Self-Improvement System &middot; Monday ${new Date().toLocaleDateString('en-GB')}`,
-  });
-
-  // CC
-  await sendEmail({
-    to: CC,
+    cc: CC,
     subject: `NAVADA Weekly Improvement Report — Week ${weekNum}, ${year}`,
     heading: `Self-Improvement Report`,
     body,
@@ -362,6 +413,11 @@ RULES:
 - Log what you did for each item
 - When all items are complete, output: <promise>COMPLETE</promise>`;
 
+  // Clean env: remove CLAUDECODE so subprocess doesn't think it's nested
+  const cleanEnv = { ...process.env };
+  delete cleanEnv.CLAUDECODE;
+  cleanEnv.PATH = `C:\\Users\\leeak\\.bun\\bin;${cleanEnv.PATH}`;
+
   // Primary: Direct Claude Code execution
   try {
     execSync(
@@ -371,6 +427,7 @@ RULES:
         encoding: 'utf8',
         timeout: 600000,
         input: execPrompt,
+        env: cleanEnv,
       }
     );
     log('Claude Code execution completed.');
@@ -382,17 +439,13 @@ RULES:
     try {
       const execPromptFile = path.join(__dirname, 'kb', 'self-improve-exec-prompt.md');
       fs.writeFileSync(execPromptFile, execPrompt);
-      const env = {
-        ...process.env,
-        PATH: `C:\\Users\\leeak\\.bun\\bin;${process.env.PATH}`,
-      };
       execSync(
         `ralph --prompt-file "${execPromptFile}" --agent claude-code --max-iterations 5 --min-iterations 1 --no-questions`,
         {
           cwd: __dirname,
           encoding: 'utf8',
           timeout: 600000,
-          env,
+          env: cleanEnv,
           stdio: 'pipe',
         }
       );

@@ -1,254 +1,137 @@
 # CLAUDE_NAVADA_AGENT
 
-**NAVADA AI Engineering Server** — Autonomous AI agent system run by Claude Code on behalf of Lee Akpareva.
+**NAVADA AI Engineering Server** — Autonomous AI agent system run by Claude (Chief of Staff) on behalf of Lee Akpareva.
 
 ## Architecture
 
 ```
+iPhone (Lee) ←→ Telegram Bot ←→ Claude API (Sonnet 4 / Opus 4)
+                                       ↕
 iPhone (Lee) ←→ Tailscale VPN ←→ NAVADA Server (HP Laptop, Windows 11)
-                                      ↕
-                                 Claude Code CLI
-                                      ↕
-                    ┌─────────────────┼─────────────────┐
-                    ↓                 ↓                 ↓
-              23 MCP Servers    Automations        Voice System
-              (AI/Data/Dev)    (PM2 + Scheduler)   (S8 Bluetooth)
+                                       ↕
+                                  Claude Code CLI
+                                       ↕
+                   ┌───────────────────┼───────────────────┐
+                   ↓                   ↓                   ↓
+             23 MCP Servers      Automations          Voice System
+             (AI/Data/Dev)     (PM2 + Scheduler)    (S8 Bluetooth)
 ```
 
-## Services & Access (from iPhone)
+## Claude: Chief of Staff
 
-### Ops / Monitoring (Docker)
+Claude operates as NAVADA's Chief of Staff, not just an assistant:
+- **Full server control**: shell, files, processes, email, deployments
+- **24/7 availability** via Telegram (primary mobile interface)
+- **Proactive management**: monitors, maintains, and improves systems
+- Reports to Lee Akpareva (Founder)
 
-| Service | Port | URL | Credentials |
-|---------|------|-----|-------------|
-| **Grafana** | `:9090` | http://192.168.0.36:9090 | admin / navada |
-| **Prometheus** | `:9091` | http://192.168.0.36:9091 | — |
-| **Portainer** | `:9000` | http://192.168.0.36:9000 | Set on first login |
-| **Uptime Kuma** | `:3002` | http://192.168.0.36:3002 | Set on first login |
-| **Nginx** | `:80` / `:8080` | http://192.168.0.36 | — |
+## Telegram Bot (Primary Interface)
 
-### Dev / ML (PM2 — locked ports)
+**Script**: `Automation/telegram-bot.js` | **PM2**: `telegram-bot`
 
-| Service | Port | URL | Auth |
-|---------|------|-----|------|
-| **MLflow** | `:5000` | http://192.168.0.36:5000 | — |
-| **JupyterLab** | `:8888` | http://192.168.0.36:8888/lab?token=navada | Token: `navada` |
-| **TensorBoard** | `:6006` | http://192.168.0.36:6006 | — |
+Lee controls the entire server from his iPhone via Telegram. 38 slash commands with autocomplete.
 
-### Applications (PM2)
+### Capabilities
+- **Model switching**: `/sonnet` (Sonnet 4, fast) and `/opus` (Opus 4, powerful)
+- **Full system access**: Shell, files (read/write/delete), process management
+- **Email E2E**: Send (Zoho SMTP), read inbox, read sent, search (IMAP)
+- **Image generation**: `/image` (DALL-E 3 via OpenAI API)
+- **Voice notes**: `/voicenote` (OpenAI TTS HD, emailed as attachment)
+- **Persistent memory**: Conversation history survives bot restarts
+- **Cost tracking**: Every API call logged with model, tokens, ROI
+- **MCP access**: All 23 MCP servers accessible via shell commands
+- **Natural language**: Any text message routes through Claude with full tool access
 
-| Service | Port | URL |
-|---------|------|-----|
-| **CLAWD Dashboard** | `:3000` | http://192.168.0.36:3000 |
-| **Excalidraw** | `:3001` | http://192.168.0.36:3001 |
-| **Lead Dashboard** | `:3100` | http://192.168.0.36:3100 |
+### Commands (38)
 
----
+| Category | Commands |
+|----------|----------|
+| AI Model | `/sonnet` `/opus` `/model` |
+| System | `/status` `/disk` `/uptime` `/ip` `/processes` |
+| PM2 | `/pm2` `/pm2restart` `/pm2stop` `/pm2start` `/pm2logs` |
+| Automations | `/news` `/jobs` `/pipeline` `/prospect` `/run` `/tasks` |
+| Communication | `/email` `/emailme` `/briefing` `/inbox` `/sent` |
+| Creative | `/present` `/report` `/research` `/draft` `/image` |
+| Voice | `/voice` `/voicenote` |
+| Files | `/ls` `/cat` `/shell` |
+| Network | `/tailscale` `/docker` `/nginx` |
+| Other | `/costs` `/memory` `/clear` `/about` `/help` |
 
-## How to Use Each Tool
+### Tools (Claude API Tool Use)
 
-### Grafana (http://192.168.0.36:9090)
+| Tool | Description |
+|------|-------------|
+| `run_shell` | Execute any bash command on the server |
+| `read_file` | Read file contents (absolute paths) |
+| `write_file` | Create or overwrite files |
+| `list_files` | List directory contents with optional glob filter |
+| `server_status` | Full server health: CPU, RAM, disk, PM2, Docker, Tailscale |
+| `send_email` | NAVADA-branded email via Zoho SMTP (any recipient) |
+| `read_inbox` | Read Zoho email (INBOX, Sent, Drafts) via IMAP |
+| `generate_image` | DALL-E 3 image generation (square, landscape, portrait) |
 
-1. Login: `admin` / `navada`
-2. Prometheus auto-provisioned as default data source
-3. **Import dashboards:** Dashboards > New > Import
-   - Node Exporter Full: ID `1860`
-   - Docker Dashboard: ID `893`
-4. Create custom dashboards for pipeline metrics, PM2 health, etc.
+## PM2 Services (8)
 
-### Prometheus (http://192.168.0.36:9091)
+**Config**: `ecosystem.config.js`
 
-1. **Status > Targets** — see which scrape targets are up
-2. **Graph** tab for ad-hoc queries:
-   - `up` — which targets are reachable
-   - `node_cpu_seconds_total` — CPU usage
-   - `process_resident_memory_bytes` — memory
-3. Config: `infrastructure/prometheus/prometheus.yml`
-4. 30-day retention, lifecycle API enabled
+| Service | Script | Port | Purpose |
+|---------|--------|------|---------|
+| worldmonitor | `serve-local.mjs` | 4173 | Frontend + proxy |
+| worldmonitor-api | `start-api.mjs` | 46123 | Local API server |
+| trading-api | `uvicorn src.api:app` | 5678 | Trading FastAPI |
+| inbox-responder | `inbox-auto-responder.js` | — | Email auto-reply + improvement gate |
+| auto-deploy | `scripts/auto-deploy.js` | — | Git poll + rebuild |
+| trading-scheduler | `scripts/scheduler.js` | — | Trading cron triggers |
+| telegram-bot | `telegram-bot.js` | — | Claude Chief of Staff |
+| voice-command | `voice-command.js` | 7777 | S8 Bluetooth voice |
 
-### Portainer (http://192.168.0.36:9000)
-
-1. First visit: create admin account
-2. Select **Local** environment
-3. **Containers:** start/stop/restart, view logs, exec shell
-4. **Stacks:** edit docker-compose from UI
-5. **Images:** pull, remove, inspect
-
-### Uptime Kuma (http://192.168.0.36:3002)
-
-1. First visit: create admin account
-2. **Add monitors** for each service:
-   | Monitor | URL | Type |
-   |---------|-----|------|
-   | Nginx | http://192.168.0.36/health | HTTP |
-   | MLflow | http://192.168.0.36:5000 | HTTP |
-   | JupyterLab | http://192.168.0.36:8888 | HTTP |
-   | Grafana | http://192.168.0.36:9090 | HTTP |
-   | Dashboard | http://192.168.0.36:3000 | HTTP |
-   | Lead Pipeline | http://192.168.0.36:3100 | HTTP |
-3. **Notifications:** Email, Slack, Telegram alerts on failure
-4. **Status page:** create public status page
-
-### MLflow (http://192.168.0.36:5000)
-
-```python
-import mlflow
-
-mlflow.set_tracking_uri("http://192.168.0.36:5000")
-mlflow.set_experiment("my-experiment")
-
-with mlflow.start_run():
-    mlflow.log_param("learning_rate", 0.01)
-    mlflow.log_metric("accuracy", 0.95)
-    mlflow.log_artifact("model.pkl")
-```
-
-- **Compare runs:** select multiple in UI, click Compare
-- **Model Registry:** register models for deployment tracking
-- **Artifacts:** stored at `CLAUDE_NAVADA_AGENT/mlflow-artifacts`
-
-### JupyterLab (http://192.168.0.36:8888/lab?token=navada)
-
-1. Access with token `navada`
-2. Working dir: `CLAUDE_NAVADA_AGENT/`
-3. Python 3.12 with all ML packages (PyTorch, HF, scikit-learn, etc.)
-4. **Terminal:** File > New > Terminal (full shell access)
-5. **Upload files:** drag and drop into file browser
-
-### TensorBoard (http://192.168.0.36:6006)
-
-```python
-from torch.utils.tensorboard import SummaryWriter
-writer = SummaryWriter("C:/Users/leeak/CLAUDE_NAVADA_AGENT/runs/my-run")
-writer.add_scalar("loss", 0.5, step)
-```
-
----
-
-## Lead Pipeline (CRM)
-
-**Dir:** `LeadPipeline/` | **Dashboard:** http://192.168.0.36:3100 | **Schedule:** Daily 8:30 AM
-
-### Email Tracking & 4-Day Follow-Up
-
-Every email is tracked in the `emails` table with type, timestamps, and reply status.
-
-**Automatic flow:**
-1. Send intro email → tracked as `email_type='intro'`, `followup_due` set to +4 days
-2. Daily pipeline scan: intro sent 4+ days ago? No reply? No follow-up sent?
-3. Auto-sends personalized follow-up → tracked as `email_type='followup_1'`
-4. Lee gets alert email for every auto follow-up
-5. If lead replies → status auto-updates to `responded`
-
-**Pipeline API:**
-```javascript
-const leads = require('./leads');
-
-// Send intro (auto-tracks + sets 4-day timer)
-await leads.sendOutreachEmail(leadId, 'Subject', '<p>Body</p>');
-
-// Manual follow-up
-await leads.sendFollowUpEmail(leadId, 1);
-
-// Check pending follow-ups
-const pending = leads.getLeadsNeedingFollowUp();
-
-// Email history & stats
-const emails = leads.getEmailHistory(leadId);
-const stats = leads.getEmailStats();
-```
-
-**Pipeline Stages:**
-`new` → `researching` → `outreach_drafted` → `outreach_sent` → `responded` → `meeting_scheduled` → `proposal_sent` → `negotiating` → `won` / `lost` / `nurturing`
-
----
-
-## Directory Structure
-
-```
-CLAUDE_NAVADA_AGENT/
-├── infrastructure/
-│   ├── docker-compose.yml          # Nginx, Cloudflared, Grafana, Prometheus, Portainer, Uptime Kuma
-│   ├── ecosystem.config.js         # PM2: MLflow + JupyterLab
-│   ├── prometheus/prometheus.yml
-│   ├── grafana/provisioning/
-│   ├── nginx/nginx.conf            # Upstreams
-│   ├── nginx/conf.d/default.conf   # Routes
-│   └── startup.ps1                 # Boot auto-start
-├── Automation/
-│   ├── ai-news-mailer.js           # Daily 7 AM AI news digest
-│   ├── job-hunter-apify.js         # Daily 9 AM job scraper
-│   ├── uk-us-economy-report.py     # Weekly Mon 8 AM economy report
-│   ├── self-improve.js             # Weekly Mon 10 AM self-improvement
-│   ├── voice-command.js            # Always-on voice assistant
-│   ├── inbox-auto-responder.js     # Email auto-responder
-│   ├── deliver-app.js              # App deploy pipeline
-│   ├── email-service.js            # NAVADA email template
-│   ├── linkedin-post.js            # LinkedIn API posting
-│   └── .env                        # Secrets (gitignored)
-├── LeadPipeline/
-│   ├── pipeline.js                 # Main engine (daily scan + follow-ups)
-│   ├── leads.js                    # CRUD + email tracking + follow-up logic
-│   ├── db.js                       # SQLite schema
-│   ├── logger.js                   # Event logging
-│   ├── dashboard.js                # Express web UI (:3100)
-│   └── data/pipeline.db            # SQLite database
-├── clawd-dashboard/                # CLAWD BOT React app
-├── templates/nextjs-shadcn/        # App delivery template
-└── mlflow-artifacts/               # MLflow experiment artifacts
-```
-
-## Quick Commands
-
-```bash
-# Docker services
-cd ~/CLAUDE_NAVADA_AGENT/infrastructure
-docker compose up -d          # Start all
-docker compose down           # Stop all
-docker compose restart grafana
-
-# PM2 services
-pm2 list                      # View all
-pm2 restart mlflow            # Restart one
-pm2 logs jupyter-lab          # View logs
-pm2 save                      # Persist across reboot
-
-# Pipeline
-cd ~/CLAUDE_NAVADA_AGENT/LeadPipeline
-node pipeline.js              # Run pipeline manually
-node -e "require('./leads').getEmailStats()"  # Check email stats
-```
-
-## Scheduled Automations
+## Scheduled Automations (18 Windows Tasks)
 
 | Task | Schedule | Script |
 |------|----------|--------|
-| AI News Digest | Daily 7:00 AM | `ai-news-mailer.js` |
-| Lead Pipeline | Daily 8:30 AM | `pipeline.js` (includes follow-up check) |
-| Job Hunter | Daily 9:00 AM | `job-hunter-apify.js` |
-| Economy Report | Monday 8:00 AM | `uk-us-economy-report.py` |
-| Self-Improvement | Monday 10:00 AM | `self-improve.js` |
+| Morning-Briefing | Daily 6:30 AM | `morning-briefing.js` |
+| AI-News-Digest | Daily 7:00 AM | `ai-news-mailer.js` |
+| Economy-Report | Mon 8:00 AM | `uk-us-economy-report.py` |
+| NAVADA-LeadPipeline | Daily 8:30 AM | `pipeline.js` |
+| Job-Hunter-Daily | Daily 9:00 AM | `job-hunter-apify.js` |
+| NAVADA-ProspectPipeline | Daily 9:30 AM | `prospect-pipeline.js` |
+| Self-Improve-Weekly | Mon 10:00 AM | `self-improve.js` |
+| NAVADA-Trading-PreMarket | Daily 2:15 PM | Trading pre-market scan |
+| NAVADA-Trading-Execute | Daily 3:45 PM | Trading execution |
+| Market-Intelligence | Daily 6:00 PM | Market analysis |
+| Weekly-Report | Sun 6:00 PM | `weekly-report.js` |
+| NAVADA-Trading-FridayClose | Fri 8:30 PM | Close positions |
+| Daily-Ops-Report | Daily 9:00 PM | Operations summary |
+| NAVADA-Trading-Report | Daily 9:15 PM | Trading report |
+| Inbox-Monitor | Every 2hrs 8AM-10PM | `inbox-monitor.js` |
+| VC-Response-Monitor | At startup | `vc-response-monitor.js` |
+| NAVADA-Infrastructure | At startup | Health check |
+| PM2-Resurrect | At startup | `pm2 resurrect` |
 
-## PM2 Daemons (Always Running)
+## Key Scripts
 
-| Process | Port | Purpose |
-|---------|------|---------|
-| inbox-responder | — | Email auto-reply + improvement approval |
-| voice-command | — | S8 Bluetooth voice assistant |
-| mlflow | `:5000` | ML experiment tracking |
-| jupyter-lab | `:8888` | Persistent Jupyter server |
-| tensorboard | `:6006` | Training visualisation |
-| lead-dashboard | `:3100` | Lead pipeline web UI |
-| vc-response-monitor | — | VC email response watcher |
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `telegram-bot.js` | Claude Chief of Staff Telegram bot | PM2 managed |
+| `email-service.js` | NAVADA-branded email sending | `node email-service.js <to> <subject> <body>` |
+| `voice-service.js` | TTS voice notes via OpenAI | `node voice-service.js <to> <message>` |
+| `inbox-monitor.js` | Read Zoho inbox via IMAP | `node inbox-monitor.js` |
+| `morning-briefing.js` | Executive morning brief | `node morning-briefing.js` |
+| `weekly-report.js` | PDF + voice weekly report | `node weekly-report.js` |
+| `job-hunter-apify.js` | Job search (max 10/email) | `node job-hunter-apify.js` |
+| `voice-command.js` | S8 Bluetooth voice control | PM2 managed |
 
-## Voice Command System
+## NAVADA Products
 
-| Mode | Enter | Exit |
-|------|-------|------|
-| **STANDBY** | Default | Auto after command |
-| **ACTIVE** | Say "Claude" | Auto → STANDBY |
-| **CONVO** | "Claude, let's talk" | "Goodbye" |
-| **SLEEPING** | "Claude, go to sleep" | "Claude, wake up" |
+| Product | URL | Description |
+|---------|-----|-------------|
+| NAVADA Edge | — | Productised AI home server deployment service |
+| WorldMonitor | navada-world-view.xyz | OSINT dashboard |
+| NAVADA Trading Lab | — | Autonomous paper trading (Alpaca + IEX) |
+| NAVADA Robotics | navadarobotics.com | Robotics company |
+| Navada Lab | navada-lab.space | GPU ML lab + portfolio |
+| ALEX | alexnavada.xyz | Autonomous AI agent |
+| Raven Terminal | raventerminal.xyz | AI code learning platform |
 
 ## MCP Servers (23)
 
@@ -256,21 +139,96 @@ node -e "require('./leads').getEmailStats()"  # Check email stats
 **Global:** Puppeteer, GitHub, PostgreSQL, Bright Data, OpenAI Images
 **Project:** Fetch, Memory, Sequential Thinking, Context7, DBHub, DuckDB, SQLite, dbt, Zaturn, Fermat, Vizro, Optuna, NetworkX, Jupyter
 
+## Directory Structure
+
+```
+CLAUDE_NAVADA_AGENT/
+├── Automation/
+│   ├── telegram-bot.js           # Claude Chief of Staff (38 commands)
+│   ├── ai-news-mailer.js         # Daily AI news digest
+│   ├── morning-briefing.js       # Executive morning brief
+│   ├── job-hunter-apify.js       # Job scraper
+│   ├── uk-us-economy-report.py   # Economy analysis
+│   ├── self-improve.js           # Ralph Wiggum self-improvement
+│   ├── voice-command.js          # S8 Bluetooth voice assistant
+│   ├── voice-service.js          # TTS voice notes (OpenAI)
+│   ├── inbox-monitor.js          # Zoho IMAP inbox monitor
+│   ├── inbox-auto-responder.js   # Email auto-responder
+│   ├── email-service.js          # NAVADA branded email
+│   ├── weekly-report.js          # PDF + voice weekly report
+│   ├── deliver-app.js            # App deploy pipeline
+│   ├── linkedin-post.js          # LinkedIn API posting
+│   ├── kb/                       # Knowledge base (contacts, decisions, memory)
+│   ├── logs/                     # Task output logs
+│   └── .env                      # Secrets (gitignored)
+├── LeadPipeline/
+│   ├── pipeline.js               # Lead CRM engine
+│   ├── prospect-pipeline.js      # Prospect outreach automation
+│   ├── lead-scraper.js           # Google/LinkedIn scraping
+│   ├── email-finder.js           # Hunter.io email verification
+│   └── outreach.js               # Intro + follow-up emails
+├── NAVADA-Trading/
+│   ├── src/api.py                # FastAPI trading API
+│   └── scripts/scheduler.js      # Trading cron triggers
+├── Manager/
+│   ├── cost-tracker.js           # API cost logging + ROI
+│   └── cost-log.json             # Cost data
+├── navada-osint/worldmonitor-repo/
+│   ├── serve-local.mjs           # WorldMonitor frontend
+│   ├── start-api.mjs             # WorldMonitor API server
+│   └── api/                      # API endpoints (incl. navada-costs.js)
+├── infrastructure/
+│   ├── docker-compose.yml        # Nginx + Cloudflare tunnel
+│   └── nginx/                    # Reverse proxy configs
+├── ecosystem.config.js           # PM2 unified config (8 services)
+├── CLAUDE.md                     # Claude Code instructions
+└── README.md                     # This file
+```
+
 ## Networking
 
 | Endpoint | Address |
 |----------|---------|
 | Local IP | `192.168.0.36` |
 | Tailscale | `100.121.187.67` |
+| iPhone Tailscale | `100.68.251.111` |
+| WorldMonitor | `navada.tail394c36.ts.net` |
 
-## Adding a New Service
+## Quick Commands
 
-1. Docker → add to `infrastructure/docker-compose.yml`
-2. Native → add to `infrastructure/ecosystem.config.js`
-3. Add upstream in `nginx/nginx.conf`
-4. Add route in `nginx/conf.d/default.conf`
-5. `docker compose restart nginx` or `pm2 start ecosystem.config.js`
-6. Update this README
+```bash
+# PM2 services
+pm2 list                          # View all 8 services
+pm2 restart telegram-bot          # Restart Telegram bot
+pm2 logs telegram-bot --lines 20  # View logs
+pm2 start ecosystem.config.js     # Start all from config
+pm2 save                          # Persist across reboot
+
+# Docker
+cd ~/CLAUDE_NAVADA_AGENT/infrastructure
+docker compose up -d              # Start Nginx + tunnel
+docker compose down               # Stop all containers
+
+# Pipeline
+node LeadPipeline/pipeline.js     # Run lead pipeline
+node LeadPipeline/prospect-pipeline.js  # Run prospect outreach
+
+# Automations
+node Automation/morning-briefing.js
+node Automation/ai-news-mailer.js
+node Automation/job-hunter-apify.js
+```
+
+## Voice Command System
+
+| Mode | Enter | Exit |
+|------|-------|------|
+| **STANDBY** | Default | Auto after command |
+| **ACTIVE** | Say "Claude" | Auto -> STANDBY |
+| **CONVO** | "Claude, let's talk" | "Goodbye" |
+| **SLEEPING** | "Claude, go to sleep" | "Claude, wake up" |
+
+Wake words: "claude", "navada", "hey claude", "ok claude"
 
 ---
 
