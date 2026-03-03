@@ -58,7 +58,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=navada
-      - GF_SERVER_ROOT_URL=http://192.168.0.36:9090
+      - GF_SERVER_ROOT_URL=http://192.168.0.58:9090
       - GF_SERVER_SERVE_FROM_SUB_PATH=false
     volumes:
       - grafana_data:/var/lib/grafana

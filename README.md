@@ -189,7 +189,7 @@ CLAUDE_NAVADA_AGENT/
 
 | Endpoint | Address |
 |----------|---------|
-| Local IP | `192.168.0.36` |
+| Local IP | `192.168.0.58` |
 | Tailscale | `100.121.187.67` |
 | iPhone Tailscale | `100.68.251.111` |
 | WorldMonitor | `navada.tail394c36.ts.net` |

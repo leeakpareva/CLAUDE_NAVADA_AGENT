@@ -15,6 +15,7 @@ const path = require('path');
 const https = require('https');
 const Anthropic = require('@anthropic-ai/sdk').default;
 const twilio = require('twilio');
+const semanticCache = require('./semantic-cache');
 
 // --- Config ---
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -249,6 +250,7 @@ const ADMIN_ONLY_COMMANDS = new Set([
   'present', 'report', 'briefing', 'voicenote', 'linkedin',
   'clear', 'grant', 'revoke', 'users',
   'news', 'jobs', 'pipeline', 'prospect', 'ralph',
+  'stream', 'trace', 'flux', 'r2',
 ]);
 
 // Guest-safe commands
@@ -610,6 +612,76 @@ const TOOLS = [
       },
       required: ['message']
     }
+  },
+  {
+    name: 'stream_video',
+    description: 'Manage Cloudflare Stream videos. Upload, list, get playback URLs, delete.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['upload', 'upload_url', 'list', 'info', 'delete', 'url', 'embed'], description: 'Action to perform' },
+        file_path: { type: 'string', description: 'Local file path (for upload action)' },
+        video_url: { type: 'string', description: 'URL to upload from (for upload_url action)' },
+        video_id: { type: 'string', description: 'Video ID (for info/delete/url/embed)' },
+        name: { type: 'string', description: 'Video name/title' }
+      },
+      required: ['action']
+    }
+  },
+  {
+    name: 'cloudflare_trace',
+    description: 'Trace an HTTP request through Cloudflare to debug routing, WAF, caching rules.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'URL to trace (must be on your Cloudflare account)' },
+        method: { type: 'string', description: 'HTTP method (default GET)' },
+        skip_challenge: { type: 'boolean', description: 'Skip security challenges (default true)' }
+      },
+      required: ['url']
+    }
+  },
+  {
+    name: 'r2_storage',
+    description: 'Manage Cloudflare R2 object storage. Upload, list, delete files. Bucket: navada-assets. Zero egress cost.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['upload', 'list', 'delete', 'buckets', 'url'], description: 'Action: upload file, list objects, delete object, list buckets, get public URL' },
+        file_path: { type: 'string', description: 'Local file path (for upload)' },
+        key: { type: 'string', description: 'R2 object key/path (e.g. docs/file.pdf)' },
+        bucket: { type: 'string', description: 'Bucket name (default: navada-assets)' },
+        prefix: { type: 'string', description: 'Prefix filter for list action (e.g. docs/)' }
+      },
+      required: ['action']
+    }
+  },
+  {
+    name: 'chroma_search',
+    description: 'Search NAVADA knowledge base (ChromaDB RAG). Semantic search across all indexed docs, code, logs, and comms. Use to recall past decisions, find code patterns, or answer questions about the NAVADA system.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Natural language search query' },
+        n_results: { type: 'number', description: 'Number of results (default 5, max 10)' },
+        category: { type: 'string', enum: ['docs', 'code', 'logs', 'comms'], description: 'Filter by category (optional)' }
+      },
+      required: ['query']
+    }
+  },
+  {
+    name: 'flux_image',
+    description: 'Generate image using Cloudflare Workers AI Flux model. FREE, no per-image cost. Good for quick visuals. For premium quality use generate_image (DALL-E 3) instead.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        prompt: { type: 'string', description: 'Image description prompt' },
+        width: { type: 'number', description: 'Width in pixels (default 1024)' },
+        height: { type: 'number', description: 'Height in pixels (default 1024)' },
+        save_to_r2: { type: 'boolean', description: 'Upload generated image to R2 storage (default false)' }
+      },
+      required: ['prompt']
+    }
   }
 ];
 
@@ -912,6 +984,162 @@ async function executeTool(name, input, userRole) {
         return `Error generating image: ${err.message}`;
       }
     }
+    case 'stream_video': {
+      log(`[TOOL] stream_video: ${input.action}`);
+      try {
+        const stream = require('./cloudflare-stream');
+        switch (input.action) {
+          case 'list': {
+            const videos = await stream.listVideos();
+            if (videos.length === 0) return 'No videos found in Cloudflare Stream.';
+            return videos.map(v => {
+              const duration = v.duration ? `${Math.round(v.duration)}s` : 'processing';
+              return `${v.uid} | ${v.meta?.name || 'Untitled'} | ${duration} | ${v.status?.state || 'unknown'}`;
+            }).join('\n');
+          }
+          case 'upload': {
+            if (!input.file_path) return 'Error: file_path required for upload';
+            const result = await stream.uploadVideo(input.file_path, { name: input.name });
+            return `Uploaded: ${result.uid} (${result.name})`;
+          }
+          case 'upload_url': {
+            if (!input.video_url) return 'Error: video_url required for upload_url';
+            const result = await stream.uploadFromUrl(input.video_url, { name: input.name });
+            return `Upload started: ${result.uid} | Status: ${result.status?.state || 'queued'}`;
+          }
+          case 'info': {
+            if (!input.video_id) return 'Error: video_id required';
+            const v = await stream.getVideo(input.video_id);
+            return `Video: ${v.uid}\nName: ${v.meta?.name || 'Untitled'}\nStatus: ${v.status?.state}\nDuration: ${v.duration ? Math.round(v.duration) + 's' : 'N/A'}\nPlayback: ${stream.getPlaybackUrl(v.uid)}`;
+          }
+          case 'delete': {
+            if (!input.video_id) return 'Error: video_id required';
+            await stream.deleteVideo(input.video_id);
+            return `Deleted video: ${input.video_id}`;
+          }
+          case 'url': {
+            if (!input.video_id) return 'Error: video_id required';
+            return stream.getPlaybackUrl(input.video_id);
+          }
+          case 'embed': {
+            if (!input.video_id) return 'Error: video_id required';
+            const embed = stream.getEmbedUrl(input.video_id);
+            return `Embed URL: ${embed.src}\n\nHTML:\n${embed.html}`;
+          }
+          default:
+            return `Unknown stream action: ${input.action}`;
+        }
+      } catch (err) {
+        return `Error (stream_video): ${err.response?.data ? JSON.stringify(err.response.data) : err.message}`;
+      }
+    }
+    case 'cloudflare_trace': {
+      log(`[TOOL] cloudflare_trace: ${input.url}`);
+      try {
+        const { traceRequest } = require('./cloudflare-trace');
+        const trace = await traceRequest(input.url, {
+          method: input.method,
+          skip_challenge: input.skip_challenge,
+        });
+        if (Array.isArray(trace)) {
+          const summary = trace.map(s => {
+            const status = s.matched ? 'MATCHED' : 'no match';
+            const name = s.name || s.expression_name || s.rule_name || s.type || 'rule';
+            return `[${status}] ${name}: ${s.action || '-'}`;
+          }).join('\n');
+          return `Trace: ${input.method || 'GET'} ${input.url}\n${summary}\n\nTotal rules: ${trace.length}`;
+        }
+        return JSON.stringify(trace, null, 2);
+      } catch (err) {
+        return `Error (cloudflare_trace): ${err.response?.data ? JSON.stringify(err.response.data) : err.message}`;
+      }
+    }
+    case 'chroma_search': {
+      log(`[TOOL] chroma_search: ${input.query}`);
+      try {
+        const rag = require('./chroma-rag');
+        const nResults = Math.min(input.n_results || 5, 10);
+        const results = await rag.search(input.query, {
+          nResults,
+          category: input.category || null,
+        });
+        if (results.length === 0) return 'No relevant results found in the knowledge base.';
+        return results.map((r, i) => {
+          const src = r.metadata?.file_name || r.metadata?.source || 'unknown';
+          const cat = r.metadata?.category || '?';
+          return `[${i + 1}] (${cat}) ${src} (dist: ${r.distance.toFixed(3)})\n${r.document.slice(0, 400)}`;
+        }).join('\n---\n');
+      } catch (err) {
+        return `Error (chroma_search): ${err.message}`;
+      }
+    }
+    case 'r2_storage': {
+      log(`[TOOL] r2_storage: ${input.action}`);
+      try {
+        const r2 = require('./cloudflare-r2');
+        const bucket = input.bucket || 'navada-assets';
+        switch (input.action) {
+          case 'buckets': {
+            const buckets = await r2.listBuckets();
+            if (buckets.length === 0) return 'No R2 buckets found.';
+            return buckets.map(b => `${b.name} | Created: ${b.creation_date || 'N/A'}`).join('\n');
+          }
+          case 'upload': {
+            if (!input.file_path) return 'Error: file_path required for upload';
+            const key = input.key || require('path').basename(input.file_path);
+            const result = await r2.uploadFile(input.file_path, key, bucket);
+            return `Uploaded: ${result.key} (${(result.size / 1024 / 1024).toFixed(2)} MB) to ${bucket}`;
+          }
+          case 'list': {
+            const objects = await r2.listObjects(input.prefix || '', bucket);
+            if (objects.length === 0) return `No objects in ${bucket}/${input.prefix || ''}`;
+            return objects.map(o => {
+              const size = (o.Size / 1024 / 1024).toFixed(2);
+              return `${o.Key} | ${size} MB | ${o.LastModified?.toISOString()?.slice(0, 10) || 'N/A'}`;
+            }).join('\n');
+          }
+          case 'delete': {
+            if (!input.key) return 'Error: key required for delete';
+            await r2.deleteObject(input.key, bucket);
+            return `Deleted: ${input.key} from ${bucket}`;
+          }
+          case 'url': {
+            if (!input.key) return 'Error: key required for url';
+            return r2.getPublicUrl(input.key, bucket);
+          }
+          default:
+            return `Unknown R2 action: ${input.action}`;
+        }
+      } catch (err) {
+        return `Error (r2_storage): ${err.message}`;
+      }
+    }
+    case 'flux_image': {
+      log(`[TOOL] flux_image: ${input.prompt}`);
+      try {
+        const flux = require('./cloudflare-flux');
+        const opts = {};
+        if (input.width) opts.width = input.width;
+        if (input.height) opts.height = input.height;
+
+        if (input.save_to_r2) {
+          const result = await flux.generateAndStore(input.prompt, opts);
+          return JSON.stringify({
+            file_path: result.filePath,
+            r2_key: result.r2Key,
+            r2_url: result.r2Url,
+          });
+        } else {
+          const result = await flux.generateImage(input.prompt, opts);
+          return JSON.stringify({
+            file_path: result.filePath,
+            size_kb: (result.buffer.length / 1024).toFixed(1),
+          });
+        }
+      } catch (err) {
+        return `Error (flux_image): ${err.message}`;
+      }
+    }
     default:
       return `Unknown tool: ${name}`;
   }
@@ -920,7 +1148,7 @@ async function executeTool(name, input, userRole) {
 // ============================================================
 // SYSTEM PROMPTS
 // ============================================================
-const ADMIN_SYSTEM_PROMPT = `You are Claude, Chief of Staff at NAVADA. You are Lee Akpareva's AI partner, running on his HP laptop (permanent always-on home server). You are communicating via Telegram from his iPhone.
+const ADMIN_SYSTEM_PROMPT = `You are Claude, Chief of Staff at NAVADA. You are Lee Akpareva's AI partner, running on his HP laptop (permanent always-on home server). You are communicating via Telegram from his iPhone. You are OMNI-CHANNEL: Lee can reach you via Telegram, SMS (+447446994961), and WhatsApp. Your conversation history is SHARED across all channels. Messages are tagged [Telegram], [SMS], or [WhatsApp] so you have full continuity.
 
 ## Your Identity
 You are not just an assistant. You are the Chief of Staff. You manage the server, run automations, monitor systems, write code, deploy services, send emails, and keep everything running 24/7. Lee trusts you with full control.
@@ -1006,12 +1234,11 @@ You have complete access to Claude's Zoho email (claude.navada@zohomail.eu):
 Your conversation history persists across bot restarts in kb/telegram-memory.json.
 You remember previous conversations with Lee. Use this context.
 
-## Image Generation (DALL-E 3)
-You can generate images using the generate_image tool (OpenAI DALL-E 3). Use it for:
-- Visuals, concept art, logos, illustrations, diagrams
-- Creative requests from Lee
-- Report/presentation imagery
-Available sizes: 1024x1024, 1792x1024, 1024x1792. Quality: standard or hd.
+## Image Generation
+Two options:
+1. **DALL-E 3** (generate_image tool): Premium quality, costs per image. Best for client-facing visuals.
+2. **Flux** (flux_image tool): FREE via Cloudflare Workers AI. Good for quick visuals, concepts, drafts. Can save to R2.
+Available sizes: 1024x1024, 1792x1024, 1024x1792. DALL-E quality: standard or hd.
 
 ## Voice Notes
 You can generate and send voice notes via the voice-service.js script:
@@ -1031,13 +1258,18 @@ You have access to all MCP servers via shell commands:
 - **Bright Data**: Web scraping via API
 - **SQLite**: Direct file access for pipeline.db
 - **Docker**: Container management via docker CLI
+- **Cloudflare Stream**: Use stream_video tool to upload, list, serve videos. Playback at customer-ledats0yeh0th9as.cloudflarestream.com
+- **Cloudflare Trace**: Use cloudflare_trace tool to diagnose request routing through Cloudflare
+- **Cloudflare R2**: Use r2_storage tool to upload, list, serve files. Bucket: navada-assets. Zero egress cost.
+- **Cloudflare Flux**: Use flux_image tool for FREE AI image generation (no OpenAI cost). Model: Flux Klein 4B.
+- **ChromaDB RAG**: Use chroma_search tool to search the NAVADA knowledge base. 462+ chunks of docs, code, logs indexed. Use it to recall past decisions, find code patterns, or answer questions about the system.
 - All 23 MCP servers accessible via run_shell
 
 ## File Management
 You can read, write, list, AND delete files. Use delete_file tool for cleanup.
 
 ## Tools Available
-You have FULL server access: run any bash command, read/write/delete files, list directories, server status, send emails, read inbox, reply to emails, generate images (DALL-E 3), send voice notes, post to LinkedIn, access all MCP integrations. You ARE the server operator. Same level of access as Claude Code. No restrictions.`;
+You have FULL server access: run any bash command, read/write/delete files, list directories, server status, send emails, read inbox, reply to emails, generate images (DALL-E 3 + Flux FREE), R2 object storage, send voice notes, post to LinkedIn, access all MCP integrations. You ARE the server operator. Same level of access as Claude Code. No restrictions.`;
 
 function buildGuestSystemPrompt(displayName) {
   const nameGreeting = displayName ? `You are speaking with ${displayName}.` : '';
@@ -1111,7 +1343,14 @@ async function askClaude(ctx, userMessage) {
 
   // Get per-user conversation history
   const history = getUserHistory(userId);
-  history.push({ role: 'user', content: userMessage });
+
+  // For admin (Lee): tag with channel + timestamp for omni-channel continuity
+  if (userRole === 'admin') {
+    const now = new Date().toISOString();
+    history.push({ role: 'user', content: `[${now}][Telegram] ${userMessage}` });
+  } else {
+    history.push({ role: 'user', content: userMessage });
+  }
 
   // Trim history
   while (history.length > MAX_HISTORY * 2) {
@@ -1122,6 +1361,31 @@ async function askClaude(ctx, userMessage) {
   let messages = [...history];
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
+
+  // --- Semantic Cache Lookup (before Claude API call) ---
+  try {
+    const cached = await semanticCache.lookup(userMessage);
+    if (cached) {
+      log(`[CACHE HIT] source=${cached.source} dist=${cached.distance.toFixed(4)} for: "${userMessage.slice(0, 80)}"`);
+      await sendLong(ctx, cached.response);
+      history.push({ role: 'assistant', content: cached.response });
+      conversationHistories.set(userId, history);
+      saveConversationHistory(userId, history);
+      logInteraction({
+        direction: 'out',
+        userId,
+        username,
+        model: 'cache',
+        input_tokens: 0,
+        output_tokens: 0,
+        cost_gbp: 0,
+        cache_hit: cached.source,
+      });
+      return;
+    }
+  } catch (cacheErr) {
+    log(`[CACHE] Lookup error (non-blocking): ${cacheErr.message}`);
+  }
 
   // Name collection: if guest has no displayName, check if this message is a name response
   let resolvedDisplayName = ctx.state.displayName;
@@ -1140,6 +1404,8 @@ async function askClaude(ctx, userMessage) {
   // Select system prompt and tools based on role
   const systemPrompt = userRole === 'admin' ? ADMIN_SYSTEM_PROMPT : buildGuestSystemPrompt(resolvedDisplayName);
   const toolSet = userRole === 'admin' ? TOOLS : GUEST_TOOL_LIST;
+
+  let usedTools = false;
 
   try {
     while (loopCount < MAX_TOOL_LOOPS) {
@@ -1173,12 +1439,19 @@ async function askClaude(ctx, userMessage) {
       if (toolBlocks.length === 0 || response.stop_reason === 'end_turn') {
         const finalText = textBlocks.map(b => b.text).join('\n');
         if (finalText.trim()) {
-          history.push({ role: 'assistant', content: finalText });
+          // Tag admin assistant responses for omni-channel continuity
+          if (userRole === 'admin') {
+            const now = new Date().toISOString();
+            history.push({ role: 'assistant', content: `[${now}][Telegram] ${finalText}` });
+          } else {
+            history.push({ role: 'assistant', content: finalText });
+          }
         }
         break;
       }
 
       // Execute tools
+      usedTools = true;
       const assistantContent = response.content;
       messages.push({ role: 'assistant', content: assistantContent });
 
@@ -1240,6 +1513,23 @@ async function askClaude(ctx, userMessage) {
       output_tokens: totalOutputTokens,
       cost_gbp: estimateCost(currentModel, totalInputTokens, totalOutputTokens),
     });
+
+    // --- Semantic Cache Store (after successful response, no tools used) ---
+    try {
+      const lastAssistant = history[history.length - 1];
+      const lastText = typeof lastAssistant?.content === 'string' ? lastAssistant.content : '';
+      if (lastText && !usedTools) {
+        await semanticCache.store(userMessage, lastText, {
+          userId,
+          model: currentModelName,
+          inputTokens: totalInputTokens,
+          outputTokens: totalOutputTokens,
+          usedTools: false,
+        });
+      }
+    } catch (cacheStoreErr) {
+      log(`[CACHE] Store error (non-blocking): ${cacheStoreErr.message}`);
+    }
 
     // Save trimmed history + persist to disk
     while (history.length > MAX_HISTORY * 2) {
@@ -1363,7 +1653,14 @@ bot.help((ctx) => {
       `/report <topic> - Generate & email report\n` +
       `/research <topic> - Deep research task\n` +
       `/draft <topic> - Draft content\n` +
-      `/image <description> - Generate DALL-E 3 image\n\n` +
+      `/image <description> - Generate DALL-E 3 image\n` +
+      `/flux <description> - Generate FREE AI image (Flux)\n\n` +
+      `CLOUDFLARE\n` +
+      `/stream - Cloudflare Stream videos\n` +
+      `/trace <url> - Trace request through Cloudflare\n` +
+      `/r2 - R2 object storage\n` +
+      `/r2 upload <path> - Upload file to R2\n` +
+      `/r2 buckets - List R2 buckets\n\n` +
       `VOICE\n` +
       `/voice - Voice system control\n` +
       `/voicenote <message> - Send voice email to Lee\n\n` +
@@ -1374,6 +1671,7 @@ bot.help((ctx) => {
       `OTHER\n` +
       `/shell <cmd> - Run shell command\n` +
       `/costs - Today's API costs\n` +
+      `/cache - Semantic cache stats\n` +
       `/memory - Check memory status\n` +
       `/clear - Reset conversation + memory\n` +
       `/about - About NAVADA\n\n` +
@@ -2032,6 +2330,34 @@ bot.command('memory', (ctx) => {
   );
 });
 
+// /cache — semantic cache stats & management (admin only)
+guardCommand('cache', async (ctx) => {
+  const args = ctx.message.text.replace('/cache', '').trim();
+  log(`/cache ${args}`);
+
+  if (args === 'cleanup') {
+    const result = await semanticCache.cleanup();
+    return ctx.reply(`Cache Cleanup\n\nRemoved ${result.removed} expired entries.${result.error ? `\nError: ${result.error}` : ''}`);
+  }
+
+  if (args === 'clear') {
+    const result = await semanticCache.cleanup();
+    return ctx.reply(`Cache cleared. Removed ${result.removed} expired entries. Memory cache resets on next restart.`);
+  }
+
+  // Default: show stats
+  const s = await semanticCache.stats();
+  ctx.reply(
+    `Semantic Cache Status\n\n` +
+    `Memory cache: ${s.memoryEntries} entries (hot, 30min TTL)\n` +
+    `ChromaDB cache: ${s.chromaEntries} entries (persistent, 24hr TTL)\n` +
+    `Threshold: ${0.12} (lower = stricter matching)\n\n` +
+    `Commands:\n` +
+    `/cache cleanup - Remove expired entries\n` +
+    `/cache clear - Full cache reset`
+  );
+});
+
 // ============================================================
 // CREATIVE COMMANDS
 // ============================================================
@@ -2082,6 +2408,57 @@ bot.command('draft', async (ctx) => {
   log(`/draft ${topic}`);
   if (!topic) return ctx.reply('Usage: /draft <topic>\nExample: /draft LinkedIn post about AI agents');
   await askClaude(ctx, `Draft professional content about "${topic}". This could be a LinkedIn post, email, blog post, or any written content. Follow NAVADA content rules (no client names, no em dashes). Present the draft for my review.`);
+});
+
+// /stream (admin only)
+guardCommand('stream', async (ctx) => {
+  const args = ctx.message.text.replace('/stream', '').trim();
+  log(`/stream ${args}`);
+  if (!args) {
+    await askClaude(ctx, 'List all videos in Cloudflare Stream using the stream_video tool with action "list". Show a nicely formatted list.');
+  } else if (args.startsWith('upload ')) {
+    const target = args.replace('upload ', '').trim();
+    if (target.startsWith('http://') || target.startsWith('https://')) {
+      await askClaude(ctx, `Upload this video URL to Cloudflare Stream using the stream_video tool with action "upload_url" and video_url "${target}".`);
+    } else {
+      await askClaude(ctx, `Upload this local file to Cloudflare Stream using the stream_video tool with action "upload" and file_path "${target}".`);
+    }
+  } else {
+    // Treat as video ID
+    await askClaude(ctx, `Get info for Cloudflare Stream video "${args}" using the stream_video tool with action "info" and video_id "${args}". Show the details and playback URL.`);
+  }
+});
+
+// /trace (admin only)
+guardCommand('trace', async (ctx) => {
+  const url = ctx.message.text.replace('/trace', '').trim();
+  log(`/trace ${url}`);
+  if (!url) return ctx.reply('Usage: /trace <url>\nExample: /trace https://navada-edge-server.uk');
+  await askClaude(ctx, `Trace this URL through Cloudflare using the cloudflare_trace tool: "${url}". Show the matched rules, actions, and a summary of how the request flows.`);
+});
+
+// /flux (admin only) - Free AI image generation via Cloudflare Workers AI
+guardCommand('flux', async (ctx) => {
+  const prompt = ctx.message.text.replace('/flux', '').trim();
+  log(`/flux ${prompt}`);
+  if (!prompt) return ctx.reply('Usage: /flux <description>\nGenerates a FREE image via Cloudflare Workers AI (Flux).\nExample: /flux futuristic server room with blue neon lighting');
+  await askClaude(ctx, `Generate an image using the flux_image tool (FREE Cloudflare Workers AI) with this prompt: "${prompt}". After generating, read the file_path from the result and send the image to me by reading and sharing the file.`);
+});
+
+// /r2 (admin only) - Cloudflare R2 object storage
+guardCommand('r2', async (ctx) => {
+  const args = ctx.message.text.replace('/r2', '').trim();
+  log(`/r2 ${args}`);
+  if (!args) {
+    await askClaude(ctx, 'List all objects in R2 storage using the r2_storage tool with action "list". Show a nicely formatted list with sizes.');
+  } else if (args === 'buckets') {
+    await askClaude(ctx, 'List all R2 buckets using the r2_storage tool with action "buckets".');
+  } else if (args.startsWith('upload ')) {
+    const filePath = args.replace('upload ', '').trim();
+    await askClaude(ctx, `Upload this file to R2 using the r2_storage tool: file_path="${filePath}". Use a sensible key based on the filename.`);
+  } else {
+    await askClaude(ctx, `R2 storage request: "${args}". Use the r2_storage tool to handle this. Available actions: list, upload, delete, buckets, url.`);
+  }
 });
 
 // ============================================================
@@ -2210,10 +2587,16 @@ async function registerCommands() {
       { command: 'tailscale', description: 'Tailscale status' },
       { command: 'docker', description: 'Docker status' },
       { command: 'nginx', description: 'Nginx status' },
+      // Cloudflare
+      { command: 'stream', description: 'Cloudflare Stream videos' },
+      { command: 'trace', description: 'Trace request through Cloudflare' },
+      { command: 'flux', description: 'Generate FREE AI image (Flux)' },
+      { command: 'r2', description: 'R2 object storage' },
       // Voice & Other
       { command: 'voice', description: 'Voice system control' },
       { command: 'voicenote', description: 'Send voice email to Lee' },
       { command: 'costs', description: 'API cost tracking' },
+      { command: 'cache', description: 'Semantic cache stats' },
       { command: 'memory', description: 'Check memory status' },
       { command: 'clear', description: 'Reset conversation + memory' },
       { command: 'about', description: 'About NAVADA' },
@@ -2254,6 +2637,195 @@ const http = require('http');
 const { URL } = require('url');
 const WEBHOOK_PORT = 3456;
 
+/**
+ * Process inbound message from any channel (SMS, WhatsApp) with:
+ * - SHARED conversation history across Telegram, SMS, WhatsApp (omni-channel)
+ * - Full tool access (all TOOLS + executeTool)
+ * - Semantic cache (lookup before API, store after)
+ * - RAG context injection from ChromaDB knowledge base
+ * - Channel-aware system prompt
+ * - 2-day auto-purge of old conversation turns
+ * @param {string} message - The inbound message text
+ * @param {string} channel - 'sms' or 'whatsapp'
+ * @returns {string} Claude's text reply
+ */
+async function processInboundMessage(message, channel) {
+  const channelLabel = channel === 'whatsapp' ? 'WhatsApp' : 'SMS';
+  const maxChars = channel === 'sms' ? 1500 : 3000;
+
+  // --- Semantic Cache Lookup ---
+  try {
+    const cached = await semanticCache.lookup(message);
+    if (cached) {
+      log(`[${channelLabel} CACHE HIT] source=${cached.source} dist=${cached.distance.toFixed(4)} for: "${message.slice(0, 80)}"`);
+      logInteraction({ direction: 'in', userId: OWNER_ID, username: 'Lee', model: 'cache', message: `[${channelLabel}] ${message.slice(0, 500)}` });
+      logInteraction({ direction: 'out', userId: OWNER_ID, username: 'Lee', model: 'cache', message: `[${channelLabel}] ${cached.response.slice(0, 500)}`, cost_gbp: 0 });
+      return cached.response.slice(0, maxChars);
+    }
+  } catch (cacheErr) {
+    log(`[${channelLabel} CACHE] Lookup error (non-blocking): ${cacheErr.message}`);
+  }
+
+  // --- RAG Context Retrieval ---
+  let ragContext = '';
+  try {
+    const rag = require('./chroma-rag');
+    const ragResults = await rag.search(message, 3);
+    if (ragResults && ragResults.length > 0) {
+      const snippets = ragResults.map(r => r.document).filter(Boolean).join('\n---\n');
+      if (snippets.length > 50) {
+        ragContext = `\n\n## Relevant Knowledge (from NAVADA RAG)\n${snippets.slice(0, 2000)}`;
+      }
+    }
+  } catch (ragErr) {
+    log(`[${channelLabel} RAG] Error (non-blocking): ${ragErr.message}`);
+  }
+
+  // Use shared owner conversation history (same across Telegram, SMS, WhatsApp)
+  const history = getUserHistory(OWNER_ID);
+
+  // --- 2-day auto-purge: remove old turns ---
+  const twoDaysAgo = Date.now() - (2 * 24 * 60 * 60 * 1000);
+  while (history.length > 2) {
+    const firstMsg = typeof history[0]?.content === 'string' ? history[0].content : '';
+    const tsMatch = firstMsg.match(/\[(\d{4}-\d{2}-\d{2}T[\d:.]+Z?)\]/);
+    if (tsMatch && new Date(tsMatch[1]).getTime() < twoDaysAgo) {
+      history.splice(0, 2); // Remove user+assistant pair
+    } else {
+      break; // Once we hit a non-expired turn, stop
+    }
+  }
+
+  const now = new Date().toISOString();
+  history.push({ role: 'user', content: `[${now}][${channelLabel}] ${message}` });
+
+  // Trim history (hard cap)
+  while (history.length > MAX_HISTORY * 2) {
+    history.splice(0, 2);
+  }
+
+  // Omni-channel system prompt
+  const systemPrompt = ADMIN_SYSTEM_PROMPT.replace(
+    'You are communicating via Telegram from his iPhone.',
+    `You are communicating via ${channelLabel}. You are OMNI-CHANNEL: Lee reaches you on Telegram, SMS (+447446994961), and WhatsApp. Your conversation history is SHARED across ALL channels. Messages are tagged [Telegram], [SMS], or [WhatsApp] so you know where each message came from. You have full continuity: if Lee told you something on Telegram, you remember it here.`
+  ) + `\n\n## ${channelLabel} Channel Rules
+- Keep responses concise (max ${maxChars} chars). ${channel === 'sms' ? 'SMS is expensive, be brief but helpful.' : 'WhatsApp allows more detail.'}
+- Do NOT use markdown formatting (no **, ##, \`\`\`). Use plain text only.
+- You are Claude, Chief of Staff. Same personality, same knowledge, same tools across all channels.
+- Current time: ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' })}${ragContext}`;
+
+  let loopCount = 0;
+  let messages = [...history];
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let usedTools = false;
+
+  try {
+    while (loopCount < MAX_TOOL_LOOPS) {
+      loopCount++;
+
+      const response = await anthropic.messages.create({
+        model: currentModel,
+        max_tokens: 4096,
+        system: systemPrompt,
+        tools: TOOLS,
+        messages,
+      });
+
+      totalInputTokens += response.usage?.input_tokens || 0;
+      totalOutputTokens += response.usage?.output_tokens || 0;
+
+      if (response.stop_reason === 'tool_use') {
+        usedTools = true;
+        const toolUses = response.content.filter(c => c.type === 'tool_use');
+        const toolResults = [];
+        for (const toolUse of toolUses) {
+          log(`[${channel.toUpperCase()} TOOL] ${toolUse.name}: ${JSON.stringify(toolUse.input).slice(0, 200)}`);
+          const result = await executeTool(toolUse.name, toolUse.input, 'admin');
+          toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: String(result).slice(0, 4000) });
+        }
+        messages.push({ role: 'assistant', content: response.content });
+        messages.push({ role: 'user', content: toolResults });
+      } else {
+        // Final text response
+        let reply = response.content.find(c => c.type === 'text')?.text || '';
+        reply = reply.slice(0, maxChars);
+
+        // Save to shared history (tagged with channel)
+        history.push({ role: 'assistant', content: `[${now}][${channelLabel}] ${reply}` });
+        conversationHistories.set(OWNER_ID, history);
+        saveConversationHistory(OWNER_ID, history);
+
+        // Log interaction
+        logInteraction({
+          direction: 'in', userId: OWNER_ID, username: 'Lee', model: currentModelName,
+          message: `[${channelLabel}] ${message.slice(0, 500)}`,
+        });
+        logInteraction({
+          direction: 'out', userId: OWNER_ID, username: 'Lee', model: currentModelName,
+          message: `[${channelLabel}] ${reply.slice(0, 500)}`,
+          input_tokens: totalInputTokens, output_tokens: totalOutputTokens,
+          cost_gbp: estimateCost(currentModel, totalInputTokens, totalOutputTokens),
+        });
+
+        // Log cost
+        const modelKey = currentModel.includes('opus') ? 'claude-opus-4' : 'claude-sonnet-4';
+        costTracker.logCall(modelKey, {
+          input_tokens: totalInputTokens,
+          output_tokens: totalOutputTokens,
+          script: 'telegram-bot',
+        });
+
+        // --- Semantic Cache Store (only for non-tool responses) ---
+        if (!usedTools) {
+          try {
+            await semanticCache.store(message, reply, {
+              userId: OWNER_ID,
+              model: currentModelName,
+              inputTokens: totalInputTokens,
+              outputTokens: totalOutputTokens,
+              usedTools: false,
+            });
+          } catch (cacheStoreErr) {
+            log(`[${channelLabel} CACHE] Store error (non-blocking): ${cacheStoreErr.message}`);
+          }
+        }
+
+        return reply;
+      }
+    }
+    return 'Tool loop limit reached. Please try again.';
+  } catch (err) {
+    log(`[${channel.toUpperCase()} ERROR] processInboundMessage: ${err.message}`);
+    return `Error: ${err.message}`;
+  }
+}
+
+// --- Loop Prevention ---
+const OWN_NUMBERS = new Set(['+447446994961', 'whatsapp:+447446994961', 'whatsapp:+14155238886', '+14155238886']);
+const recentMessageIds = new Map(); // SID -> timestamp, prevents duplicate processing
+const DEDUP_WINDOW = 60000; // 60 seconds
+
+function isDuplicate(sid) {
+  if (!sid) return false;
+  const now = Date.now();
+  // Clean old entries
+  for (const [k, v] of recentMessageIds) {
+    if (now - v > DEDUP_WINDOW) recentMessageIds.delete(k);
+  }
+  if (recentMessageIds.has(sid)) return true;
+  recentMessageIds.set(sid, now);
+  return false;
+}
+
+function isOwnMessage(from, body) {
+  // Ignore messages from our own numbers (outbound echo)
+  if (OWN_NUMBERS.has(from)) return true;
+  // Ignore messages containing our signature (loop from our own replies)
+  if (body && body.includes('Chief of Staff') && body.includes('NAVADA')) return true;
+  return false;
+}
+
 const webhookServer = http.createServer(async (req, res) => {
   if (req.method === 'POST' && req.url === '/twilio/sms') {
     let body = '';
@@ -2264,101 +2836,24 @@ const webhookServer = http.createServer(async (req, res) => {
         const from = params.get('From') || 'unknown';
         const smsBody = params.get('Body') || '';
         const to = params.get('To') || '';
+        const msgSid = params.get('MessageSid') || '';
         log(`[SMS IN] From: ${from} | Body: ${smsBody}`);
+
+        // Loop prevention: ignore our own outbound messages and duplicates
+        if (isOwnMessage(from, smsBody) || isDuplicate(msgSid)) {
+          log(`[SMS SKIP] Loop/duplicate detected from ${from}`);
+          res.writeHead(200, { 'Content-Type': 'text/xml' });
+          return res.end('<Response></Response>');
+        }
 
         // Forward to Lee on Telegram
         await bot.telegram.sendMessage(OWNER_ID,
           `SMS received from ${from}:\n\n${smsBody}`
         );
 
-        // If it's from Lee's number, process with Claude and reply
+        // If it's from Lee's number, process with Claude (shared memory + full tools)
         if (from === '+447935237704' && smsBody.trim()) {
-          // Use Claude to generate a response with tool access
-          const claude = new Anthropic({ apiKey: ANTHROPIC_KEY });
-          const smsTools = [
-            {
-              name: 'send_sms',
-              description: 'Send an SMS to any phone number. Use for forwarding messages, contacting people on Lee\'s behalf.',
-              input_schema: {
-                type: 'object',
-                properties: {
-                  to: { type: 'string', description: 'Phone number (e.g. +447935237704, +2349099991025)' },
-                  message: { type: 'string', description: 'Message to send' }
-                },
-                required: ['to', 'message']
-              }
-            },
-            {
-              name: 'run_shell',
-              description: 'Run a shell command on the NAVADA server.',
-              input_schema: {
-                type: 'object',
-                properties: { command: { type: 'string' } },
-                required: ['command']
-              }
-            }
-          ];
-
-          let smsMessages = [{ role: 'user', content: smsBody }];
-          let maxLoops = 5;
-
-          const response = await claude.messages.create({
-            model: currentModel,
-            max_tokens: 1000,
-            tools: smsTools,
-            system: `You are Claude, Chief of Staff at NAVADA AI Engineering & Consulting. Lee Akpareva (Founder) texted you on your Twilio number (+447446994961). You have FULL access to the NAVADA server and can:
-- Send SMS to ANY number worldwide using the send_sms tool
-- Run shell commands on the server using run_shell
-- Lee's number: +447935237704
-
-When Lee asks you to text someone, USE the send_sms tool to do it. Do not say you can't. You have the tool.
-Reply concisely (max 320 chars for text replies). Current time: ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' })}.`,
-            messages: smsMessages,
-          });
-
-          // Handle tool calls
-          let currentResponse = response;
-          while (currentResponse.stop_reason === 'tool_use' && maxLoops-- > 0) {
-            const toolUses = currentResponse.content.filter(c => c.type === 'tool_use');
-            const toolResults = [];
-            for (const tool of toolUses) {
-              let result = '';
-              if (tool.name === 'send_sms' && twilioClient) {
-                try {
-                  const smsMsg = await twilioClient.messages.create({
-                    body: tool.input.message + SMS_SIGNATURE,
-                    from: TWILIO_FROM,
-                    to: tool.input.to,
-                  });
-                  result = JSON.stringify({ status: smsMsg.status, sid: smsMsg.sid, to: tool.input.to });
-                  log(`[SMS OUT] To ${tool.input.to}: ${tool.input.message}`);
-                  await bot.telegram.sendMessage(OWNER_ID, `SMS sent to ${tool.input.to}:\n\n${tool.input.message}`);
-                } catch (err) {
-                  result = `Error: ${err.message}`;
-                }
-              } else if (tool.name === 'run_shell') {
-                try {
-                  const { execSync } = require('child_process');
-                  result = execSync(tool.input.command, { timeout: 30000, cwd: NAVADA_DIR }).toString().slice(0, 2000);
-                } catch (err) {
-                  result = `Error: ${err.message}`;
-                }
-              }
-              toolResults.push({ type: 'tool_result', tool_use_id: tool.id, content: result });
-            }
-            smsMessages.push({ role: 'assistant', content: currentResponse.content });
-            smsMessages.push({ role: 'user', content: toolResults });
-            currentResponse = await claude.messages.create({
-              model: currentModel,
-              max_tokens: 1000,
-              tools: smsTools,
-              system: `You are Claude, Chief of Staff at NAVADA. Reply concisely (max 320 chars). Current time: ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' })}.`,
-              messages: smsMessages,
-            });
-          }
-
-          const reply = currentResponse.content.find(c => c.type === 'text')?.text || '';
-
+          const reply = await processInboundMessage(smsBody, 'sms');
           if (reply && twilioClient) {
             await twilioClient.messages.create({
               body: reply + SMS_SIGNATURE,
@@ -2366,9 +2861,7 @@ Reply concisely (max 320 chars for text replies). Current time: ${new Date().toL
               to: from,
             });
             log(`[SMS OUT] Reply to ${from}: ${reply}`);
-            await bot.telegram.sendMessage(OWNER_ID,
-              `SMS reply sent to ${from}:\n\n${reply}`
-            );
+            await bot.telegram.sendMessage(OWNER_ID, `SMS reply sent to ${from}:\n\n${reply}`);
           }
         }
 
@@ -2388,85 +2881,28 @@ Reply concisely (max 320 chars for text replies). Current time: ${new Date().toL
     req.on('end', async () => {
       try {
         const params = new URLSearchParams(body);
-        const from = (params.get('From') || '').replace('whatsapp:', '');
+        const rawFrom = params.get('From') || '';
+        const from = rawFrom.replace('whatsapp:', '');
         const waBody = params.get('Body') || '';
         const to = params.get('To') || '';
+        const msgSid = params.get('MessageSid') || '';
         log(`[WHATSAPP IN] From: ${from} | Body: ${waBody}`);
+
+        // Loop prevention: ignore our own outbound messages and duplicates
+        if (isOwnMessage(rawFrom, waBody) || isOwnMessage(from, waBody) || isDuplicate(msgSid)) {
+          log(`[WHATSAPP SKIP] Loop/duplicate detected from ${from}`);
+          res.writeHead(200, { 'Content-Type': 'text/xml' });
+          return res.end('<Response></Response>');
+        }
 
         // Forward to Lee on Telegram
         await bot.telegram.sendMessage(OWNER_ID,
           `WhatsApp message from ${from}:\n\n${waBody}`
         );
 
-        // If it's from Lee's number, process with Claude and reply
+        // If it's from Lee's number, process with Claude (shared memory + full tools)
         if (from === '+447935237704' && waBody.trim()) {
-          const claude = new Anthropic({ apiKey: ANTHROPIC_KEY });
-          const waTools = [
-            {
-              name: 'send_sms',
-              description: 'Send an SMS to any phone number.',
-              input_schema: {
-                type: 'object',
-                properties: {
-                  to: { type: 'string', description: 'Phone number (e.g. +447935237704)' },
-                  message: { type: 'string', description: 'Message to send' }
-                },
-                required: ['to', 'message']
-              }
-            },
-            {
-              name: 'run_shell',
-              description: 'Run a shell command on the NAVADA server.',
-              input_schema: {
-                type: 'object',
-                properties: { command: { type: 'string' } },
-                required: ['command']
-              }
-            }
-          ];
-
-          let waMessages = [{ role: 'user', content: waBody }];
-          let maxLoops = 5;
-
-          const response = await claude.messages.create({
-            model: currentModel,
-            max_tokens: 1000,
-            tools: waTools,
-            system: `You are Claude, Chief of Staff at NAVADA AI Engineering & Consulting. Lee Akpareva (Founder) messaged you on WhatsApp. You have FULL access to the NAVADA server. Reply concisely. Current time: ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' })}.`,
-            messages: waMessages,
-          });
-
-          let currentResponse = response;
-          while (currentResponse.stop_reason === 'tool_use' && maxLoops-- > 0) {
-            const toolUses = currentResponse.content.filter(c => c.type === 'tool_use');
-            const toolResults = [];
-            for (const tool of toolUses) {
-              let result = '';
-              if (tool.name === 'send_sms' && twilioClient) {
-                try {
-                  const msg = await twilioClient.messages.create({ body: tool.input.message + SMS_SIGNATURE, from: TWILIO_FROM, to: tool.input.to });
-                  result = JSON.stringify({ status: msg.status, sid: msg.sid, to: tool.input.to });
-                  log(`[SMS OUT via WA] To ${tool.input.to}: ${tool.input.message}`);
-                  await bot.telegram.sendMessage(OWNER_ID, `SMS sent (via WhatsApp cmd) to ${tool.input.to}:\n\n${tool.input.message}`);
-                } catch (err) { result = `Error: ${err.message}`; }
-              } else if (tool.name === 'run_shell') {
-                try {
-                  const { execSync } = require('child_process');
-                  result = execSync(tool.input.command, { timeout: 30000, cwd: NAVADA_DIR }).toString().slice(0, 2000);
-                } catch (err) { result = `Error: ${err.message}`; }
-              }
-              toolResults.push({ type: 'tool_result', tool_use_id: tool.id, content: result });
-            }
-            waMessages.push({ role: 'assistant', content: currentResponse.content });
-            waMessages.push({ role: 'user', content: toolResults });
-            currentResponse = await claude.messages.create({
-              model: currentModel, max_tokens: 1000, tools: waTools,
-              system: `You are Claude, Chief of Staff at NAVADA. Reply concisely. Current time: ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' })}.`,
-              messages: waMessages,
-            });
-          }
-
-          const reply = currentResponse.content.find(c => c.type === 'text')?.text || '';
+          const reply = await processInboundMessage(waBody, 'whatsapp');
           if (reply && twilioClient) {
             await twilioClient.messages.create({
               body: reply,

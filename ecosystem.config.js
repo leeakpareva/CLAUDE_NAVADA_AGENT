@@ -104,6 +104,18 @@ module.exports = {
       watch: false,
     },
 
+    // --- Network Scanner & Router Dashboard ---
+    {
+      name: 'network-scanner',
+      script: 'network-scanner.js',
+      cwd: 'C:/Users/leeak/CLAUDE_NAVADA_AGENT/Automation',
+      interpreter: 'node',
+      autorestart: true,
+      max_restarts: 10,
+      restart_delay: 5000,
+      watch: false,
+    },
+
     // --- Voice Command System (S8 Bluetooth) ---
     {
       name: 'voice-command',

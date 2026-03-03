@@ -52,9 +52,9 @@ docker compose up -d
 
 echo ""
 echo "=== NAVADA Infrastructure Online ==="
-echo "  http://192.168.0.36        → Status page"
-echo "  http://192.168.0.36:8080/dashboard/  → CLAWD Dashboard"
-echo "  http://192.168.0.36:8080/canvas/     → Excalidraw"
+echo "  http://192.168.0.58        → Status page"
+echo "  http://192.168.0.58:8080/dashboard/  → CLAWD Dashboard"
+echo "  http://192.168.0.58:8080/canvas/     → Excalidraw"
 echo ""
 echo "  Subdomains (add to hosts file):"
 echo "  dashboard.navada.local → CLAWD Dashboard"
