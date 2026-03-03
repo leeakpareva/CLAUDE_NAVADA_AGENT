@@ -1,0 +1,10 @@
+{"date":"2026-01-19","channel":"linkedin","direction":"out","from":"Lee","to":"Dr Maureen","summary":"Initial outreach: research initiative on AI tools for medical professionals"}
+{"date":"2026-02-28","channel":"linkedin","direction":"in","from":"Dr Maureen","to":"Lee","summary":"Positive response. Interested in autonomous agents in healthcare. Wants to found a company."}
+{"date":"2026-02-28","channel":"linkedin","direction":"out","from":"Lee","to":"Dr Maureen","summary":"Asked for email. Shared lee@navada.info"}
+{"date":"2026-03-01","channel":"linkedin","direction":"in","from":"Dr Maureen","to":"Lee","summary":"Shared email: memeagi@gmail.com"}
+{"date":"2026-03-01","channel":"email","direction":"out","from":"Claude (agent)","to":"Dr Maureen","summary":"Demo email sent by AI agent. Lee provided context about coding group."}
+{"date":"2026-03-01","channel":"phone","direction":"both","summary":"Good phone call. She shared vallour.co.uk. Lee shared WorldMonitor and Medwise.ai."}
+{"date":"2026-03-02","channel":"linkedin","direction":"out","from":"Lee","to":"Dr Maureen","summary":"Morning follow-up. Offered WhatsApp group and research help."}
+{"date":"2026-03-02","channel":"linkedin","direction":"in","from":"Dr Maureen","to":"Lee","summary":"Wants to join WhatsApp group. Will put together a document."}
+{"date":"2026-03-01","channel":"whatsapp","direction":"in","from":"Dr Maureen","to":"Lee","summary":"Ideas: better Stan.store, automated organic marketing (Pinterest/YouTube/Meta/Twitter), referenced blaze.ai"}
+{"date":"2026-03-03","channel":"internal","direction":"n/a","summary":"Client folder created. CLAUDE.md, README, knowledge-base.json, proposal-email.html prepared. Awaiting Lee approval to send proposal."}

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { margin: 0; padding: 0; background: #f5f5f0; font-family: 'Georgia', serif; }
+  .container { max-width: 660px; margin: 0 auto; background: #ffffff; }
+  .header { background: linear-gradient(135deg, #1B2A4A 0%, #2563EB 100%); padding: 40px 32px; text-align: center; }
+  .header h1 { color: #ffffff; font-size: 28px; margin: 0 0 8px 0; letter-spacing: 2px; }
+  .header p { color: #93c5fd; font-size: 14px; margin: 0; letter-spacing: 1px; }
+  .intro { padding: 32px; border-bottom: 1px solid #e5e7eb; }
+  .intro p { color: #374151; font-size: 15px; line-height: 1.7; margin: 0 0 16px 0; }
+  .section { padding: 32px; }
+  .section-title { color: #1B2A4A; font-size: 20px; font-weight: bold; margin: 0 0 8px 0; border-left: 4px solid #2563EB; padding-left: 12px; }
+  .section-subtitle { color: #6b7280; font-size: 13px; margin: 0 0 20px 0; padding-left: 16px; }
+  .pillar-grid { display: table; width: 100%; border-collapse: collapse; }
+  .pillar-row { display: table-row; }
+  .pillar { display: table-cell; width: 50%; padding: 16px; vertical-align: top; border: 1px solid #e5e7eb; }
+  .pillar-num { display: inline-block; width: 28px; height: 28px; background: #1B2A4A; color: #fff; border-radius: 50%; text-align: center; line-height: 28px; font-size: 13px; font-weight: bold; margin-bottom: 8px; }
+  .pillar h4 { color: #1B2A4A; font-size: 15px; margin: 4px 0 8px 0; }
+  .pillar p { color: #6b7280; font-size: 13px; line-height: 1.5; margin: 0; }
+  .example-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin: 16px 0; }
+  .example-box h4 { color: #059669; font-size: 14px; margin: 0 0 8px 0; }
+  .example-box p { color: #374151; font-size: 13px; line-height: 1.6; margin: 0; }
+  .divider { height: 1px; background: #e5e7eb; margin: 0; }
+  .flow-diagram { background: #1B2A4A; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+  .flow-diagram pre { color: #93c5fd; font-size: 11px; line-height: 1.5; margin: 0; white-space: pre-wrap; word-wrap: break-word; font-family: 'Courier New', monospace; }
+  .flow-label { color: #ffffff; font-size: 13px; font-weight: bold; margin-bottom: 8px; display: block; }
+  .flow-note { color: #9ca3af; font-size: 12px; font-style: italic; margin-top: 8px; }
+  .tiers { padding: 32px; }
+  .tier { background: #ffffff; border: 2px solid #e5e7eb; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+  .tier-name { color: #1B2A4A; font-size: 18px; font-weight: bold; margin: 0; }
+  .tier-price { color: #2563EB; font-size: 16px; font-weight: bold; }
+  .tier-desc { color: #6b7280; font-size: 13px; line-height: 1.5; margin: 0 0 12px 0; }
+  .tier ul { margin: 0; padding-left: 20px; }
+  .tier li { color: #374151; font-size: 13px; line-height: 1.8; }
+  .tier li strong { color: #1B2A4A; }
+  .tier-tag { display: inline-block; font-size: 11px; font-weight: bold; padding: 3px 10px; border-radius: 4px; margin-top: 8px; }
+  .tag-blue { background: #dbeafe; color: #2563EB; }
+  .tag-green { background: #d1fae5; color: #059669; }
+  .tag-purple { background: #ede9fe; color: #7c3aed; }
+  .comp-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 12px; }
+  .comp-table th { background: #1B2A4A; color: #fff; padding: 8px; text-align: left; font-size: 11px; }
+  .comp-table td { padding: 8px; border-bottom: 1px solid #e5e7eb; color: #374151; vertical-align: top; }
+  .comp-table tr:nth-child(even) { background: #f9fafb; }
+  .transparency { padding: 32px; background: #fffbeb; border-top: 3px solid #f59e0b; }
+  .transparency h3 { color: #92400e; font-size: 16px; margin: 0 0 12px 0; }
+  .transparency p { color: #78350f; font-size: 13px; line-height: 1.7; margin: 0 0 12px 0; }
+  .cta { padding: 32px; text-align: center; background: #ffffff; }
+  .cta h3 { color: #1B2A4A; font-size: 18px; margin: 0 0 12px 0; }
+  .cta p { color: #6b7280; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0; }
+  .cta-button { display: inline-block; background: #2563EB; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 15px; font-weight: bold; letter-spacing: 0.5px; }
+  .footer { padding: 24px 32px; text-align: center; border-top: 1px solid #e5e7eb; }
+  .footer p { color: #9ca3af; font-size: 12px; margin: 0 0 4px 0; }
+  .footer a { color: #2563EB; text-decoration: none; }
+  @media (max-width: 600px) {
+    .pillar { display: block; width: 100% !important; }
+    .pillar-row { display: block; }
+    .header h1 { font-size: 22px; }
+    .section { padding: 24px 20px; }
+    .tiers { padding: 24px 20px; }
+    .flow-diagram pre { font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>NAVADA EDGE</h1>
+    <p>YOUR AUTONOMOUS MARKETING AGENT</p>
+  </div>
+
+  <div class="intro">
+    <p>Dr Maureen,</p>
+    <p>Following our conversation, I have designed exactly what an autonomous marketing agent would look like for your use case: helping digital product creators automate their organic marketing across Pinterest, YouTube, Meta, and Twitter.</p>
+    <p>You made the key observation: <strong>the hard part is not building the digital product. It is marketing it.</strong> That is exactly the problem this agent solves.</p>
+    <p>Below is a concrete example of what I would build, based on the NAVADA Edge marketing infrastructure that already runs my own business operations 24/7. I am sharing the full architecture openly because I believe in transparency. You will see how each option works, what the technology does, and what alternatives exist in the market.</p>
+    <p style="font-size: 13px; color: #6b7280;"><strong>What you get with NAVADA:</strong> I am both the business consultant and the developer. You get strategic expertise (pricing models, market positioning, growth planning) and hands-on technical delivery (architecture, code, deployment, maintenance) from the same person. No handoffs, no miscommunication, no separate teams.</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <h3 class="section-title">What Your Marketing Agent Does</h3>
+    <p class="section-subtitle">A 4-pillar autonomous system for digital health product marketing, running 24/7</p>
+    <div class="pillar-grid">
+      <div class="pillar-row">
+        <div class="pillar">
+          <span class="pillar-num">1</span>
+          <h4>Content Creation</h4>
+          <p>Researches trending health and wellness topics daily. Writes platform-specific copy in your brand voice. Generates Pinterest pins, Twitter threads, YouTube descriptions, Meta posts. Creates visual assets using AI image generation. Maintains a content calendar that runs itself.</p>
+        </div>
+        <div class="pillar">
+          <span class="pillar-num">2</span>
+          <h4>Lead Generation</h4>
+          <p>Identifies potential customers from engagement signals (comments, follows, DMs). Verifies contact details. Sends introductory outreach in your brand voice. Manages follow-up sequences automatically. Monitors your inbox for responses.</p>
+        </div>
+      </div>
+      <div class="pillar-row">
+        <div class="pillar">
+          <span class="pillar-num">3</span>
+          <h4>Strategic Monitoring</h4>
+          <p>Tracks engagement, reach, and conversions across all platforms. Monitors competitor content and market trends. Sends daily intelligence reports. Identifies which product topics generate the most interest. Adapts strategy based on data.</p>
+        </div>
+        <div class="pillar">
+          <span class="pillar-num">4</span>
+          <h4>Command and Control</h4>
+          <p>Controlled entirely from your phone via Telegram. Send a message like "post about my new skincare guide" and the agent handles everything. Approve posts before they go live, or let it run autonomously. Check stats anytime. Switch between fast and deep-reasoning AI.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: #1B2A4A; padding: 24px 32px;">
+    <h3 style="color: #ffffff; font-size: 16px; margin: 0 0 12px 0;">A Day in the Life of Your Marketing Agent</h3>
+    <table style="width: 100%; font-size: 13px;">
+      <tr><td style="color: #93c5fd; font-weight: bold; padding: 4px 16px 4px 0; width: 80px; vertical-align: top;">6:00 AM</td><td style="color: #d1d5db; padding: 4px 0;">Scans trending health/skincare topics across social media and Google Trends</td></tr>
+      <tr><td style="color: #93c5fd; font-weight: bold; padding: 4px 16px 4px 0; vertical-align: top;">7:00 AM</td><td style="color: #d1d5db; padding: 4px 0;">Drafts 3 Pinterest pins + 2 Twitter threads + 1 Meta post based on your products</td></tr>
+      <tr><td style="color: #93c5fd; font-weight: bold; padding: 4px 16px 4px 0; vertical-align: top;">7:30 AM</td><td style="color: #d1d5db; padding: 4px 0;">Sends you a Telegram summary: "Today's content ready for review" (or auto-posts if pre-approved)</td></tr>
+      <tr><td style="color: #93c5fd; font-weight: bold; padding: 4px 16px 4px 0; vertical-align: top;">9:00 AM</td><td style="color: #d1d5db; padding: 4px 0;">Publishes approved content across all platforms, optimised for each audience</td></tr>
+      <tr><td style="color: #93c5fd; font-weight: bold; padding: 4px 16px 4px 0; vertical-align: top;">12:00 PM</td><td style="color: #d1d5db; padding: 4px 0;">Midday wave: product showcases, testimonials, engagement posts</td></tr>
+      <tr><td style="color: #93c5fd; font-weight: bold; padding: 4px 16px 4px 0; vertical-align: top;">2:00 PM</td><td style="color: #d1d5db; padding: 4px 0;">Lead scan: identifies new prospects from engagement signals across platforms</td></tr>
+      <tr><td style="color: #93c5fd; font-weight: bold; padding: 4px 16px 4px 0; vertical-align: top;">6:00 PM</td><td style="color: #d1d5db; padding: 4px 0;">Evening engagement: community posts, questions, audience building</td></tr>
+      <tr><td style="color: #93c5fd; font-weight: bold; padding: 4px 16px 4px 0; vertical-align: top;">9:00 PM</td><td style="color: #d1d5db; padding: 4px 0;">Daily report to your Telegram: impressions, clicks, top content, tomorrow's plan</td></tr>
+      <tr><td style="color: #93c5fd; font-weight: bold; padding: 4px 16px 4px 0; vertical-align: top;">Sunday</td><td style="color: #d1d5db; padding: 4px 0;">Full weekly analytics digest with platform comparison and strategy adjustments</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="example-box">
+      <h4>Example: You launch a "GP's Guide to AI in Primary Care" digital product</h4>
+      <p>You tell the agent via Telegram: "I have launched a new guide about AI in primary care."<br><br>
+      The agent: (1) Researches current NHS AI adoption news, (2) Writes a Pinterest pin: "5 Ways AI is Changing GP Consultations" linking to your product page, (3) Creates a Twitter thread with key takeaways, (4) Generates a Meta post with a custom AI image, (5) Drafts a YouTube script for a 2-minute explainer, (6) Schedules everything across 3 days for maximum reach, (7) Tracks performance and adjusts for the next launch.<br><br>
+      All from a single message on your phone.</p>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- TECHNICAL FLOW DIAGRAMS -->
+  <div style="padding: 32px; background: #fafafa;">
+    <h3 class="section-title" style="margin-bottom: 16px;">How Each Option Works</h3>
+    <p class="section-subtitle">Three ways to deploy your marketing agent. Each diagram shows the full connection from your phone to the platforms.</p>
+
+    <p style="color: #1B2A4A; font-size: 16px; font-weight: bold; margin: 0 0 8px 0;">Option A: Hosted on NAVADA</p>
+    <div class="flow-diagram">
+      <span class="flow-label">Your phone connects to our server. We manage everything.</span>
+<pre>
+YOUR PHONE (Telegram App)
+    |
+    | (encrypted message)
+    v
+NAVADA EDGE INFRASTRUCTURE (always-on, managed 24/7)
+    |
+    |--- Claude AI (copywriting, analysis, strategy, decisions)
+    |--- DALL-E 3 (AI image generation for all platforms)
+    |--- Puppeteer (browser automation for posting)
+    |--- Bright Data (trend research, competitor monitoring)
+    |--- Task Scheduler (10+ daily automations)
+    |--- PM2 (always-on: bot, monitors, pipelines)
+    |--- Database (content history, leads, analytics)
+    |
+    v
+PUBLISHING LAYER
+    |--- Pinterest API -------> Pins, boards, SEO descriptions
+    |--- Twitter/X API -------> Tweets, threads, engagement
+    |--- Meta Graph API ------> Instagram posts, Facebook posts
+    |--- YouTube Data API ----> Community posts, descriptions
+    |--- Email (SMTP) --------> Lead outreach, newsletters
+    |
+    v
+REPORTING (back to your Telegram)
+    |--- Daily performance digest (9 PM)
+    |--- Weekly analytics report (Sunday)
+    |--- Lead notifications (real-time)
+    |--- Content approval requests
+</pre>
+      <p class="flow-note">You see: Telegram on your phone. We handle: everything else.</p>
+    </div>
+
+    <p style="color: #1B2A4A; font-size: 16px; font-weight: bold; margin: 16px 0 8px 0;">Option B: Self-Hosted Edge</p>
+    <div class="flow-diagram">
+      <span class="flow-label">Your phone connects to your own Edge server. You own the infrastructure.</span>
+<pre>
+YOUR PHONE (Telegram App)
+    |
+    | (encrypted via Tailscale mesh VPN)
+    v
+YOUR EDGE SERVER (always-on, in your home or office)
+    |
+    |--- Claude Code CLI (full system access on YOUR machine)
+    |--- Claude AI (your own Anthropic API subscription)
+    |--- DALL-E 3 (your own OpenAI API subscription)
+    |--- Puppeteer (browser automation)
+    |--- Windows Task Scheduler (automated daily routines)
+    |--- PM2 (always-on processes)
+    |--- Local database (all data stays on YOUR infrastructure)
+    |
+    v
+PUBLISHING LAYER (same as Option A)
+    |--- Pinterest / Twitter / Meta / YouTube / Email
+    |
+    v
+REPORTING (back to your Telegram via Tailscale)
+    |--- Same reports, same analytics
+    |--- Full data sovereignty: nothing leaves your machine
+</pre>
+      <p class="flow-note">You own: the infrastructure, the data, the agent. We build and deploy it. Support when needed.</p>
+    </div>
+
+    <p style="color: #1B2A4A; font-size: 16px; font-weight: bold; margin: 16px 0 8px 0;">Option C: Edge Franchise</p>
+    <div class="flow-diagram">
+      <span class="flow-label">You learn the full system. Then deploy agents for your own clients.</span>
+<pre>
+5-DAY FACE-TO-FACE TRAINING WITH LEE
+    |
+    |--- Day 1: Architecture design + Claude AI setup
+    |--- Day 2: Telegram bot framework + tool integrations
+    |--- Day 3: Content engine + platform APIs + image generation
+    |--- Day 4: Lead pipeline + client onboarding workflow
+    |--- Day 5: Business strategy + Stripe payments + support ops
+    |
+    v
+YOU BECOME THE OPERATOR (with full asset package)
+    |
+    |--- Your own server (your hardware)
+    |--- All scripts, templates, deployment tools
+    |--- Financial model + pricing framework
+    |--- Client management system
+    |
+    v
+YOUR CLIENTS' PHONES (Telegram)       YOUR OWN PHONE (Telegram)
+    |                                       |
+    v                                       v
+YOUR SERVER (hosting multiple agents)  Your personal marketing agent
+    |
+    |--- Agent for Client A (health professional)
+    |--- Agent for Client B (wellness creator)
+    |--- Agent for Client C (clinic / med-tech)
+    |
+    v
+THEIR PLATFORMS (Pinterest / Twitter / Meta / YouTube)
+</pre>
+      <p class="flow-note">You own: the business, the knowledge, the client relationships. You set your own pricing.</p>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- 3 OPTIONS (EQUAL) -->
+  <div class="tiers">
+    <h3 class="section-title" style="margin-bottom: 8px;">Three Options</h3>
+    <p class="section-subtitle">Choose the model that fits your situation. All three deliver the same marketing agent capabilities.</p>
+
+    <div class="tier">
+      <p class="tier-name">Option A: Hosted on NAVADA</p>
+      <p class="tier-price">Setup Fee + Monthly Subscription</p>
+      <p class="tier-desc">We build, host, and manage your marketing agent on the NAVADA server. You control it from Telegram on your phone. Zero technical knowledge required.</p>
+      <ul>
+        <li><strong>Agent build</strong>: Custom marketing agent tailored to your brand, products, and target audience</li>
+        <li><strong>Platform integrations</strong>: Pinterest, Twitter/X, Meta (Instagram + Facebook), YouTube</li>
+        <li><strong>Content engine</strong>: Daily trend research, copywriting in your brand voice, AI image generation, automated scheduling</li>
+        <li><strong>Telegram control</strong>: Full phone-based command interface with slash commands and natural language</li>
+        <li><strong>Daily reports</strong>: Performance analytics delivered to your Telegram every evening</li>
+        <li><strong>Support included</strong>: We handle all updates, maintenance, and improvements</li>
+        <li><strong>Business consulting</strong>: Pricing strategy, market positioning, growth planning included in setup</li>
+        <li><strong>Turnaround</strong>: Agent live within 2 business days of briefing</li>
+      </ul>
+      <span class="tier-tag tag-blue">BEST FOR: Founders who want it managed for them</span>
+    </div>
+
+    <div class="tier">
+      <p class="tier-name">Option B: Self-Hosted Edge</p>
+      <p class="tier-price">One-Off Setup Fee</p>
+      <p class="tier-desc">We build and deploy the full marketing agent on your own dedicated hardware. You own the infrastructure and the entire system. Full independence and data sovereignty.</p>
+      <ul>
+        <li><strong>Everything in Option A</strong>, deployed on your own infrastructure</li>
+        <li><strong>Infrastructure setup</strong>: We configure your dedicated hardware as an always-on Edge server with Tailscale encrypted networking</li>
+        <li><strong>Data sovereignty</strong>: All marketing data, content, leads, and analytics stay on your physical hardware</li>
+        <li><strong>Your own AI subscriptions</strong>: You manage your own Anthropic and OpenAI API access</li>
+        <li><strong>Business consulting</strong>: Full architecture walkthrough, pricing strategy, market positioning included</li>
+        <li><strong>Support</strong>: Available on-demand when you need it</li>
+        <li><strong>No monthly fee to NAVADA</strong>: One-off investment, then it is yours</li>
+      </ul>
+      <span class="tier-tag tag-green">BEST FOR: Founders who want full ownership and control</span>
+    </div>
+
+    <div class="tier">
+      <p class="tier-name">Option C: Edge Franchise</p>
+      <p class="tier-price">Complete Knowledge Transfer</p>
+      <p class="tier-desc">Learn the entire NAVADA Edge system in a 5-day face-to-face intensive with Lee. You receive every script, template, and tool, plus the business and technical knowledge to deploy marketing agents for your own clients.</p>
+      <ul>
+        <li><strong>5-day intensive training</strong>: Architecture, Claude setup, Telegram bot, platform APIs, lead pipelines, client onboarding, Stripe payments, support workflows</li>
+        <li><strong>Full asset package</strong>: All deployment scripts, templates, conventions, financial model, client management tools</li>
+        <li><strong>Build your own business</strong>: Offer AI marketing agents to other health professionals, clinics, wellness creators, med-tech startups</li>
+        <li><strong>Business + technical expertise</strong>: Lee teaches both the consulting methodology and the technical implementation</li>
+        <li><strong>30 days post-training support</strong>: Email support while you launch your first client</li>
+        <li><strong>Revenue potential</strong>: You set your own pricing. The system, the knowledge, and the clients are yours.</li>
+      </ul>
+      <span class="tier-tag tag-purple">BEST FOR: Founders who want to build a business offering AI services to others</span>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- WHAT OTHERS ARE DOING -->
+  <div class="section">
+    <h3 class="section-title">What Others Are Doing</h3>
+    <p class="section-subtitle">The market for AI marketing tools is growing fast. Here is how the landscape looks today.</p>
+
+    <table class="comp-table">
+      <tr>
+        <th>Platform</th>
+        <th>What It Does</th>
+        <th>Limitations</th>
+      </tr>
+      <tr>
+        <td><strong>Stan.store</strong><br>($29-99/mo)</td>
+        <td>Digital product storefront. Link-in-bio. Courses, memberships, downloads. Stripe/PayPal checkout.</td>
+        <td>No marketing automation. No content generation. No multi-platform posting. You still do all the marketing yourself.</td>
+      </tr>
+      <tr>
+        <td><strong>Blaze.ai</strong><br>($25-99/mo)</td>
+        <td>AI content generation. Multi-platform scheduling. Brand voice consistency. 50+ content formats.</td>
+        <td>Cloud-only. Template-based, not truly autonomous. No lead generation. No trend research. No phone control. No data sovereignty.</td>
+      </tr>
+      <tr>
+        <td><strong>Buffer / Hootsuite</strong><br>($6-99/mo)</td>
+        <td>Social media scheduling and analytics. Multi-platform publishing.</td>
+        <td>No AI content creation. No image generation. No lead pipeline. Manual content creation still required.</td>
+      </tr>
+      <tr>
+        <td><strong>Jasper AI</strong><br>($49-125/mo)</td>
+        <td>AI copywriting. Brand voice training. Templates for ads, blogs, social media.</td>
+        <td>Content generation only. No publishing. No scheduling. No analytics. You still copy-paste to each platform.</td>
+      </tr>
+      <tr>
+        <td><strong>Later / Planoly</strong><br>($25-80/mo)</td>
+        <td>Visual content calendar. Instagram and Pinterest focused scheduling.</td>
+        <td>No AI generation. No lead pipeline. No trend research. Limited to 2-3 platforms. Manual work required.</td>
+      </tr>
+      <tr>
+        <td><strong>NAVADA Edge</strong></td>
+        <td>Full autonomous system: research, write, generate images, publish, track, generate leads, report. All from your phone. Runs 24/7.</td>
+        <td>Not self-serve SaaS. Requires onboarding with NAVADA (2 days). Bespoke deployment.</td>
+      </tr>
+    </table>
+
+    <p style="color: #6b7280; font-size: 13px; margin-top: 16px; line-height: 1.6;">
+      <strong>The gap:</strong> Most tools do one thing (storefront OR content OR scheduling). None give you a fully autonomous system that researches, creates, publishes, tracks, and generates leads across all platforms, controlled from your phone.
+    </p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- TRANSPARENCY STATEMENT -->
+  <div class="transparency">
+    <h3>A Note on Transparency</h3>
+    <p>I want to be completely upfront about something. Everything in this email is built on open-source tools and publicly available AI APIs. Claude is made by Anthropic. DALL-E is made by OpenAI. Puppeteer, PM2, Node.js, Telegram Bot API, Tailscale are all open source or free tier. The platform APIs (Pinterest, Twitter, Meta, YouTube) are publicly documented.</p>
+    <p><strong>You could take this entire email, give it to an AI like Claude or ChatGPT, and attempt to build this system yourself.</strong> I am sharing the full architecture deliberately. There are no trade secrets here.</p>
+    <p>What NAVADA provides is <strong>expertise, speed, and reliability</strong>. I have built and refined this system over months of daily production use. I know which patterns work, which integrations break, how to make it run 24/7 without intervention, and how to recover when things go wrong. I am both the business consultant (pricing, positioning, growth strategy, market analysis) and the developer (architecture, code, deployment, maintenance) in one person.</p>
+    <p>We charge for our service and product because we are confident in what we deliver, not because we are hiding how it works. Transparency is how we operate.</p>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta">
+    <h3>Next Step</h3>
+    <p>I would love to walk you through a live demo of the system that runs my business. You will see the Telegram bot, the automated content pipeline, the daily reports, and exactly how this would work for your digital health products.</p>
+    <p>Let me know which option interests you most and we can schedule a call to discuss the details.</p>
+    <a href="mailto:lee@navada.info?subject=NAVADA%20Edge%20Marketing%20Agent" class="cta-button">Let's Talk</a>
+    <p style="margin-top: 16px; font-size: 13px;">Or call/WhatsApp: 07935237704</p>
+  </div>
+
+  <div class="footer">
+    <p><strong>Lee Akpareva</strong> | Consultant and Developer | NAVADA</p>
+    <p><a href="https://www.navada-lab.space">navada-lab.space</a> | lee@navada.info</p>
+    <p style="margin-top: 8px; font-size: 11px; color: #c0c0c0;">This email was composed by Claude, AI Chief of Staff at NAVADA</p>
+  </div>
+
+</div>
+</body>
+</html>

@@ -27,9 +27,11 @@
     "nodemailer": "^8.0.1",
     "open": "^11.0.0",
     "openai": "^6.25.0",
+    "pdf-parse": "^2.4.5",
     "puppeteer": "^24.37.5",
     "rss-parser": "^3.13.0",
     "telegraf": "^4.16.3",
+    "twilio": "^5.12.2",
     "ws": "^8.19.0"
   }
 }

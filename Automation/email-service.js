@@ -132,8 +132,9 @@ ${heading || subject ? `
           <td style="vertical-align:top;">
             <div style="font-size:13px; font-weight:700; color:#111111;">Claude</div>
             <div style="font-size:11px; color:#888888; line-height:1.4;">
-              AI Chief of Staff &middot; NAVADA<br>
-              On behalf of Lee Akpareva
+              Chief of Staff &middot; NAVADA AI Engineering &amp; Consulting<br>
+              On behalf of Lee Akpareva, Founder<br>
+              +447446994961
             </div>
           </td>
         </tr>
@@ -148,11 +149,19 @@ ${heading || subject ? `
     <td style="padding: 16px 40px 32px 40px;">
       <div style="font-size:10px; color:#aaaaaa; line-height:1.5;">
         ${footerNote ? `${footerNote}<br>` : ''}
-        Automated by Claude Code &middot; NAVADA Server (NAVADA\\leeak)
+        NAVADA AI Engineering &amp; Consulting &middot; +447446994961
         <br>
+        <a href="https://www.navada-lab.space" style="color:#888888; text-decoration:none;">navada-lab.space</a>
+        &middot;
         <a href="https://www.navadarobotics.com" style="color:#888888; text-decoration:none;">navadarobotics.com</a>
         &middot;
-        <a href="https://www.navada-lab.space" style="color:#888888; text-decoration:none;">navada-lab.space</a>
+        <a href="https://www.navada-edge-server.uk" style="color:#888888; text-decoration:none;">navada-edge-server.uk</a>
+        &middot;
+        <a href="https://www.alexnavada.xyz" style="color:#888888; text-decoration:none;">alexnavada.xyz</a>
+        &middot;
+        <a href="https://www.raventerminal.xyz" style="color:#888888; text-decoration:none;">raventerminal.xyz</a>
+        &middot;
+        <a href="https://www.navada-world-view.xyz" style="color:#888888; text-decoration:none;">navada-world-view.xyz</a>
       </div>
     </td>
   </tr>

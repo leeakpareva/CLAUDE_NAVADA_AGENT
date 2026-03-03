@@ -55,6 +55,7 @@ function buildIntroEmail(contact, company) {
     <p style="margin:0 0 4px 0;"><strong>Lee Akpareva</strong></p>
     <p style="margin:0; font-size:12px; color:#888;">
       Principal AI Consultant | NAVADA<br>
+      +447446994961<br>
       <a href="https://www.navada-lab.space" style="color:#666;">navada-lab.space</a> &middot;
       <a href="https://www.linkedin.com/in/leeakpareva" style="color:#666;">LinkedIn</a>
     </p>
@@ -100,6 +101,7 @@ function buildDemoEmail(contact, company) {
     <p style="margin:0 0 4px 0;"><strong>Lee Akpareva</strong></p>
     <p style="margin:0; font-size:12px; color:#888;">
       Founder & Principal AI Consultant | NAVADA<br>
+      +447446994961<br>
       <a href="https://www.navada-lab.space" style="color:#666;">navada-lab.space</a> &middot;
       <a href="https://www.navadarobotics.com" style="color:#666;">navadarobotics.com</a> &middot;
       <a href="https://www.linkedin.com/in/leeakpareva" style="color:#666;">LinkedIn</a>
@@ -129,6 +131,7 @@ function buildFollowUp1(contact, company) {
     <p style="margin:0 0 4px 0;"><strong>Lee Akpareva</strong></p>
     <p style="margin:0; font-size:12px; color:#888;">
       Principal AI Consultant | NAVADA<br>
+      +447446994961<br>
       <a href="https://www.navada-lab.space" style="color:#666;">navada-lab.space</a>
     </p>
   `;

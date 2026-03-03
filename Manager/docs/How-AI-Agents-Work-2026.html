@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How AI Agents Work in 2026 | NAVADA</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #fff; color: #1a1a1a; }
+
+  .page { max-width: 800px; margin: 0 auto; padding: 40px 24px; }
+
+  h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
+  h2 { font-size: 22px; font-weight: 700; margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 2px solid #000; }
+  h3 { font-size: 16px; font-weight: 700; margin: 24px 0 8px; }
+  .subtitle { font-size: 15px; color: #666; margin-bottom: 40px; }
+  p { font-size: 15px; line-height: 1.7; margin-bottom: 12px; color: #333; }
+
+  /* Flow chart styles */
+  .flow { display: flex; flex-direction: column; align-items: center; gap: 0; margin: 32px 0; }
+  .flow-row { display: flex; align-items: center; justify-content: center; gap: 16px; width: 100%; }
+  .flow-box {
+    background: #f8f8f8; border: 2px solid #000; border-radius: 12px;
+    padding: 16px 24px; text-align: center; min-width: 200px; max-width: 280px;
+    font-size: 14px; font-weight: 600;
+  }
+  .flow-box.primary { background: #000; color: #fff; }
+  .flow-box.highlight { background: #f0f7ff; border-color: #0066cc; }
+  .flow-box.action { background: #f0fff0; border-color: #228B22; }
+  .flow-box small { display: block; font-weight: 400; font-size: 12px; margin-top: 4px; color: #666; }
+  .flow-box.primary small { color: #ccc; }
+
+  .arrow { font-size: 24px; color: #000; line-height: 1; padding: 8px 0; }
+  .arrow-right { font-size: 20px; color: #000; }
+
+  .flow-branch { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin: 8px 0; }
+
+  /* Comparison table */
+  .compare { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14px; }
+  .compare th { background: #000; color: #fff; padding: 12px 16px; text-align: left; font-weight: 600; }
+  .compare td { padding: 12px 16px; border-bottom: 1px solid #eee; }
+  .compare tr:nth-child(even) { background: #f8f8f8; }
+
+  /* NAVADA section */
+  .navada-flow {
+    background: #fafafa; border: 2px solid #000; border-radius: 16px;
+    padding: 32px; margin: 32px 0;
+  }
+  .navada-flow h3 { margin-top: 0; font-size: 18px; text-align: center; }
+
+  .device-row { display: flex; justify-content: center; gap: 32px; flex-wrap: wrap; margin: 24px 0; }
+  .device { text-align: center; }
+  .device-icon { font-size: 40px; margin-bottom: 4px; }
+  .device-label { font-size: 12px; font-weight: 600; }
+
+  .pipe {
+    width: 3px; height: 32px; background: #000; margin: 0 auto;
+  }
+  .pipe-h {
+    height: 3px; flex: 1; background: #000; align-self: center;
+  }
+
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0; }
+  .grid-card {
+    background: #fff; border: 1px solid #ddd; border-radius: 8px;
+    padding: 12px; font-size: 13px;
+  }
+  .grid-card strong { display: block; margin-bottom: 4px; font-size: 14px; }
+
+  .callout {
+    background: #f8f8f8; border-left: 4px solid #000;
+    padding: 16px 20px; margin: 24px 0; font-size: 14px;
+  }
+
+  .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #ddd; font-size: 12px; color: #999; text-align: center; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>How AI Agents Work in 2026</h1>
+<p class="subtitle">A plain-English guide, plus how NAVADA uses Claude as an autonomous Chief of Staff</p>
+
+<!-- SECTION 1: What is an AI Agent? -->
+<h2>1. What Is an AI Agent?</h2>
+
+<p>Think of an AI agent like a very capable employee who never sleeps. You give it instructions in plain English, and it figures out <em>how</em> to complete the task by itself, using whatever tools it needs.</p>
+
+<p>The key difference between a chatbot and an agent:</p>
+
+<table class="compare">
+  <tr>
+    <th>Chatbot (e.g. ChatGPT)</th>
+    <th>AI Agent (e.g. Claude Agent)</th>
+  </tr>
+  <tr>
+    <td>You ask a question, it answers</td>
+    <td>You give a goal, it completes it</td>
+  </tr>
+  <tr>
+    <td>One response at a time</td>
+    <td>Takes multiple steps automatically</td>
+  </tr>
+  <tr>
+    <td>No access to your systems</td>
+    <td>Connected to email, files, databases, APIs</td>
+  </tr>
+  <tr>
+    <td>Forgets between conversations</td>
+    <td>Has persistent memory across sessions</td>
+  </tr>
+  <tr>
+    <td>You do the work, it advises</td>
+    <td>It does the work, you approve</td>
+  </tr>
+</table>
+
+<!-- SECTION 2: How an Agent Thinks -->
+<h2>2. How an AI Agent Thinks (Step by Step)</h2>
+
+<p>When you give an agent a task, here is what happens inside:</p>
+
+<div class="flow">
+  <div class="flow-box primary">
+    YOU give a task
+    <small>"Send a report to my team every Monday"</small>
+  </div>
+  <div class="arrow">&#8595;</div>
+
+  <div class="flow-box highlight">
+    UNDERSTAND
+    <small>The agent reads your request and breaks it into steps</small>
+  </div>
+  <div class="arrow">&#8595;</div>
+
+  <div class="flow-box highlight">
+    PLAN
+    <small>It decides what tools to use and in what order</small>
+  </div>
+  <div class="arrow">&#8595;</div>
+
+  <div class="flow-box highlight">
+    ACT
+    <small>It runs each step: gather data, write report, send email</small>
+  </div>
+  <div class="arrow">&#8595;</div>
+
+  <div class="flow-box highlight">
+    CHECK
+    <small>Did it work? If not, it tries a different approach</small>
+  </div>
+  <div class="arrow">&#8595;</div>
+
+  <div class="flow-box action">
+    DONE
+    <small>Task complete. It remembers this for next time.</small>
+  </div>
+</div>
+
+<div class="callout">
+  <strong>The Loop:</strong> Understand > Plan > Act > Check > Repeat. This is the core "agentic loop" that makes agents powerful. They do not just respond once. They keep working until the job is finished.
+</div>
+
+<!-- SECTION 3: What Tools Can Agents Use? -->
+<h2>3. What Tools Can an Agent Use?</h2>
+
+<p>An agent on its own is just a brain. What makes it useful is connecting it to <strong>tools</strong>. Think of tools like apps on a phone. The more tools you connect, the more the agent can do.</p>
+
+<div class="grid-3">
+  <div class="grid-card">
+    <strong>Read &amp; Write Files</strong>
+    Open documents, create reports, edit spreadsheets
+  </div>
+  <div class="grid-card">
+    <strong>Send Emails</strong>
+    Compose, send, read inbox, reply automatically
+  </div>
+  <div class="grid-card">
+    <strong>Browse the Web</strong>
+    Search Google, read websites, scrape data
+  </div>
+  <div class="grid-card">
+    <strong>Run Code</strong>
+    Execute scripts, automate calculations, process data
+  </div>
+  <div class="grid-card">
+    <strong>Use Databases</strong>
+    Store and retrieve information, track records
+  </div>
+  <div class="grid-card">
+    <strong>Call APIs</strong>
+    Connect to Slack, LinkedIn, CRMs, payment systems
+  </div>
+  <div class="grid-card">
+    <strong>Generate Images</strong>
+    Create visuals, diagrams, social media graphics
+  </div>
+  <div class="grid-card">
+    <strong>Manage Servers</strong>
+    Deploy apps, monitor health, restart services
+  </div>
+  <div class="grid-card">
+    <strong>Schedule Tasks</strong>
+    Run jobs at set times: daily reports, weekly scans
+  </div>
+</div>
+
+<!-- SECTION 4: The Agent Loop Visualised -->
+<h2>4. The Agentic Loop (Visual)</h2>
+
+<p>Here is the full picture of how an agent processes any request:</p>
+
+<div class="flow">
+  <div class="flow-box primary" style="min-width: 300px;">
+    USER REQUEST
+    <small>"Find 10 AI companies in London and email me a summary"</small>
+  </div>
+  <div class="arrow">&#8595;</div>
+
+  <div class="flow-box" style="min-width: 300px;">
+    BRAIN (Large Language Model)
+    <small>Claude reads the request and creates a plan</small>
+  </div>
+  <div class="arrow">&#8595;</div>
+
+  <div style="text-align: center; font-size: 13px; font-weight: 600; margin: 8px 0;">Agent chooses the right tools for each step:</div>
+
+  <div class="flow-branch">
+    <div class="flow-box action" style="min-width: 140px;">
+      Step 1: Search
+      <small>Web search tool</small>
+    </div>
+    <div class="flow-box action" style="min-width: 140px;">
+      Step 2: Scrape
+      <small>Website reader</small>
+    </div>
+    <div class="flow-box action" style="min-width: 140px;">
+      Step 3: Write
+      <small>File creator</small>
+    </div>
+    <div class="flow-box action" style="min-width: 140px;">
+      Step 4: Email
+      <small>SMTP sender</small>
+    </div>
+  </div>
+  <div class="arrow">&#8595;</div>
+
+  <div class="flow-box highlight" style="min-width: 300px;">
+    SELF-CHECK
+    <small>Did all 4 steps succeed? Yes > Done. No > Retry or try different approach.</small>
+  </div>
+  <div class="arrow">&#8595;</div>
+
+  <div class="flow-box primary" style="min-width: 300px;">
+    RESULT DELIVERED
+    <small>"Email sent with 10 AI companies summary"</small>
+  </div>
+</div>
+
+<!-- SECTION 5: NAVADA Edge - Claude as Chief of Staff -->
+<h2>5. NAVADA Edge: Claude as Chief of Staff</h2>
+
+<p>NAVADA takes this agent concept and turns it into a full-time Chief of Staff that runs 24/7 on a dedicated server. Here is exactly how it works:</p>
+
+<div class="navada-flow">
+  <h3>How NAVADA Edge Works</h3>
+
+  <!-- Layer 1: User -->
+  <div class="flow">
+    <div class="flow-box primary" style="min-width: 320px;">
+      LEE (iPhone / Laptop)
+      <small>Sends commands via Telegram, voice, or direct terminal</small>
+    </div>
+    <div class="arrow">&#8595;</div>
+
+    <!-- Layer 2: Interface -->
+    <div class="flow-branch">
+      <div class="flow-box" style="min-width: 140px;">
+        Telegram Bot
+        <small>42+ commands</small>
+      </div>
+      <div class="flow-box" style="min-width: 140px;">
+        Voice Control
+        <small>"Hey Claude..."</small>
+      </div>
+      <div class="flow-box" style="min-width: 140px;">
+        Claude Code
+        <small>Terminal (direct)</small>
+      </div>
+    </div>
+    <div class="arrow">&#8595;</div>
+
+    <!-- Layer 3: Brain -->
+    <div class="flow-box primary" style="min-width: 360px;">
+      CLAUDE (AI Brain)
+      <small>Understands requests, plans actions, uses 23 connected tools (MCP servers)</small>
+    </div>
+    <div class="arrow">&#8595;</div>
+
+    <!-- Layer 4: What Claude Controls -->
+    <div style="text-align: center; font-size: 13px; font-weight: 600; margin: 8px 0;">Claude manages everything below autonomously:</div>
+
+    <div class="flow-branch">
+      <div class="flow-box action" style="min-width: 120px;">
+        Email
+        <small>Zoho SMTP</small>
+      </div>
+      <div class="flow-box action" style="min-width: 120px;">
+        LinkedIn
+        <small>Auto-post</small>
+      </div>
+      <div class="flow-box action" style="min-width: 120px;">
+        Files
+        <small>Read/Write</small>
+      </div>
+      <div class="flow-box action" style="min-width: 120px;">
+        Databases
+        <small>SQLite/Postgres</small>
+      </div>
+    </div>
+
+    <div class="flow-branch" style="margin-top: 12px;">
+      <div class="flow-box action" style="min-width: 120px;">
+        Web Scraping
+        <small>Bright Data</small>
+      </div>
+      <div class="flow-box action" style="min-width: 120px;">
+        Images
+        <small>DALL-E 3</small>
+      </div>
+      <div class="flow-box action" style="min-width: 120px;">
+        Deployments
+        <small>Vercel/Docker</small>
+      </div>
+      <div class="flow-box action" style="min-width: 120px;">
+        Monitoring
+        <small>PM2/Health</small>
+      </div>
+    </div>
+
+    <div class="arrow">&#8595;</div>
+
+    <!-- Layer 5: Scheduled -->
+    <div class="flow-box highlight" style="min-width: 360px;">
+      18 SCHEDULED AUTOMATIONS (run without being asked)
+      <small>Morning briefing | AI news | Job hunting | Lead pipeline | Trading | Reports</small>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 6: A Day in the Life -->
+<h2>6. A Day in the Life of Claude at NAVADA</h2>
+
+<p>Here is what Claude does every day, completely autonomously:</p>
+
+<table class="compare">
+  <tr>
+    <th>Time</th>
+    <th>What Claude Does</th>
+  </tr>
+  <tr>
+    <td><strong>6:30 AM</strong></td>
+    <td>Sends Lee a morning briefing: weather, calendar, priorities</td>
+  </tr>
+  <tr>
+    <td><strong>7:00 AM</strong></td>
+    <td>Scans AI news, writes a digest, emails it</td>
+  </tr>
+  <tr>
+    <td><strong>8:00 AM</strong></td>
+    <td>Compiles UK/US economy report (Mondays)</td>
+  </tr>
+  <tr>
+    <td><strong>8:30 AM</strong></td>
+    <td>Runs lead pipeline: finds prospects, verifies emails, sends outreach</td>
+  </tr>
+  <tr>
+    <td><strong>9:00 AM</strong></td>
+    <td>Hunts for AI job opportunities matching Lee's profile</td>
+  </tr>
+  <tr>
+    <td><strong>All Day</strong></td>
+    <td>Monitors inbox every 2 hours, auto-replies to emails</td>
+  </tr>
+  <tr>
+    <td><strong>2:15 PM</strong></td>
+    <td>Pre-market trading scan</td>
+  </tr>
+  <tr>
+    <td><strong>3:45 PM</strong></td>
+    <td>Executes trades (paper trading)</td>
+  </tr>
+  <tr>
+    <td><strong>6:00 PM</strong></td>
+    <td>Market intelligence analysis</td>
+  </tr>
+  <tr>
+    <td><strong>9:00 PM</strong></td>
+    <td>Daily operations summary report</td>
+  </tr>
+  <tr>
+    <td><strong>Any Time</strong></td>
+    <td>Responds to Telegram commands within seconds</td>
+  </tr>
+</table>
+
+<!-- SECTION 7: Why This Matters -->
+<h2>7. Why This Matters</h2>
+
+<div class="callout">
+  <strong>The shift:</strong> In 2024, people used AI to get answers. In 2026, people use AI agents to get things done. The agent does not just tell you what to do. It does it for you, checks its own work, and reports back.
+</div>
+
+<p><strong>For individuals:</strong> An AI agent is like hiring a full-time assistant who works 24/7, never takes holidays, and costs a fraction of a human salary.</p>
+
+<p><strong>For businesses:</strong> AI agents handle repetitive operational work (emails, reports, data entry, monitoring) so your team focuses on strategy, relationships, and creative work.</p>
+
+<p><strong>What NAVADA Edge offers:</strong> We deploy this exact setup for clients. A dedicated server running Claude as your Chief of Staff, customised to your business, with your tools connected, your automations scheduled, and your Telegram as the remote control.</p>
+
+<div class="footer">
+  NAVADA | AI Infrastructure &amp; Consulting<br>
+  Leslie Akpareva | leeakpareva@gmail.com<br>
+  Document generated 3 March 2026
+</div>
+
+</div>
+</body>
+</html>

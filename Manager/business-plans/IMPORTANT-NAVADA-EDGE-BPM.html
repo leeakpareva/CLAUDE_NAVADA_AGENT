@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NAVADA Edge - Business Process Model (BPM)</title>
+<style>
+  @page { margin: 20mm 15mm; size: A4; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, Helvetica, sans-serif; color: #1a1a2e; line-height: 1.5; font-size: 11px; }
+
+  .cover { page-break-after: always; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; text-align: center; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: white; padding: 60px; }
+  .cover h1 { font-size: 42px; font-weight: 800; letter-spacing: -1px; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 18px; color: #a8a8d8; margin-bottom: 30px; }
+  .cover .badge { background: #e74c3c; color: white; padding: 6px 20px; border-radius: 4px; font-weight: 700; font-size: 14px; display: inline-block; margin-bottom: 30px; }
+  .cover .meta { font-size: 12px; color: #8888aa; line-height: 2; }
+  .cover .logo-text { font-size: 14px; letter-spacing: 8px; text-transform: uppercase; color: #6c63ff; margin-bottom: 8px; }
+
+  .page { page-break-after: always; padding: 10px 0; }
+  .page:last-child { page-break-after: avoid; }
+
+  h2 { font-size: 20px; color: #0f0c29; border-bottom: 3px solid #6c63ff; padding-bottom: 6px; margin: 25px 0 12px 0; }
+  h3 { font-size: 14px; color: #302b63; margin: 16px 0 8px 0; }
+  h4 { font-size: 12px; color: #555; margin: 10px 0 5px 0; }
+  p { margin: 6px 0; font-size: 11px; }
+  ul, ol { margin: 6px 0 6px 20px; font-size: 11px; }
+  li { margin: 3px 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10.5px; }
+  th { background: #24243e; color: white; padding: 8px 10px; text-align: left; font-weight: 600; }
+  td { padding: 7px 10px; border-bottom: 1px solid #e0e0e0; }
+  tr:nth-child(even) { background: #f8f8fc; }
+
+  .highlight-box { background: #f0edff; border-left: 4px solid #6c63ff; padding: 12px 16px; margin: 12px 0; border-radius: 0 6px 6px 0; }
+  .warning-box { background: #fff5f5; border-left: 4px solid #e74c3c; padding: 12px 16px; margin: 12px 0; border-radius: 0 6px 6px 0; }
+  .success-box { background: #f0faf0; border-left: 4px solid #27ae60; padding: 12px 16px; margin: 12px 0; border-radius: 0 6px 6px 0; }
+
+  .flow-diagram { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; margin: 14px 0; }
+  .flow-step { background: #24243e; color: white; padding: 8px 14px; border-radius: 6px; font-size: 10px; font-weight: 600; text-align: center; min-width: 90px; }
+  .flow-arrow { color: #6c63ff; font-size: 18px; font-weight: 800; }
+
+  .metric-row { display: flex; gap: 12px; margin: 10px 0; }
+  .metric-card { flex: 1; background: #f8f8fc; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; text-align: center; }
+  .metric-card .value { font-size: 22px; font-weight: 800; color: #6c63ff; }
+  .metric-card .label { font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+
+  .toc { list-style: none; padding: 0; }
+  .toc li { padding: 6px 0; border-bottom: 1px dotted #ccc; font-size: 12px; }
+  .toc li span { color: #6c63ff; font-weight: 600; margin-right: 8px; }
+
+  .watermark { position: fixed; top: 10px; right: 15px; font-size: 8px; color: #ccc; }
+  .footer { text-align: center; font-size: 8px; color: #999; margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee; }
+
+  .two-col { display: flex; gap: 20px; }
+  .two-col > div { flex: 1; }
+</style>
+</head>
+<body>
+
+<!-- COVER PAGE -->
+<div class="cover">
+  <div class="logo-text">NAVADA</div>
+  <h1>NAVADA Edge</h1>
+  <div class="subtitle">Business Process Model (BPM)</div>
+  <div class="badge">IMPORTANT</div>
+  <div class="meta">
+    Prepared by: Claude (Chief of Staff) for Lee Akpareva<br>
+    Date: 3 March 2026<br>
+    Version: 1.0<br>
+    Classification: Internal / Confidential<br>
+    Document ID: NAVADA-BPM-2026-001
+  </div>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="page">
+  <h2>Table of Contents</h2>
+  <ul class="toc">
+    <li><span>1</span> Executive Summary</li>
+    <li><span>2</span> Product Definition</li>
+    <li><span>3</span> Service Tiers &amp; Pricing</li>
+    <li><span>4</span> Client Onboarding Process</li>
+    <li><span>5</span> Technical Architecture</li>
+    <li><span>6</span> Payment &amp; Billing (Stripe)</li>
+    <li><span>7</span> Support &amp; SLA Model</li>
+    <li><span>8</span> Client Lifecycle Management</li>
+    <li><span>9</span> Competitive Analysis &amp; Market Position</li>
+    <li><span>10</span> Financial Projections (Year 1)</li>
+    <li><span>11</span> Client Acquisition Strategy</li>
+    <li><span>12</span> Risk Assessment</li>
+    <li><span>13</span> Operational Processes (Day-to-Day)</li>
+    <li><span>14</span> Scalability Roadmap</li>
+    <li><span>15</span> KPIs &amp; Success Metrics</li>
+  </ul>
+</div>
+
+<!-- 1. EXECUTIVE SUMMARY -->
+<div class="page">
+  <h2>1. Executive Summary</h2>
+
+  <div class="highlight-box">
+    <strong>NAVADA Edge</strong> is an AI-as-a-Service platform that delivers bespoke, autonomous AI agents to small businesses, solo consultants, and agencies. Each client receives a dedicated specialist AI agent <strong>exclusively powered by Anthropic Claude</strong>, running 24/7 on Telegram, with skills and behaviour custom-built to their brand and use case. NAVADA is an Anthropic-only platform &mdash; Claude is the sole AI model used across all Edge and IoT deployments.
+  </div>
+
+  <h3>Key Value Proposition</h3>
+  <p>NAVADA Edge fills a gap in the market between generic AI chatbots (ChatGPT, Claude Pro) and enterprise-grade AI platforms (Sierra, 11x AI). For <strong>&pound;200/month</strong>, clients get what would cost &pound;50K-100K to build with a development team, or &pound;5K-15K/month from an enterprise vendor.</p>
+
+  <div class="metric-row">
+    <div class="metric-card">
+      <div class="value">&pound;2,000</div>
+      <div class="label">Setup Fee</div>
+    </div>
+    <div class="metric-card">
+      <div class="value">&pound;200/mo</div>
+      <div class="label">Hosted SaaS</div>
+    </div>
+    <div class="metric-card">
+      <div class="value">2 Days</div>
+      <div class="label">Turnaround</div>
+    </div>
+    <div class="metric-card">
+      <div class="value">24/7</div>
+      <div class="label">Agent Uptime</div>
+    </div>
+  </div>
+
+  <h3>Business Model</h3>
+  <ul>
+    <li><strong>Tier 1 (Hosted SaaS):</strong> &pound;2,000 setup + &pound;200/mo recurring. Agent hosted on NAVADA Edge server. Support included.</li>
+    <li><strong>Tier 2 (Self-Hosted):</strong> &pound;3,000 one-off (agent build + Edge network setup). Client covers own API and hardware costs. Support at &pound;50/hr.</li>
+  </ul>
+
+  <h3>Year 1 Projection (Moderate Scenario: 12 Clients)</h3>
+  <div class="metric-row">
+    <div class="metric-card">
+      <div class="value">&pound;44,000</div>
+      <div class="label">Net Profit (Year 1)</div>
+    </div>
+    <div class="metric-card">
+      <div class="value">&pound;1,600</div>
+      <div class="label">MRR by Month 12</div>
+    </div>
+    <div class="metric-card">
+      <div class="value">75-90%</div>
+      <div class="label">Gross Margin</div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. PRODUCT DEFINITION -->
+<div class="page">
+  <h2>2. Product Definition</h2>
+
+  <h3>What Is NAVADA Edge?</h3>
+  <p>NAVADA Edge is an AI home server deployment service. Clients receive a fully autonomous AI agent that operates as their personal or business assistant, accessible via Telegram 24/7. Each agent is:</p>
+  <ul>
+    <li><strong>Exclusively powered by Anthropic Claude</strong> &mdash; frontier-level AI reasoning, analysis, and generation. NAVADA is an Anthropic-only platform.</li>
+    <li><strong>Custom-built</strong> &mdash; specialist skills, behaviour, personality, and knowledge tailored to the client's brand and workflow</li>
+    <li><strong>Autonomous</strong> &mdash; runs independently, responds in real-time, executes tasks, manages information</li>
+    <li><strong>Always-on</strong> &mdash; 24/7 availability via Telegram on any device (phone, tablet, desktop)</li>
+  </ul>
+
+  <h3>Example Agent Types</h3>
+  <table>
+    <tr><th>Agent Type</th><th>Target Client</th><th>Key Skills</th></tr>
+    <tr><td>Research Assistant</td><td>Consultants, analysts</td><td>Web research, report generation, data analysis, briefings</td></tr>
+    <tr><td>Sales Assistant</td><td>Agencies, freelancers</td><td>Lead research, email drafting, CRM updates, proposal generation</td></tr>
+    <tr><td>Operations Assistant</td><td>Small business owners</td><td>Scheduling, task management, reporting, process automation</td></tr>
+    <tr><td>Content Assistant</td><td>Marketing agencies, creators</td><td>Copy generation, social media drafting, image generation, SEO</td></tr>
+    <tr><td>Property Assistant</td><td>Estate agents, landlords</td><td>Market reports, tenant comms, listing descriptions, compliance checks</td></tr>
+    <tr><td>Recruitment Assistant</td><td>Recruiters, HR firms</td><td>Candidate sourcing, JD writing, market mapping, outreach</td></tr>
+  </table>
+
+  <h3>What Every Agent Includes</h3>
+  <ul>
+    <li>Dedicated Telegram bot (client's own bot, branded)</li>
+    <li>Custom system prompt defining personality, skills, and boundaries</li>
+    <li>Persistent conversation memory</li>
+    <li>Tool use: web search, file generation, image creation (DALL-E), email drafts</li>
+    <li>Knowledge base: client-specific documents, FAQs, brand guidelines loaded</li>
+    <li>Model switching: Sonnet (fast daily tasks) / Opus (complex analysis)</li>
+    <li>Comprehensive e2e documentation and how-to guide</li>
+  </ul>
+
+  <h3>Client Deliverables</h3>
+  <ol>
+    <li>Live AI agent on Telegram (branded, custom skills)</li>
+    <li>Onboarding session (30-60 min walkthrough)</li>
+    <li>End-to-end documentation pack (PDF)</li>
+    <li>How-to guide for daily use</li>
+    <li>Knowledge base pre-loaded with client materials</li>
+  </ol>
+</div>
+
+<!-- 3. SERVICE TIERS & PRICING -->
+<div class="page">
+  <h2>3. Service Tiers &amp; Pricing</h2>
+
+  <h3>Tier 1: Hosted on NAVADA Edge (SaaS)</h3>
+  <table>
+    <tr><th>Item</th><th>Cost</th><th>Notes</th></tr>
+    <tr><td>Setup fee (one-time)</td><td><strong>&pound;2,000</strong></td><td>Agent build, skills configuration, brand tuning, KB loading, onboarding, documentation</td></tr>
+    <tr><td>Monthly subscription</td><td><strong>&pound;200/mo</strong></td><td>Hosting, management, maintenance, API costs, support all included</td></tr>
+    <tr><td>Technical support</td><td><strong>Included</strong></td><td>Part of the SaaS subscription</td></tr>
+    <tr><td>Turnaround time</td><td><strong>2 business days</strong></td><td>From brief to live agent</td></tr>
+    <tr><td>Cancellation</td><td>Anytime</td><td>7-day grace on missed payment, then agent disconnected</td></tr>
+    <tr><td>Payments</td><td>Stripe</td><td>Recurring subscription, auto-retry on failure</td></tr>
+  </table>
+
+  <div class="success-box">
+    <strong>Client value:</strong> For &pound;200/mo, the client receives a fully managed, bespoke AI agent with 24/7 availability, zero technical overhead, and included support. NAVADA handles all hosting, API management, updates, and maintenance.
+  </div>
+
+  <h3>Tier 2: Self-Hosted Edge Network</h3>
+  <table>
+    <tr><th>Item</th><th>Cost</th><th>Notes</th></tr>
+    <tr><td>Agent build (one-time)</td><td><strong>&pound;2,000</strong></td><td>Same as Tier 1: bespoke agent, skills, KB, docs</td></tr>
+    <tr><td>Edge network setup (one-time)</td><td><strong>&pound;1,000</strong></td><td>Hardware config, PM2 setup, Tailscale, monitoring, testing</td></tr>
+    <tr><td><strong>Total upfront</strong></td><td><strong>&pound;3,000</strong></td><td></td></tr>
+    <tr><td>Monthly fee</td><td><strong>&pound;0</strong></td><td>Client covers own Anthropic API subscription</td></tr>
+    <tr><td>Hardware</td><td>Client covers</td><td>Laptop, ethernet cable, WiFi &mdash; client purchases and owns</td></tr>
+    <tr><td>Technical support</td><td>&pound;50/hr</td><td>2-hour minimum booking, &pound;50 non-refundable deposit</td></tr>
+    <tr><td>Turnaround</td><td>2 business days</td><td>From brief to live agent on client hardware</td></tr>
+  </table>
+
+  <h3>Support Pricing Matrix</h3>
+  <table>
+    <tr><th></th><th>Hosted (Tier 1 SaaS)</th><th>Self-Hosted (Tier 2)</th></tr>
+    <tr><td>Rate</td><td>Free (included in &pound;200/mo)</td><td>&pound;50/hr</td></tr>
+    <tr><td>Minimum booking</td><td>N/A</td><td>2 hours (&pound;100 minimum)</td></tr>
+    <tr><td>Deposit</td><td>N/A</td><td>&pound;50 non-refundable (per session)</td></tr>
+    <tr><td>Method</td><td>TeamViewer + Tailscale</td><td>TeamViewer + Tailscale</td></tr>
+    <tr><td>Scope</td><td>Full agent + platform support</td><td>Edge network troubleshooting only</td></tr>
+  </table>
+</div>
+
+<!-- 4. CLIENT ONBOARDING PROCESS -->
+<div class="page">
+  <h2>4. Client Onboarding Process</h2>
+
+  <h3>Process Flow (Tier 1: Hosted)</h3>
+  <div class="flow-diagram">
+    <div class="flow-step">Client Enquiry</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Discovery Call<br>(30 min)</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Stripe Payment<br>(&pound;2,000)</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Agent Build<br>(Day 1-2)</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Testing &amp;<br>QA</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Onboarding<br>Session</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Live &amp;<br>Subscription</div>
+  </div>
+
+  <h3>Day 1: Discovery &amp; Payment</h3>
+  <ol>
+    <li><strong>Discovery call</strong> (30 min): Understand client's business, use case, desired agent persona, key skills needed</li>
+    <li><strong>Brief document</strong>: Capture agent name, personality, skills list, knowledge base sources, brand guidelines</li>
+    <li><strong>Payment</strong>: &pound;2,000 setup fee via Stripe Checkout (or Stripe Invoice for business clients)</li>
+    <li><strong>Subscription activation</strong>: &pound;200/mo recurring starts immediately via Stripe Subscriptions</li>
+  </ol>
+
+  <h3>Day 1-2: Agent Build</h3>
+  <ol>
+    <li>Create new Telegram bot via BotFather (client's branded bot name)</li>
+    <li>Configure system prompt (persona, skills, boundaries, brand voice)</li>
+    <li>Set up knowledge base folder with client materials</li>
+    <li>Configure tools (web search, file generation, email, image generation as needed)</li>
+    <li>Register slash commands with Telegram autocomplete</li>
+    <li>Set up PM2 process on NAVADA Edge server</li>
+    <li>Configure conversation memory and interaction logging</li>
+    <li>Configure per-client cost tracking</li>
+    <li>Testing: functional tests, edge cases, brand compliance</li>
+  </ol>
+
+  <h3>Day 2: Handover</h3>
+  <ol>
+    <li><strong>Onboarding session</strong> (30-60 min): Live walkthrough of the agent, demo all commands, answer questions</li>
+    <li><strong>Deliver documentation pack</strong>: e2e guide, command reference, troubleshooting tips</li>
+    <li><strong>Client confirms</strong>: Agent is live and working as expected</li>
+  </ol>
+
+  <h3>Process Flow (Tier 2: Self-Hosted)</h3>
+  <p>Same as above, plus:</p>
+  <ol>
+    <li>Client purchases hardware (laptop, ethernet cable) &mdash; NAVADA provides spec recommendations</li>
+    <li>Remote setup session via TeamViewer: OS config, Node.js, PM2, Tailscale, Anthropic API key</li>
+    <li>Deploy agent to client's hardware</li>
+    <li>Configure Tailscale for remote access</li>
+    <li>Verify 24/7 operation, test fail-over scenarios</li>
+    <li>Deliver extended documentation: hardware management guide, restart procedures, API key rotation</li>
+  </ol>
+</div>
+
+<!-- 5. TECHNICAL ARCHITECTURE -->
+<div class="page">
+  <h2>5. Technical Architecture</h2>
+
+  <h3>Hosted Architecture (Tier 1)</h3>
+  <table>
+    <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+    <tr><td>Server</td><td>HP Laptop (Windows 11 Pro, always-on)</td><td>Hosts all client agents</td></tr>
+    <tr><td>Process Manager</td><td>PM2</td><td>Keeps agents running 24/7, auto-restart on crash</td></tr>
+    <tr><td>AI Engine</td><td>Anthropic Claude API (Sonnet / Opus) &mdash; exclusive, Anthropic-only</td><td>Powers all agent intelligence. No other AI providers used.</td></tr>
+    <tr><td>UI / Interface</td><td>Telegram Bot API (Telegraf framework)</td><td>Client-facing chat interface</td></tr>
+    <tr><td>Remote Access</td><td>Tailscale</td><td>Secure network for management</td></tr>
+    <tr><td>Memory</td><td>JSON files per client</td><td>Persistent conversation history</td></tr>
+    <tr><td>Knowledge Base</td><td>Client-specific KB folders</td><td>Custom documents, FAQs, brand materials</td></tr>
+    <tr><td>Cost Tracking</td><td>Per-client JSONL logs</td><td>Token usage, cost per model, billing data</td></tr>
+    <tr><td>Payments</td><td>Stripe</td><td>Subscriptions, invoices, webhooks</td></tr>
+  </table>
+
+  <h3>Per-Client Stack</h3>
+  <p>Each client gets:</p>
+  <ul>
+    <li>Dedicated PM2 process (~60-80MB RAM)</li>
+    <li>Unique Telegram bot token</li>
+    <li>Isolated conversation history file</li>
+    <li>Isolated knowledge base directory</li>
+    <li>Custom system prompt</li>
+    <li>Per-client cost tracking log</li>
+  </ul>
+
+  <h3>Capacity Planning</h3>
+  <table>
+    <tr><th>Metric</th><th>Current Capacity</th><th>Notes</th></tr>
+    <tr><td>RAM per client</td><td>60-80 MB</td><td>Node.js + Telegraf idle</td></tr>
+    <tr><td>Max hosted clients</td><td>10-15</td><td>On current HP laptop hardware</td></tr>
+    <tr><td>Bandwidth per client</td><td>Minimal</td><td>Text-based, API calls only</td></tr>
+    <tr><td>API cost per client</td><td>&pound;20-40/mo</td><td>Average Sonnet usage; Opus for complex queries</td></tr>
+    <tr><td>Disk per client</td><td>~50-200 MB</td><td>Conversation history + KB files</td></tr>
+  </table>
+
+  <h3>Self-Hosted Architecture (Tier 2)</h3>
+  <p>Identical stack deployed on client's hardware. NAVADA provides:</p>
+  <ul>
+    <li>Hardware specification guide (recommended laptop, always-on setup)</li>
+    <li>Pre-configured software package (Node.js, PM2, agent code, Tailscale)</li>
+    <li>Remote deployment via TeamViewer</li>
+    <li>Tailscale integration for ongoing remote support access</li>
+    <li>Client manages their own Anthropic API key and subscription</li>
+  </ul>
+</div>
+
+<!-- 6. PAYMENT & BILLING (STRIPE) -->
+<div class="page">
+  <h2>6. Payment &amp; Billing (Stripe)</h2>
+
+  <h3>Payment Structure</h3>
+  <table>
+    <tr><th>Payment Type</th><th>Tier 1 (Hosted)</th><th>Tier 2 (Self-Hosted)</th></tr>
+    <tr><td>Setup fee</td><td>&pound;2,000 (Stripe Checkout / Invoice)</td><td>&pound;3,000 (Stripe Invoice)</td></tr>
+    <tr><td>Monthly subscription</td><td>&pound;200/mo (Stripe Subscriptions)</td><td>N/A</td></tr>
+    <tr><td>Support sessions</td><td>Included</td><td>&pound;50 deposit (Stripe Payment Link) + hourly invoice</td></tr>
+  </table>
+
+  <h3>Stripe Integration Flow</h3>
+  <div class="flow-diagram">
+    <div class="flow-step">Client Signs Up</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Stripe Checkout<br>(&pound;2,000)</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Payment<br>Confirmed</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Subscription<br>Created (&pound;200/mo)</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Agent Build<br>Begins</div>
+  </div>
+
+  <h3>Subscription Lifecycle</h3>
+  <table>
+    <tr><th>Event</th><th>Action</th><th>Automation</th></tr>
+    <tr><td>Payment succeeds</td><td>Agent continues running</td><td>Stripe webhook &rarr; log payment</td></tr>
+    <tr><td>Payment fails</td><td>Stripe auto-retries (3 attempts over 7 days)</td><td>Email notification to client</td></tr>
+    <tr><td>7 days unpaid</td><td>Agent disconnected (PM2 stop)</td><td>Stripe webhook &rarr; <code>pm2 stop client-bot</code></td></tr>
+    <tr><td>Client pays overdue</td><td>Agent reconnected (PM2 restart)</td><td>Stripe webhook &rarr; <code>pm2 restart client-bot</code></td></tr>
+    <tr><td>Client cancels</td><td>Subscription ends at period end</td><td>Agent stopped at period end</td></tr>
+  </table>
+
+  <h3>Self-Hosted Support Billing</h3>
+  <ol>
+    <li>Client requests support session</li>
+    <li>Client pays &pound;50 non-refundable deposit via Stripe Payment Link</li>
+    <li>Session booked (2-hour minimum)</li>
+    <li>Post-session: Stripe Invoice for total hours at &pound;50/hr (minus deposit)</li>
+    <li>Example: 3-hour session = &pound;50 deposit + &pound;100 invoice = &pound;150 total</li>
+  </ol>
+</div>
+
+<!-- 7. SUPPORT & SLA MODEL -->
+<div class="page">
+  <h2>7. Support &amp; SLA Model</h2>
+
+  <h3>Tier 1 (Hosted) Support</h3>
+  <table>
+    <tr><th>Aspect</th><th>Detail</th></tr>
+    <tr><td>Cost</td><td>Included in &pound;200/mo subscription</td></tr>
+    <tr><td>Response time</td><td>Within 24 hours (business days)</td></tr>
+    <tr><td>Channel</td><td>Telegram (direct message to Lee) or email</td></tr>
+    <tr><td>Scope</td><td>Agent issues, skill adjustments, KB updates, bug fixes</td></tr>
+    <tr><td>Exclusions</td><td>Major agent redesigns (quoted separately), client-side Telegram issues</td></tr>
+  </table>
+
+  <h3>Tier 2 (Self-Hosted) Support</h3>
+  <table>
+    <tr><th>Aspect</th><th>Detail</th></tr>
+    <tr><td>Rate</td><td>&pound;50/hr, 2-hour minimum (&pound;100 minimum charge)</td></tr>
+    <tr><td>Deposit</td><td>&pound;50 non-refundable (per booking)</td></tr>
+    <tr><td>Method</td><td>TeamViewer remote access + Tailscale</td></tr>
+    <tr><td>Booking</td><td>Client requests via email/Telegram, pays deposit, session scheduled</td></tr>
+    <tr><td>Scope</td><td>Edge network troubleshooting, hardware issues, connectivity, PM2, Tailscale</td></tr>
+  </table>
+
+  <h3>What's Included vs Extra</h3>
+  <table>
+    <tr><th>Included (Tier 1 &pound;200/mo)</th><th>Extra (Quoted Separately)</th></tr>
+    <tr><td>Bug fixes</td><td>Major agent redesign / rebuild</td></tr>
+    <tr><td>Minor skill adjustments</td><td>Adding entirely new skill categories</td></tr>
+    <tr><td>KB updates (swap documents)</td><td>Large-scale data migration</td></tr>
+    <tr><td>Model switching (Sonnet/Opus)</td><td>Custom integration to third-party APIs</td></tr>
+    <tr><td>Monitoring &amp; uptime management</td><td>Hardware procurement / physical setup</td></tr>
+    <tr><td>Security patches</td><td>Training sessions for client staff</td></tr>
+  </table>
+
+  <h3>Disconnection Policy (Hosted Clients)</h3>
+  <div class="warning-box">
+    <strong>Payment Grace Period:</strong> Clients have 7 days from a missed payment to resolve the issue. After 7 days, the agent is automatically disconnected via PM2 stop. The agent can be reactivated immediately upon payment of outstanding balance. No data is deleted for 30 days after disconnection.
+  </div>
+</div>
+
+<!-- 8. CLIENT LIFECYCLE -->
+<div class="page">
+  <h2>8. Client Lifecycle Management</h2>
+
+  <h3>Lifecycle Stages</h3>
+  <div class="flow-diagram">
+    <div class="flow-step">Lead /<br>Enquiry</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Demo /<br>Discovery</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Payment &amp;<br>Onboarding</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Active<br>Client</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Retention &amp;<br>Upsell</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Renewal /<br>Churn</div>
+  </div>
+
+  <h3>Stage Details</h3>
+  <table>
+    <tr><th>Stage</th><th>Duration</th><th>Activities</th><th>Owner</th></tr>
+    <tr><td>Lead</td><td>1-7 days</td><td>Enquiry received, qualify need/budget, send info pack</td><td>Lee</td></tr>
+    <tr><td>Demo</td><td>1-2 days</td><td>Live Telegram demo (grant guest access), discovery call, capture brief</td><td>Lee</td></tr>
+    <tr><td>Onboarding</td><td>2 days</td><td>Payment, agent build, testing, handover session, documentation</td><td>Lee + Claude</td></tr>
+    <tr><td>Active</td><td>Ongoing</td><td>Agent running 24/7, monthly billing, monitoring, minor support</td><td>Automated + Lee</td></tr>
+    <tr><td>Retention</td><td>Monthly</td><td>Check-in message, usage review, suggest new skills, referral ask</td><td>Lee</td></tr>
+    <tr><td>Upsell</td><td>Quarterly</td><td>Offer new agent types, Pro tier, additional skills, staff training</td><td>Lee</td></tr>
+    <tr><td>Churn prevention</td><td>As needed</td><td>Usage monitoring, reach out if usage drops, offer call</td><td>Lee</td></tr>
+  </table>
+
+  <h3>Churn Prevention Triggers</h3>
+  <ul>
+    <li>Agent unused for 7+ days &rarr; proactive check-in message</li>
+    <li>Payment fails &rarr; immediate email + Telegram notification</li>
+    <li>Support ticket unresolved &gt;48 hours &rarr; escalate and personal call</li>
+    <li>Client requests cancellation &rarr; offer 1 month free to discuss improvements</li>
+  </ul>
+</div>
+
+<!-- 9. COMPETITIVE ANALYSIS -->
+<div class="page">
+  <h2>9. Competitive Analysis &amp; Market Position</h2>
+
+  <h3>Market Landscape</h3>
+  <table>
+    <tr><th>Company</th><th>Product</th><th>Pricing</th><th>Custom</th><th>Setup Time</th></tr>
+    <tr><td><strong>NAVADA Edge</strong></td><td>Bespoke AI agent (Telegram)</td><td>&pound;2K + &pound;200/mo</td><td>Fully bespoke</td><td>2 days</td></tr>
+    <tr><td>Relevance AI</td><td>No-code agent builder</td><td>$199-599/mo</td><td>Templates</td><td>Self-serve</td></tr>
+    <tr><td>Lindy AI</td><td>Pre-built assistants</td><td>$49-499/mo</td><td>Limited</td><td>Self-serve</td></tr>
+    <tr><td>Sierra AI</td><td>Enterprise customer agents</td><td>&pound;10K+/mo</td><td>Yes</td><td>Weeks-months</td></tr>
+    <tr><td>11x AI</td><td>AI sales/SDR agents</td><td>$5K-15K/mo</td><td>Sales only</td><td>Weeks</td></tr>
+    <tr><td>Cognition (Devin)</td><td>AI software engineer</td><td>$500/mo</td><td>Code only</td><td>Self-serve</td></tr>
+    <tr><td>ChatGPT Team</td><td>Shared GPT access</td><td>$25-30/user/mo</td><td>No</td><td>Instant</td></tr>
+    <tr><td>Claude Pro</td><td>Chat interface</td><td>$20/user/mo</td><td>No</td><td>Instant</td></tr>
+  </table>
+
+  <h3>NAVADA Edge Competitive Advantages</h3>
+  <table>
+    <tr><th>Factor</th><th>NAVADA Edge</th><th>Most Competitors</th></tr>
+    <tr><td>Customisation</td><td>Fully bespoke per client</td><td>Templates / drag-and-drop</td></tr>
+    <tr><td>Price</td><td>&pound;200/mo for dedicated agent</td><td>&pound;500-15K/mo for comparable</td></tr>
+    <tr><td>Human touch</td><td>Lee personally builds &amp; supports</td><td>Self-serve, ticket-based</td></tr>
+    <tr><td>Speed</td><td>2 days brief to live</td><td>Weeks to months</td></tr>
+    <tr><td>Interface simplicity</td><td>Telegram (zero learning curve)</td><td>New platform / login</td></tr>
+    <tr><td>Self-host option</td><td>Yes (Tier 2)</td><td>Almost never offered</td></tr>
+    <tr><td>Transparency</td><td>Client sees what it does and costs</td><td>Black box, hidden fees</td></tr>
+  </table>
+
+  <h3>Honest Weaknesses</h3>
+  <table>
+    <tr><th>Factor</th><th>Score</th><th>Notes</th></tr>
+    <tr><td>Value for money</td><td>9/10</td><td>Unbeatable at the price point</td></tr>
+    <tr><td>Customisation</td><td>9/10</td><td>Hand-built, not template-based</td></tr>
+    <tr><td>Time to live</td><td>9/10</td><td>2-day turnaround is exceptional</td></tr>
+    <tr><td>Technical capability</td><td>8/10</td><td>Claude API + full tool use is frontier-level</td></tr>
+    <tr><td>Scalability</td><td>5/10</td><td>Single server, needs infra investment past ~15 clients</td></tr>
+    <tr><td>Brand / trust</td><td>4/10</td><td>Early stage, no case studies yet</td></tr>
+    <tr><td>Client self-service</td><td>3/10</td><td>No client portal or analytics dashboard</td></tr>
+    <tr><td>Redundancy / SLA</td><td>3/10</td><td>Single point of failure</td></tr>
+  </table>
+</div>
+
+<!-- 10. FINANCIAL PROJECTIONS -->
+<div class="page">
+  <h2>10. Financial Projections (Year 1)</h2>
+
+  <h3>Assumptions</h3>
+  <ul>
+    <li>Client mix: 70% hosted (Tier 1) / 30% self-hosted (Tier 2)</li>
+    <li>API cost per hosted client: ~&pound;30/mo average (Sonnet primary, occasional Opus)</li>
+    <li>Self-hosted clients average 2 support hours/month at &pound;50/hr</li>
+    <li>Churn rate: ~5% monthly for hosted clients (conservative)</li>
+    <li>No additional hardware investment (using existing NAVADA server)</li>
+  </ul>
+
+  <h3>Conservative Scenario (6 Clients in Year 1)</h3>
+  <p>1 new client every 2 months: 4 hosted + 2 self-hosted</p>
+  <table>
+    <tr><th>Revenue Stream</th><th>Calculation</th><th>Total</th></tr>
+    <tr><td>Hosted setup fees</td><td>4 x &pound;2,000</td><td>&pound;8,000</td></tr>
+    <tr><td>Self-hosted fees</td><td>2 x &pound;3,000</td><td>&pound;6,000</td></tr>
+    <tr><td>Monthly recurring</td><td>Cumulative (4 hosted clients over 12 months)</td><td>&pound;7,200</td></tr>
+    <tr><td>Support revenue</td><td>2 self-hosted x 2 hrs/mo x &pound;50 x ~8 months avg</td><td>&pound;1,600</td></tr>
+    <tr><td>Support deposits</td><td>~24 sessions x &pound;50</td><td>&pound;1,200</td></tr>
+    <tr><th>Gross Revenue</th><th></th><th><strong>&pound;24,000</strong></th></tr>
+    <tr><td>API costs (hosted)</td><td>4 clients x &pound;30/mo x avg 8 months</td><td>-&pound;960</td></tr>
+    <tr><th>Net Profit</th><th></th><th><strong>&pound;23,040</strong></th></tr>
+  </table>
+
+  <h3>Moderate Scenario (12 Clients in Year 1)</h3>
+  <p>1 new client per month: 8 hosted + 4 self-hosted</p>
+  <table>
+    <tr><th>Revenue Stream</th><th>Calculation</th><th>Total</th></tr>
+    <tr><td>Hosted setup fees</td><td>8 x &pound;2,000</td><td>&pound;16,000</td></tr>
+    <tr><td>Self-hosted fees</td><td>4 x &pound;3,000</td><td>&pound;12,000</td></tr>
+    <tr><td>Monthly recurring</td><td>Cumulative (8 hosted over 12 months)</td><td>&pound;13,600</td></tr>
+    <tr><td>Support revenue</td><td>4 x 2 hrs/mo x &pound;50 x ~6 months avg</td><td>&pound;2,400</td></tr>
+    <tr><td>Support deposits</td><td>~48 sessions x &pound;50</td><td>&pound;2,400</td></tr>
+    <tr><th>Gross Revenue</th><th></th><th><strong>&pound;46,400</strong></th></tr>
+    <tr><td>API costs</td><td>8 x &pound;30/mo x avg 6 months</td><td>-&pound;1,440</td></tr>
+    <tr><th>Net Profit</th><th></th><th><strong>&pound;44,960</strong></th></tr>
+  </table>
+
+  <h3>Optimistic Scenario (24 Clients in Year 1)</h3>
+  <p>2 new clients per month: 16 hosted + 8 self-hosted</p>
+  <table>
+    <tr><th>Revenue Stream</th><th>Calculation</th><th>Total</th></tr>
+    <tr><td>Hosted setup fees</td><td>16 x &pound;2,000</td><td>&pound;32,000</td></tr>
+    <tr><td>Self-hosted fees</td><td>8 x &pound;3,000</td><td>&pound;24,000</td></tr>
+    <tr><td>Monthly recurring</td><td>Cumulative (16 hosted over 12 months)</td><td>&pound;28,800</td></tr>
+    <tr><td>Support revenue + deposits</td><td>8 x 2hrs/mo x &pound;50 x ~6mo + deposits</td><td>&pound;9,600</td></tr>
+    <tr><th>Gross Revenue</th><th></th><th><strong>&pound;94,400</strong></th></tr>
+    <tr><td>API costs</td><td>16 x &pound;30/mo x avg 6 months</td><td>-&pound;2,880</td></tr>
+    <tr><th>Net Profit</th><th></th><th><strong>&pound;91,520</strong></th></tr>
+  </table>
+
+  <h3>Summary</h3>
+  <div class="metric-row">
+    <div class="metric-card">
+      <div class="value">&pound;23K</div>
+      <div class="label">Conservative</div>
+    </div>
+    <div class="metric-card">
+      <div class="value">&pound;45K</div>
+      <div class="label">Moderate</div>
+    </div>
+    <div class="metric-card">
+      <div class="value">&pound;92K</div>
+      <div class="label">Optimistic</div>
+    </div>
+  </div>
+
+  <h3>Year 2 Baseline (Recurring Only)</h3>
+  <p>By Month 12, the recurring MRR from hosted clients carries into Year 2 as baseline revenue before adding any new clients:</p>
+  <table>
+    <tr><th>Scenario</th><th>MRR at Month 12</th><th>Year 2 Baseline (recurring only)</th></tr>
+    <tr><td>Conservative</td><td>&pound;800/mo</td><td>&pound;9,600/yr before new clients</td></tr>
+    <tr><td>Moderate</td><td>&pound;1,600/mo</td><td>&pound;19,200/yr before new clients</td></tr>
+    <tr><td>Optimistic</td><td>&pound;3,200/mo</td><td>&pound;38,400/yr before new clients</td></tr>
+  </table>
+</div>
+
+<!-- 11. CLIENT ACQUISITION STRATEGY -->
+<div class="page">
+  <h2>11. Client Acquisition Strategy</h2>
+
+  <h3>Phase 1: Immediate (Month 1-2)</h3>
+  <table>
+    <tr><th>Channel</th><th>Action</th><th>Expected Outcome</th></tr>
+    <tr><td>LinkedIn</td><td>Weekly posts showing NAVADA Edge in action. Demo videos from phone. "I built an AI Chief of Staff" content series. Leverage existing LinkedIn posting pipeline.</td><td>2-5 enquiries/month</td></tr>
+    <tr><td>Professional network</td><td>Direct message 20+ contacts (Generali, ex-Farfetch/DHL/Shutterstock colleagues). 30-second Telegram demo.</td><td>1-2 warm leads</td></tr>
+    <tr><td>Prospect pipeline</td><td>Repurpose existing prospect-pipeline.js for NAVADA Edge outreach. Target small agencies and consultancies.</td><td>1-3 cold leads/week</td></tr>
+  </table>
+
+  <h3>Phase 2: Traction (Month 2-4)</h3>
+  <table>
+    <tr><th>Channel</th><th>Action</th><th>Expected Outcome</th></tr>
+    <tr><td>Live demos</td><td>Use multi-user guest system: /grant access for 7-day trial. Product sells itself.</td><td>30-50% conversion from demo to paid</td></tr>
+    <tr><td>Communities</td><td>Reddit r/selfhosted, r/homelab, Hacker News "Show HN", indie hacker forums, AI communities.</td><td>Organic inbound</td></tr>
+    <tr><td>Agency outreach</td><td>Target marketing agencies, recruitment firms, PR shops. They need research assistants and can't build their own.</td><td>1-2 agency clients</td></tr>
+  </table>
+
+  <h3>Phase 3: Growth (Month 4-8)</h3>
+  <table>
+    <tr><th>Channel</th><th>Action</th><th>Expected Outcome</th></tr>
+    <tr><td>Case studies</td><td>Publish results from first clients: "How [Client] automated 20 hrs/week with NAVADA Edge"</td><td>Social proof, inbound</td></tr>
+    <tr><td>Referrals</td><td>Offer 1 month free for every referral that converts</td><td>1-2 referral clients/quarter</td></tr>
+    <tr><td>Freelance platforms</td><td>Fiverr/Upwork: "I'll build you a personal AI agent on Telegram" &mdash; upsell to full Edge service</td><td>Lead gen channel</td></tr>
+  </table>
+
+  <h3>Phase 4: Scale (Month 8-12)</h3>
+  <table>
+    <tr><th>Channel</th><th>Action</th><th>Expected Outcome</th></tr>
+    <tr><td>Productise</td><td>Pre-built agent templates (Research, Sales, Ops) reduce build time to half a day</td><td>Higher margin per client</td></tr>
+    <tr><td>YouTube/content</td><td>"How I built an AI home server" technical content</td><td>Organic SEO traffic</td></tr>
+    <tr><td>Partnerships</td><td>Partner with business coaches, accelerators, co-working spaces</td><td>Recurring referral pipeline</td></tr>
+  </table>
+
+  <h3>Target Client Profiles</h3>
+  <ol>
+    <li><strong>Solo consultants</strong> &mdash; bill &pound;500-1000/day, &pound;200/mo is trivial for an AI research assistant</li>
+    <li><strong>Small agency founders</strong> &mdash; 5-20 person shops needing AI without hiring an AI engineer</li>
+    <li><strong>Property managers / estate agents</strong> &mdash; market reports, tenant comms, listings</li>
+    <li><strong>Recruitment consultants</strong> &mdash; candidate sourcing, market mapping, outreach</li>
+    <li><strong>Startup founders</strong> &mdash; want a "CTO in a box" or ops automation</li>
+    <li><strong>Coaches / trainers</strong> &mdash; content creation, client comms, scheduling</li>
+  </ol>
+</div>
+
+<!-- 12. RISK ASSESSMENT -->
+<div class="page">
+  <h2>12. Risk Assessment</h2>
+
+  <table>
+    <tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr>
+    <tr><td>Single server failure (hardware crash)</td><td>Medium</td><td>High &mdash; all hosted clients down</td><td>Daily backups to cloud. Spare laptop on standby. Long-term: migrate to cloud VPS for redundancy.</td></tr>
+    <tr><td>Internet outage at NAVADA server</td><td>Medium</td><td>High &mdash; all clients offline</td><td>Tailscale provides alternative routing. 4G/5G backup dongle. Long-term: dual ISP.</td></tr>
+    <tr><td>Anthropic API price increase</td><td>Low-Medium</td><td>Medium &mdash; margin squeeze</td><td>Monitor API costs per client. Model switching (Sonnet for routine, Opus only for complex). Can pass cost increase to clients with notice.</td></tr>
+    <tr><td>Anthropic API downtime</td><td>Low</td><td>High &mdash; all agents non-functional</td><td>Anthropic has strong uptime track record. Agent queues messages and retries. NAVADA is committed to Anthropic-only &mdash; no multi-provider fallback, keeping the stack clean and reliable.</td></tr>
+    <tr><td>Client churn</td><td>Medium</td><td>Medium &mdash; revenue decline</td><td>Monthly check-ins, usage monitoring, proactive skill improvements. Referral incentives increase stickiness.</td></tr>
+    <tr><td>Competition from no-code tools</td><td>Medium</td><td>Low &mdash; different market segment</td><td>NAVADA Edge is bespoke, competitors are templates. Keep differentiating on customisation and service.</td></tr>
+    <tr><td>Scaling past 15 clients on single server</td><td>Low (Year 1)</td><td>Medium</td><td>At 12+ clients, invest in second server or cloud VPS. Budget ~&pound;50/mo for cloud hosting.</td></tr>
+    <tr><td>Lee's time constraint (Generali full-time)</td><td>High</td><td>Medium &mdash; limited capacity</td><td>Automate provisioning. Build templates. 2-day builds done on evenings/weekends. Claude handles monitoring.</td></tr>
+    <tr><td>Data/privacy concerns</td><td>Low-Medium</td><td>High if mishandled</td><td>Per-client isolation. Clear T&amp;Cs on data handling. Self-hosted option for privacy-sensitive clients.</td></tr>
+  </table>
+</div>
+
+<!-- 13. OPERATIONAL PROCESSES -->
+<div class="page">
+  <h2>13. Operational Processes (Day-to-Day)</h2>
+
+  <h3>Daily Operations</h3>
+  <table>
+    <tr><th>Task</th><th>Frequency</th><th>Owner</th><th>Automated?</th></tr>
+    <tr><td>Monitor PM2 processes (all client bots)</td><td>Continuous</td><td>PM2 + Daily Ops Report</td><td>Yes</td></tr>
+    <tr><td>Check per-client API costs</td><td>Daily</td><td>Cost tracker + Ops Report</td><td>Yes</td></tr>
+    <tr><td>Monitor Stripe payments</td><td>Daily</td><td>Stripe dashboard / webhooks</td><td>Yes</td></tr>
+    <tr><td>Respond to client support queries</td><td>As needed</td><td>Lee (via Telegram)</td><td>No</td></tr>
+    <tr><td>Review interaction logs for issues</td><td>Weekly</td><td>Lee</td><td>No</td></tr>
+  </table>
+
+  <h3>Client Agent Provisioning (Repeatable Process)</h3>
+  <ol>
+    <li>Create Telegram bot via BotFather &rarr; obtain bot token</li>
+    <li>Copy client-bot-template.js &rarr; <code>client-bots/clientname-bot.js</code></li>
+    <li>Configure: bot token, system prompt, tool permissions, KB path</li>
+    <li>Create KB directory: <code>client-bots/kb/clientname/</code></li>
+    <li>Load client documents into KB</li>
+    <li>Add to ecosystem.config.js: new PM2 app entry</li>
+    <li>Start: <code>pm2 start ecosystem.config.js --only clientname-bot</code></li>
+    <li>Test: send messages, verify all tools, check cost logging</li>
+    <li>Register slash commands with Telegram</li>
+    <li>Create Stripe subscription for client</li>
+    <li>Send documentation pack to client</li>
+    <li>Onboarding call</li>
+  </ol>
+
+  <h3>Monthly Processes</h3>
+  <ul>
+    <li>Review all client usage metrics and API costs</li>
+    <li>Generate per-client cost vs revenue report</li>
+    <li>Send monthly usage summary to clients (optional, builds trust)</li>
+    <li>Check for KB updates needed (client feedback)</li>
+    <li>Review and update agent skills based on client usage patterns</li>
+    <li>Stripe revenue reconciliation</li>
+    <li>Proactive client check-in for retention</li>
+  </ul>
+</div>
+
+<!-- 14. SCALABILITY ROADMAP -->
+<div class="page">
+  <h2>14. Scalability Roadmap</h2>
+
+  <h3>Phase 1: Foundation (0-10 Clients)</h3>
+  <table>
+    <tr><th>Item</th><th>Status</th></tr>
+    <tr><td>Single NAVADA server (HP Laptop)</td><td>Ready</td></tr>
+    <tr><td>PM2 process management</td><td>Ready</td></tr>
+    <tr><td>Per-client bot template</td><td>To build</td></tr>
+    <tr><td>Stripe integration</td><td>To build</td></tr>
+    <tr><td>Per-client cost tracking</td><td>Ready</td></tr>
+    <tr><td>Tailscale for remote management</td><td>Ready</td></tr>
+  </table>
+
+  <h3>Phase 2: Growth (10-25 Clients)</h3>
+  <table>
+    <tr><th>Investment</th><th>Cost</th><th>Why</th></tr>
+    <tr><td>Second server or cloud VPS</td><td>&pound;30-100/mo</td><td>Redundancy + capacity</td></tr>
+    <tr><td>Automated provisioning script</td><td>Dev time only</td><td>Reduce 2-day build to half day</td></tr>
+    <tr><td>Client dashboard (simple web portal)</td><td>Dev time only</td><td>Usage stats, billing, self-service KB updates</td></tr>
+    <tr><td>Monitoring &amp; alerting</td><td>Free (UptimeRobot)</td><td>Instant notification if client bot goes down</td></tr>
+  </table>
+
+  <h3>Phase 3: Scale (25-100 Clients)</h3>
+  <table>
+    <tr><th>Investment</th><th>Cost</th><th>Why</th></tr>
+    <tr><td>Cloud infrastructure (AWS/Hetzner)</td><td>&pound;200-500/mo</td><td>Multi-server, auto-scaling</td></tr>
+    <tr><td>Container orchestration (Docker/K8s)</td><td>Dev time</td><td>Each client = container, easy deploy/scale</td></tr>
+    <tr><td>Hire part-time support person</td><td>&pound;1,000-2,000/mo</td><td>Handle Tier 1 support, free Lee for sales &amp; builds</td></tr>
+    <tr><td>Full client portal with Stripe integration</td><td>&pound;2,000-5,000 dev</td><td>Self-serve billing, KB management, usage analytics</td></tr>
+  </table>
+
+  <h3>Long-Term Vision</h3>
+  <ul>
+    <li><strong>White-label offering:</strong> Other consultants resell NAVADA Edge under their brand</li>
+    <li><strong>Agent marketplace:</strong> Pre-built specialist agents that clients can subscribe to instantly</li>
+    <li><strong>API platform:</strong> Developers build on NAVADA Edge infrastructure</li>
+    <li><strong>Enterprise tier:</strong> Multi-agent deployments, SSO, audit logs, compliance</li>
+  </ul>
+</div>
+
+<!-- 15. KPIs -->
+<div class="page">
+  <h2>15. KPIs &amp; Success Metrics</h2>
+
+  <h3>Monthly KPIs</h3>
+  <table>
+    <tr><th>KPI</th><th>Target (Month 6)</th><th>Target (Month 12)</th></tr>
+    <tr><td>Total active clients</td><td>4-6</td><td>8-12</td></tr>
+    <tr><td>Monthly Recurring Revenue (MRR)</td><td>&pound;800-1,200</td><td>&pound;1,600-2,400</td></tr>
+    <tr><td>Client churn rate</td><td>&lt;5%/mo</td><td>&lt;5%/mo</td></tr>
+    <tr><td>API cost per client</td><td>&lt;&pound;40/mo</td><td>&lt;&pound;35/mo</td></tr>
+    <tr><td>Gross margin (hosted)</td><td>&gt;80%</td><td>&gt;85%</td></tr>
+    <tr><td>Time to deploy new client</td><td>&lt;2 days</td><td>&lt;1 day (with templates)</td></tr>
+    <tr><td>Client satisfaction</td><td>4+/5 rating</td><td>4.5+/5 rating</td></tr>
+    <tr><td>Referral rate</td><td>10%</td><td>20%</td></tr>
+  </table>
+
+  <h3>Financial KPIs</h3>
+  <table>
+    <tr><th>Metric</th><th>Formula</th><th>Target</th></tr>
+    <tr><td>Gross margin</td><td>(Revenue - API costs) / Revenue</td><td>&gt;85%</td></tr>
+    <tr><td>Customer Lifetime Value (CLV)</td><td>Avg monthly revenue x avg months retained</td><td>&gt;&pound;3,000</td></tr>
+    <tr><td>Customer Acquisition Cost (CAC)</td><td>Sales/marketing spend / new clients</td><td>&lt;&pound;200</td></tr>
+    <tr><td>CLV:CAC ratio</td><td>CLV / CAC</td><td>&gt;10:1</td></tr>
+    <tr><td>Payback period</td><td>CAC / monthly revenue per client</td><td>&lt;1 month (covered by setup fee)</td></tr>
+  </table>
+
+  <h3>Operational KPIs</h3>
+  <table>
+    <tr><th>Metric</th><th>Target</th></tr>
+    <tr><td>Agent uptime</td><td>&gt;99% (PM2 auto-restart)</td></tr>
+    <tr><td>Support response time (hosted)</td><td>&lt;24 hours</td></tr>
+    <tr><td>Average onboarding time</td><td>&le;2 business days</td></tr>
+    <tr><td>Monthly support hours per client</td><td>&lt;1 hour (hosted, included)</td></tr>
+  </table>
+
+  <div class="footer">
+    <strong>NAVADA Edge Business Process Model</strong> | Prepared 3 March 2026 | Version 1.0 | IMPORTANT - CONFIDENTIAL<br>
+    &copy; 2026 NAVADA | Lee Akpareva | leeakpareva@gmail.com
+  </div>
+</div>
+
+</body>
+</html>

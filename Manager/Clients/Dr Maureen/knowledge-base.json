@@ -1,0 +1,215 @@
+{
+  "client_id": "dr-maureen-emeagi",
+  "created": "2026-03-03",
+  "last_updated": "2026-03-03",
+  "status": "prospect",
+
+  "identity": {
+    "full_name": "Dr Maureen Emeagi",
+    "credentials": "MBBS BSC DRCOG MRCGP MSc",
+    "email": "memeagi@gmail.com",
+    "phone": "07950205025",
+    "location": "Greater London, UK",
+    "linkedin_headline": "Medical Doctor/GP Partner | Med Tech Founder",
+    "address_as": "Dr Maureen",
+    "companies": [
+      {
+        "name": "NHS",
+        "role": "GP Partner",
+        "since": "2004",
+        "years": 21,
+        "status": "current"
+      },
+      {
+        "name": "BeautyMDx",
+        "role": "Founder",
+        "since": "2023",
+        "description": "Doctor-Led Skincare company",
+        "status": "current"
+      },
+      {
+        "name": "Vallour Healthcare Services",
+        "role": "Founder",
+        "website": "www.vallour.co.uk",
+        "status": "current"
+      },
+      {
+        "name": "Lookhealth.co",
+        "role": "Founder",
+        "period": "2019-2020",
+        "description": "Preventative health platform with blockchain pivot. Unable to gain funding but built pitching skills.",
+        "status": "closed"
+      }
+    ]
+  },
+
+  "medical_career": {
+    "qualification": "MBBS from The Royal Free and UCL Medical School (1999-2005)",
+    "current_role": "NHS GP Partner since 2004",
+    "hospitals_trained": [
+      "The Royal Free Hospital",
+      "The Whittington Hospital",
+      "Welwyn Garden City",
+      "Luton Hospital",
+      "North Middlesex Hospital",
+      "Chase Farm Hospital",
+      "Kingston Hospital 111"
+    ],
+    "departments": [
+      "Urgent Care",
+      "Overnight Telephone Triage (111)",
+      "Harmoni Out of Hours",
+      "Gynaecology",
+      "Accident and Emergency",
+      "Colorectal Surgery",
+      "Gastroenterology",
+      "Dermatology",
+      "Palliative Care",
+      "Paediatrics",
+      "Obstetrics and Gynaecology"
+    ],
+    "specialisms": ["Dermatology", "Skincare", "Women's Health", "Functional Medicine", "Longevity", "Aesthetic Medicine"]
+  },
+
+  "education": [
+    {
+      "degree": "MBBS (Medicine)",
+      "institution": "The Royal Free and UCL Medical School",
+      "period": "1999-2005",
+      "duration": "6 years"
+    },
+    {
+      "degree": "MSc Aesthetic Medicine and Skincare",
+      "institution": "Queen Mary University of London",
+      "period": "2020-2022",
+      "grade": "Distinction",
+      "dissertation": "The Management of Hyperpigmentation in Skin of Colour",
+      "topics": ["Acne", "Rosacea", "Hair Biology", "Hair Loss", "Lasers", "Cosmeceuticals", "Anti-ageing", "Threads", "PRP"]
+    },
+    {
+      "degree": "Digital Marketing Specialist",
+      "institution": "We Are Digital",
+      "period": "Jan-Mar 2023",
+      "type": "Apprenticeship",
+      "skills_learned": ["Online Business Strategy", "Content Strategy", "Email Marketing", "CRO", "Hubspot", "Google Ads", "Google Analytics", "SEO"]
+    }
+  ],
+
+  "entrepreneurial_history": [
+    {
+      "programme": "Entrepreneur First (EF8)",
+      "period": "2017",
+      "description": "World's leading Deep Tech accelerator. Accepted as 1 of 75 from 3,000 applicants worldwide.",
+      "peers": ["Twitter", "DeepMind", "Google", "Palantir", "Facebook", "Microsoft", "Oxford", "Cambridge"],
+      "focus": "Medical projects in data science, AR/VR, ML, computer vision, AI"
+    },
+    {
+      "role": "Board Member",
+      "organisation": "PanHaringey Federation",
+      "period": "2016-2017",
+      "description": "Inaugural board member. GP federation covering 100,000 patients in North Central London. Bid writing, service provision decisions."
+    }
+  ],
+
+  "skills": {
+    "medical": ["Medicine", "Functional Medicine", "Dermatology", "Skincare", "Women's Health", "Urgent Care", "Family Medicine", "Longevity", "Aesthetic Medicine"],
+    "business": ["Business Ownership", "Business Planning", "Business Strategy", "Strategic Partnerships", "Sales Operations", "Operations Management", "Pitching Ideas"],
+    "marketing": ["Social Media Marketing", "Digital Marketing", "SEO", "Content Strategy", "E-Commerce", "CRO", "Email Marketing", "Google Ads", "Google Analytics"],
+    "leadership": ["Public Speaking", "Team Leadership", "Team Building", "Leadership Development", "Start-up Leadership", "Bid Writing"],
+    "tech_awareness": ["Medical Technology", "AI in Healthcare", "Blockchain (basic)", "Hubspot"]
+  },
+
+  "communication_preferences": {
+    "channels": ["WhatsApp (primary)", "LinkedIn", "Email (memeagi@gmail.com)", "Phone"],
+    "tone": "Professional but warm. Peer-to-peer, not sales.",
+    "technical_level": "Non-technical on code. Strong on digital marketing, business strategy, AI concepts.",
+    "analogies": "Healthcare/wellness analogies work well (diagnosis, treatment plan, outcome)",
+    "respect_points": "21 years NHS, EF8 alumni, MSc Distinction, 3 startups, public speaker to 200+ audiences",
+    "do_not": ["Oversimplify business concepts", "Talk down to her", "Send unsolicited emails"]
+  },
+
+  "project": {
+    "name": "Autonomous Marketing Agent for Digital Health Products",
+    "problem_statement": "The hard thing is not building the digital product but assisting in the marketing of the product",
+    "desired_outcome": "Automated organic marketing across Pinterest, YouTube, Meta, Twitter for digital health/skincare products",
+    "reference_platforms": ["Stan.store (digital product storefront)", "Blaze.ai (AI marketing automation)"],
+    "vision": "Stan.store + Blaze.ai combined, but with autonomous agents",
+    "likely_product_niches": ["Skincare guides", "Aesthetic medicine courses", "GP wellness content", "Women's health digital products", "Longevity/anti-ageing resources", "AI in primary care guides"],
+    "recommended_tier": "Tier 1 (Hosted on NAVADA)",
+    "franchise_potential": "High. EF8 alumni, digital marketing trained, serial founder. Could offer AI marketing agents to other health professionals."
+  },
+
+  "conversation_log": [
+    {
+      "date": "2026-01-19",
+      "channel": "LinkedIn",
+      "direction": "outbound",
+      "from": "Lee",
+      "summary": "Initial outreach. Research initiative on AI tools for medical professionals. Offered 15-min demo of Claude Code CLI and OpenCode CLI."
+    },
+    {
+      "date": "2026-02-28",
+      "channel": "LinkedIn",
+      "direction": "inbound",
+      "from": "Dr Maureen",
+      "summary": "Responded positively. Interested in autonomous agents in healthcare. 7 years in AI+healthcare. Started own health tech company. GP Lead. Wants to found a new company. Asked to talk."
+    },
+    {
+      "date": "2026-02-28",
+      "channel": "LinkedIn",
+      "direction": "outbound",
+      "from": "Lee",
+      "summary": "Asked for email to send Google Meet invite. Shared lee@navada.info"
+    },
+    {
+      "date": "2026-03-01",
+      "channel": "LinkedIn",
+      "direction": "inbound",
+      "from": "Dr Maureen",
+      "summary": "Shared email: memeagi@gmail.com"
+    },
+    {
+      "date": "2026-03-01",
+      "channel": "Email + LinkedIn",
+      "direction": "outbound",
+      "from": "Lee (via Claude agent)",
+      "summary": "Sent email demo (agent-generated). Provided context: teaching Black professionals to code (18 women), wants to work with someone in medical field. Shared phone number 07935237704."
+    },
+    {
+      "date": "2026-03-01",
+      "channel": "Phone",
+      "direction": "both",
+      "from": "Dr Maureen called Lee",
+      "summary": "Good phone conversation. She shared Vallour Healthcare Services website. Lee shared WorldMonitor link and Medwise.ai Instagram post."
+    },
+    {
+      "date": "2026-03-02",
+      "channel": "LinkedIn",
+      "direction": "outbound",
+      "from": "Lee",
+      "summary": "Morning follow-up. Great conversation reference. Offered to add her to WhatsApp group with the ladies. Offered to start research."
+    },
+    {
+      "date": "2026-03-02",
+      "channel": "LinkedIn",
+      "direction": "inbound",
+      "from": "Dr Maureen",
+      "summary": "Asked to be added to WhatsApp group. Said she would put together a document in a few hours."
+    },
+    {
+      "date": "2026-03-01",
+      "channel": "WhatsApp",
+      "direction": "inbound",
+      "from": "Dr Maureen",
+      "summary": "Shared her ideas: (1) Quick ROI: better version of Stan.store for building/selling digital products. (2) Key pain point: marketing is harder than building. (3) Wants automated organic marketing across Pinterest/YouTube/Meta/Twitter. (4) Referenced blaze.ai as inspiration."
+    }
+  ],
+
+  "next_actions": [
+    "Lee to review and approve proposal email",
+    "Lee to instruct when to send proposal to Dr Maureen",
+    "Schedule demo call after proposal sent",
+    "Dr Maureen to select tier",
+    "Build agent specification based on tier choice"
+  ]
+}

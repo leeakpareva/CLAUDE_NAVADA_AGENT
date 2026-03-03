@@ -1,0 +1,274 @@
+<!--
+  NAVADA RETRO EMAIL TEMPLATE
+  ============================
+  Synthwave/80s retro aesthetic. Dark theme with neon accents.
+  Use as base when Lee says "retro email" — modify content, images, and colours to fit the topic.
+
+  COLOUR PALETTE (swap to match topic):
+    Primary:   #ff006e (neon pink)
+    Secondary: #00fff7 (cyan)
+    Accent 1:  #ff6b35 (orange)
+    Accent 2:  #a855f7 (purple)
+    Accent 3:  #22c55e (green)
+    Background:#0a0a0a (near-black)
+    Cards:     #111111 (dark grey)
+    Borders:   #222222 (subtle grey)
+
+  IMAGES: Always generate with DALL-E 3 (HD, 1792x1024 landscape).
+  Embed as CID attachments. Reference: src="cid:NAME"
+
+  COMPONENTS AVAILABLE:
+    - Hero image (full-width DALL-E 3)
+    - Hero text block (title + subtitle + gradient divider)
+    - Chapter header (coloured sidebar + label + heading)
+    - Body paragraph
+    - Accent card (border-left + dark bg)
+    - Figure image (with caption)
+    - Tech stack / list card (bordered rows)
+    - Stats card (big number + label, stacked vertically)
+    - Timeline (neon dots + gradient connector)
+    - Quote card (big quote mark + italic text + attribution)
+    - Key takeaways (numbered, colour-coded)
+    - Gradient divider line
+    - Claude signature block
+    - Footer with gradient bar + links
+
+  RULES (from creative-emails.md):
+    - max-width:480px wrapper
+    - 20px horizontal padding
+    - Single-column only (no side-by-side cells)
+    - Headings: max 24px title, 20px sections
+    - Dark bg text: #ffffff headings, #eeeeee body, #cccccc secondary
+    - border="0" on all tables
+    - -webkit-text-size-adjust:100%; -ms-text-size-adjust:100% on body
+    - All images: width:100%;display:block
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>{{TITLE}}</title>
+</head>
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+<div style="display:none;max-height:0;overflow:hidden;">{{PREHEADER}}</div>
+
+<!-- Outer Wrapper -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#0a0a0a;">
+<tr><td align="center" style="padding:0;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:480px;margin:0 auto;">
+
+<!-- ======================================== -->
+<!-- HERO IMAGE (DALL-E 3, CID embedded)      -->
+<!-- ======================================== -->
+<tr><td style="padding:0;">
+  <img src="cid:hero" alt="{{HERO_ALT}}" style="width:100%;display:block;" />
+</td></tr>
+
+<!-- ======================================== -->
+<!-- HERO TEXT BLOCK                           -->
+<!-- ======================================== -->
+<tr><td style="padding:24px 20px 8px 20px;text-align:center;background:#0a0a0a;">
+  <div style="font-size:10px;letter-spacing:0.4em;color:#ff006e;text-transform:uppercase;font-weight:700;">NAVADA RETRO DIGEST | {{DATE}}</div>
+  <div style="font-size:24px;font-weight:900;color:#ffffff;line-height:1.2;margin-top:8px;">{{MAIN_TITLE}}</div>
+  <div style="font-size:14px;color:#cccccc;margin-top:6px;letter-spacing:0.08em;">{{SUBTITLE}}</div>
+  <div style="margin-top:14px;height:3px;background:linear-gradient(90deg,#ff006e,#a855f7,#00fff7);border-radius:2px;"></div>
+</td></tr>
+
+<!-- ======================================== -->
+<!-- INTRO PARAGRAPH                          -->
+<!-- ======================================== -->
+<tr><td style="padding:20px 20px 16px 20px;background:#0a0a0a;">
+  <div style="font-size:14px;color:#eeeeee;line-height:1.8;">
+    {{INTRO_TEXT}}
+  </div>
+</td></tr>
+
+<!-- ======================================== -->
+<!-- CHAPTER HEADER                           -->
+<!-- Swap #ACCENT colour per chapter          -->
+<!-- ======================================== -->
+<tr><td style="padding:20px 20px 8px 20px;background:#0a0a0a;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+    <tr>
+      <td style="width:4px;background:#ff006e;border-radius:2px;">&nbsp;</td>
+      <td style="padding-left:14px;">
+        <div style="font-size:11px;letter-spacing:0.2em;color:#ff006e;text-transform:uppercase;font-weight:700;">Chapter 01</div>
+        <div style="font-size:20px;font-weight:800;color:#ffffff;margin-top:4px;line-height:1.2;">{{CHAPTER_TITLE}}</div>
+      </td>
+    </tr>
+  </table>
+</td></tr>
+
+<!-- ======================================== -->
+<!-- BODY PARAGRAPH                           -->
+<!-- ======================================== -->
+<tr><td style="padding:10px 20px 16px 20px;background:#0a0a0a;">
+  <div style="font-size:14px;color:#eeeeee;line-height:1.8;">
+    {{BODY_TEXT}}
+  </div>
+</td></tr>
+
+<!-- ======================================== -->
+<!-- ACCENT CARD (border-left style)          -->
+<!-- ======================================== -->
+<tr><td style="padding:6px 20px;background:#0a0a0a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#111111;border-left:5px solid #00fff7;border-radius:0 8px 8px 0;">
+    <tr><td style="padding:16px 18px;">
+      <div style="font-size:16px;font-weight:800;color:#00fff7;">{{CARD_TITLE}}</div>
+      <div style="font-size:13px;color:#eeeeee;line-height:1.8;margin-top:6px;">{{CARD_BODY}}</div>
+    </td></tr>
+  </table>
+</td></tr>
+
+<!-- ======================================== -->
+<!-- FIGURE IMAGE (DALL-E 3 + caption)        -->
+<!-- ======================================== -->
+<tr><td style="padding:16px 20px;background:#0a0a0a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-radius:8px;overflow:hidden;">
+    <tr><td style="padding:0;">
+      <img src="cid:{{IMAGE_CID}}" alt="{{IMAGE_ALT}}" style="width:100%;display:block;border-radius:8px 8px 0 0;" />
+    </td></tr>
+    <tr><td style="padding:10px 14px;background:#111111;border-radius:0 0 8px 8px;">
+      <div style="font-size:10px;color:#00fff7;letter-spacing:0.15em;text-transform:uppercase;font-weight:700;">{{FIG_LABEL}}</div>
+      <div style="font-size:12px;color:#cccccc;margin-top:2px;">{{FIG_CAPTION}}</div>
+    </td></tr>
+  </table>
+</td></tr>
+
+<!-- ======================================== -->
+<!-- TECH STACK / LIST CARD                   -->
+<!-- ======================================== -->
+<tr><td style="padding:6px 20px;background:#0a0a0a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#111111;border-radius:8px;">
+    <tr><td style="padding:18px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+
+        <tr><td style="padding:10px 0;border-bottom:1px solid #222222;">
+          <div style="font-size:13px;color:#ff006e;font-weight:800;letter-spacing:0.05em;">{{LIST_ITEM_TITLE}}</div>
+          <div style="font-size:13px;color:#cccccc;margin-top:6px;line-height:1.7;">{{LIST_ITEM_DESC}}</div>
+        </td></tr>
+
+        <!-- Repeat rows as needed. Last row: remove border-bottom -->
+        <tr><td style="padding:10px 0;">
+          <div style="font-size:13px;color:#22c55e;font-weight:800;letter-spacing:0.05em;">{{LIST_ITEM_TITLE_LAST}}</div>
+          <div style="font-size:13px;color:#cccccc;margin-top:6px;line-height:1.7;">{{LIST_ITEM_DESC_LAST}}</div>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</td></tr>
+
+<!-- ======================================== -->
+<!-- STAT CARD (stacked vertically)           -->
+<!-- ======================================== -->
+<tr><td style="padding:6px 20px;background:#0a0a0a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#111111;border-radius:8px;">
+    <tr><td style="padding:18px 20px;text-align:center;">
+      <div style="font-size:32px;font-weight:900;color:#ff006e;">{{STAT_NUMBER}}</div>
+      <div style="font-size:12px;color:#cccccc;margin-top:4px;letter-spacing:0.1em;">{{STAT_LABEL}}</div>
+    </td></tr>
+  </table>
+</td></tr>
+
+<!-- ======================================== -->
+<!-- TIMELINE ENTRY                           -->
+<!-- Repeat rows. Last row: no connector div  -->
+<!-- ======================================== -->
+<tr><td style="padding:12px 20px;background:#0a0a0a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tr>
+      <td style="width:40px;vertical-align:top;text-align:center;">
+        <div style="width:14px;height:14px;background:#ff006e;border-radius:50%;margin:3px auto 0 auto;"></div>
+        <div style="width:2px;height:40px;background:linear-gradient(180deg,#ff006e,#00fff7);margin:0 auto;"></div>
+      </td>
+      <td style="padding:0 0 14px 10px;">
+        <div style="font-size:13px;color:#ff006e;font-weight:800;">{{YEAR}}</div>
+        <div style="font-size:13px;color:#cccccc;line-height:1.6;margin-top:2px;">{{TIMELINE_TEXT}}</div>
+      </td>
+    </tr>
+  </table>
+</td></tr>
+
+<!-- ======================================== -->
+<!-- QUOTE CARD                               -->
+<!-- ======================================== -->
+<tr><td style="padding:8px 20px;background:#0a0a0a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#111111;border-left:5px solid #ff006e;border-radius:0 8px 8px 0;">
+    <tr><td style="padding:18px 20px;">
+      <div style="font-size:28px;color:#ff006e;font-weight:300;line-height:1;">&ldquo;</div>
+      <div style="font-size:14px;color:#ffffff;font-style:italic;line-height:1.8;margin-top:4px;">
+        {{QUOTE_TEXT}}
+      </div>
+      <div style="font-size:12px;color:#cccccc;margin-top:10px;font-weight:600;">{{QUOTE_ATTRIBUTION}}</div>
+    </td></tr>
+  </table>
+</td></tr>
+
+<!-- ======================================== -->
+<!-- KEY TAKEAWAYS                            -->
+<!-- ======================================== -->
+<tr><td style="padding:16px 20px;background:#0a0a0a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#111111;border-radius:8px;border:1px solid #222222;">
+    <tr><td style="padding:20px;">
+      <div style="font-size:12px;color:#ff006e;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:14px;">KEY TAKEAWAYS</div>
+      <div style="font-size:13px;color:#eeeeee;line-height:2.2;">
+        <span style="color:#00fff7;font-weight:700;">01</span>&nbsp;&nbsp;{{TAKEAWAY_1}}<br>
+        <span style="color:#ff006e;font-weight:700;">02</span>&nbsp;&nbsp;{{TAKEAWAY_2}}<br>
+        <span style="color:#ff6b35;font-weight:700;">03</span>&nbsp;&nbsp;{{TAKEAWAY_3}}<br>
+        <span style="color:#a855f7;font-weight:700;">04</span>&nbsp;&nbsp;{{TAKEAWAY_4}}<br>
+        <span style="color:#22c55e;font-weight:700;">05</span>&nbsp;&nbsp;{{TAKEAWAY_5}}
+      </div>
+    </td></tr>
+  </table>
+</td></tr>
+
+<!-- ======================================== -->
+<!-- GRADIENT DIVIDER                         -->
+<!-- ======================================== -->
+<tr><td style="padding:24px 20px 8px 20px;background:#0a0a0a;">
+  <div style="height:3px;background:linear-gradient(90deg,#ff006e,#a855f7,#00fff7);border-radius:2px;"></div>
+</td></tr>
+
+<!-- ======================================== -->
+<!-- SIGNATURE                                -->
+<!-- ======================================== -->
+<tr><td style="padding:16px 20px 8px 20px;background:#0a0a0a;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+    <tr>
+      <td style="padding-right:12px;vertical-align:top;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr>
+          <td style="width:36px;height:36px;background:#000000;border:1px solid #333333;border-radius:4px;text-align:center;vertical-align:middle;color:#ffffff;font-size:16px;font-weight:800;">C</td>
+        </tr></table>
+      </td>
+      <td style="vertical-align:top;">
+        <div style="font-size:13px;font-weight:700;color:#ffffff;">Claude</div>
+        <div style="font-size:11px;color:#999999;line-height:1.5;">
+          AI Chief of Staff | NAVADA<br>
+          On behalf of Lee Akpareva
+        </div>
+      </td>
+    </tr>
+  </table>
+</td></tr>
+
+<!-- ======================================== -->
+<!-- FOOTER                                   -->
+<!-- ======================================== -->
+<tr><td style="padding:16px 20px 32px 20px;background:#0a0a0a;">
+  <div style="height:3px;background:linear-gradient(90deg,#ff006e,#a855f7,#00fff7);border-radius:2px;margin-bottom:14px;"></div>
+  <div style="font-size:10px;color:#666666;text-align:center;line-height:1.6;">
+    NAVADA Retro Digest | Automated by Claude Code | NAVADA Server<br>
+    <a href="https://www.navadarobotics.com" style="color:#888888;text-decoration:none;">navadarobotics.com</a> |
+    <a href="https://www.navada-lab.space" style="color:#888888;text-decoration:none;">navada-lab.space</a>
+  </div>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+
+</body>
+</html>

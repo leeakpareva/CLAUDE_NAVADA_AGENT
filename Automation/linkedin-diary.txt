@@ -1,0 +1,72 @@
+================================================================================
+NAVADA LINKEDIN POST DIARY
+================================================================================
+Maintained by Claude (AI Chief of Staff)
+Owner: Lee Akpareva (@leeakpareva)
+Profile: Leslie Akpareva on LinkedIn
+
+RULES:
+1. NEVER mention pricing, fees, costs, or revenue on LinkedIn
+2. ALWAYS email Lee for approval before posting (leeakpareva@gmail.com)
+3. ALWAYS check this diary for last post before drafting new content
+4. No em dashes in post copy
+5. No client names unless Lee explicitly approves
+6. Wait minimum 2-3 days between posts to avoid spamming
+7. Hashtags: max 10, relevant to AI/tech/business
+
+================================================================================
+POST LOG
+================================================================================
+
+--- DRAFT 1 (Not Posted) ---
+Date Drafted: ~March 2026
+Status: DRAFT - Preview email sent to Lee for approval, NOT posted
+Title: "NAVADA Edge" announcement
+Theme: AI home server, full system access, 18 automations, data sovereignty
+Tone: Lee speaking, first person
+Script: Automation/send-edge-linkedin-preview.js
+Key Points:
+  - Claude running on a home server with full access
+  - 18 scheduled automations
+  - Controlled from iPhone via Tailscale
+  - Data sovereignty pitch
+  - NAVADA Edge as a deployment service
+Hashtags: #AI #Automation #EdgeComputing #DataSovereignty #AIConsulting #NAVADA #ClaudeAI #FutureOfWork #AIStrategy #DigitalTransformation
+
+--- DRAFT 2 (Not Posted) ---
+Date Drafted: ~March 2026
+Status: DRAFT - Preview email with 9 carousel slides sent, NOT posted
+Title: "Claude Introduces Itself" (AI writes the post)
+Theme: Claude speaking in first person, explaining the NAVADA Edge system
+Tone: Claude speaking, first person, professional
+Script: Automation/send-edge-linkedin-v2.js
+Key Points:
+  - Written from Claude's perspective
+  - Daily automation schedule breakdown
+  - 23 MCP servers, 42 Telegram commands
+  - Architecture diagram explanation
+  - For individuals, businesses, enterprise
+  - Carousel slides showing full system
+Hashtags: #AI #Automation #EdgeComputing #ClaudeAI #NAVADA #AIChiefOfStaff #DataSovereignty #FutureOfWork #AIArchitecture #DigitalTransformation
+
+================================================================================
+POSTED LOG (Confirmed Published)
+================================================================================
+
+(No posts published to LinkedIn yet as of 3 March 2026)
+
+================================================================================
+CONTENT THEMES CALENDAR (Suggested Rotation)
+================================================================================
+Week 1: AI Architecture / Technical insight
+Week 2: Business transformation / Case study (no names)
+Week 3: Personal journey / Thought leadership
+Week 4: NAVADA Edge / Product showcase
+
+================================================================================
+NOTES
+================================================================================
+- LinkedIn auth token expires: 27 April 2026
+- Posting scripts: linkedin-post.js (text/image), linkedin-video.js (video)
+- Telegram command: /linkedin <text>
+- Abs Oshinowo (Google) offered to repost NAVADA Edge content

@@ -11,7 +11,7 @@
 require('dotenv').config({ path: require('path').join(__dirname, '..', 'Automation', '.env') });
 const fs = require('fs');
 const path = require('path');
-const { getDailySummary, getWeeklySummary } = require('./cost-tracker');
+const { getDailySummary, getWeeklySummary } = require('./cost-tracking/cost-tracker');
 const { sendEmail } = require('../Automation/email-service');
 
 const LOGS_DIR = path.join(__dirname, '..', 'Automation', 'logs');
@@ -19,7 +19,7 @@ const VOICE_LOG = path.join(__dirname, '..', 'Automation', 'logs', 'voice-comman
 const PM2_VOICE_LOG = path.join(process.env.USERPROFILE || 'C:\\Users\\leeak', '.pm2', 'logs', 'voice-command-out.log');
 const JOBS_TRACKER = path.join(__dirname, '..', 'Automation', 'jobs-tracker.json');
 const TELEGRAM_LOG = path.join(__dirname, '..', 'Automation', 'logs', 'telegram-interactions.jsonl');
-const COST_LOG = path.join(__dirname, 'cost-log.json');
+const COST_LOG = path.join(__dirname, 'cost-tracking', 'cost-log.json');
 
 function getToday() {
   return new Date().toISOString().split('T')[0];

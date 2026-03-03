@@ -1,14 +1,14 @@
 /**
  * Send AI Cost vs Human Cost Report to Tim & Uncle Patrick
  */
-require('dotenv').config({ path: __dirname + '/../Automation/.env' });
 const fs = require('fs');
 const path = require('path');
-const { sendEmail, p } = require('../Automation/email-service');
+require('dotenv').config({ path: path.join(__dirname, '..', '..', 'Automation', '.env') });
+const { sendEmail, p } = require('../../Automation/email-service');
 
 const TODAY = new Date().toISOString().split('T')[0];
-const REPORT_PNG = path.join(__dirname, 'reports', `cost-report-${TODAY}.png`);
-const REPORT_HTML = path.join(__dirname, 'reports', `cost-report-${TODAY}.html`);
+const REPORT_PNG = path.join(__dirname, '..', 'reports', `cost-report-${TODAY}.png`);
+const REPORT_HTML = path.join(__dirname, '..', 'reports', `cost-report-${TODAY}.html`);
 
 async function main() {
   // Load the HTML summary table

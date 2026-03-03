@@ -30,7 +30,7 @@ const net = require('net');
 const axios = require('axios');
 const FormData = require('form-data');
 const { sendEmail, p } = require('./email-service');
-const costTracker = require('../Manager/cost-tracker');
+const costTracker = require('../Manager/cost-tracking/cost-tracker');
 const grok = require('./voice-grok');
 
 const AUDIO_DIR = path.join(__dirname, 'voice-notes');

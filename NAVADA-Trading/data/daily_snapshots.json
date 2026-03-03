@@ -1,0 +1,96 @@
+[
+  {
+    "timestamp": "2026-03-02T21:15:08.308883",
+    "date": "2026-03-02",
+    "equity": 99779.26,
+    "cash": 96911.3,
+    "positions": [
+      {
+        "symbol": "AAPL",
+        "qty": 2.0,
+        "entry_price": 270.7225,
+        "current_price": 264.11,
+        "market_value": 528.22,
+        "unrealized_pl": -13.225,
+        "unrealized_plpc": -0.02443
+      },
+      {
+        "symbol": "KO",
+        "qty": 3.0,
+        "entry_price": 68.08,
+        "current_price": 80.22,
+        "market_value": 240.66,
+        "unrealized_pl": 36.42,
+        "unrealized_plpc": 0.17832
+      },
+      {
+        "symbol": "META",
+        "qty": 2.0,
+        "entry_price": 653.71,
+        "current_price": 651.6,
+        "market_value": 1303.2,
+        "unrealized_pl": -4.22,
+        "unrealized_plpc": -0.00323
+      },
+      {
+        "symbol": "MSFT",
+        "qty": 2.0,
+        "entry_price": 517.15,
+        "current_price": 397.94,
+        "market_value": 795.88,
+        "unrealized_pl": -238.42,
+        "unrealized_plpc": -0.23051
+      }
+    ],
+    "position_count": 4,
+    "total_return_pct": 399017.04,
+    "daily_pnl": 0.0
+  },
+  {
+    "timestamp": "2026-03-02T21:15:23.129036",
+    "date": "2026-03-02",
+    "equity": 99779.45,
+    "cash": 96911.3,
+    "positions": [
+      {
+        "symbol": "AAPL",
+        "qty": 2.0,
+        "entry_price": 270.7225,
+        "current_price": 264.11,
+        "market_value": 528.22,
+        "unrealized_pl": -13.225,
+        "unrealized_plpc": -0.02443
+      },
+      {
+        "symbol": "KO",
+        "qty": 3.0,
+        "entry_price": 68.08,
+        "current_price": 80.22,
+        "market_value": 240.66,
+        "unrealized_pl": 36.42,
+        "unrealized_plpc": 0.17832
+      },
+      {
+        "symbol": "META",
+        "qty": 2.0,
+        "entry_price": 653.71,
+        "current_price": 651.6,
+        "market_value": 1303.2,
+        "unrealized_pl": -4.22,
+        "unrealized_plpc": -0.00323
+      },
+      {
+        "symbol": "MSFT",
+        "qty": 2.0,
+        "entry_price": 517.15,
+        "current_price": 398.0344,
+        "market_value": 796.0688,
+        "unrealized_pl": -238.2312,
+        "unrealized_plpc": -0.23033
+      }
+    ],
+    "position_count": 4,
+    "total_return_pct": 399017.8,
+    "daily_pnl": 0.1900000000023283
+  }
+]
