@@ -159,7 +159,7 @@ const html = `<!DOCTYPE html>
       <tr>
         <td style="padding:16px 16px 8px 16px; text-align:center;">
           <div style="font-size:10px; letter-spacing:0.3em; color:#FFD700; text-transform:uppercase; font-weight:700;">THE NAVADA EDGE SERVER (Your HP Machine)</div>
-          <div style="font-size:9px; color:#666; margin-top:4px;">Windows 11 Pro | Always on | 192.168.0.36</div>
+          <div style="font-size:9px; color:#666; margin-top:4px;">Windows 11 Pro | Always on | 192.168.0.58</div>
         </td>
       </tr>
 

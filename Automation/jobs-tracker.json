@@ -9384,6 +9384,363 @@
       "dateFound": "2026-03-03",
       "dateApplied": null,
       "notes": ""
+    },
+    {
+      "id": "a3rfph",
+      "title": "Senior Manager/Associate Director, Head of AI Controls, Controls Advisory, Finance Transformation",
+      "company": "Deloitte",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=fcdbf09977a81c7d",
+      "type": "Contract",
+      "score": 6,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "j267i2",
+      "title": "AI & Innovation Lead",
+      "company": "Pivot Support",
+      "salary": "£70,000 - £85,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=4e25087e40a9e1c0",
+      "type": "Contract",
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "aac1c1",
+      "title": "SEO / AI Search Strategist Client Director",
+      "company": "FirstMotion Ltd",
+      "salary": "£55,000 - £65,000 a year",
+      "location": "London W1H",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=3fbd7a6199622061",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "qybh16",
+      "title": "Senior UI Engineer - Vice President",
+      "company": "Citi",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=cde8edbe2199b635",
+      "type": [
+        "Full-time"
+      ],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "wa9tyk",
+      "title": "Senior Software Engineer",
+      "company": "UK Export Finance",
+      "salary": "£56,475 - £76,671 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ee3ce2fe6e306d28",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "t3gprc",
+      "title": "Senior Front End Engineer",
+      "company": "Artsy",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=39feb00a258a81b6",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "76d5i2",
+      "title": "Senior Partner Manager- Remote UK or US",
+      "company": "Otera",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=a81aecca56070f7f",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "p0u6s4",
+      "title": "Head of Data & Analytics",
+      "company": "InvestEngine",
+      "salary": "Not listed",
+      "location": "London SE1 0BS",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=d070f2e6dc806ba1",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "hvdi1j",
+      "title": "Senior Optimisation Scientist",
+      "company": "Satalia",
+      "salary": "Not listed",
+      "location": "London N1 9PP",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=cba7fb00a2340a9f",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "i41tas",
+      "title": "Associate Principal - DAS/ERRCS",
+      "company": "TEECOM",
+      "salary": "$125,000 - $160,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=94c0bcde64e2d680",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "p3nfdj",
+      "title": "Assistant Director - Workflow Specialist - Government",
+      "company": "Moody's",
+      "salary": "Not listed",
+      "location": "London E14",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ec78a20972d96c82",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "xcmgp8",
+      "title": "VP of Product - London",
+      "company": "Murphy AI",
+      "salary": "Not listed",
+      "location": "London W1W",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=1879675da51e66f6",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "157h9s",
+      "title": "Project Director: Reviews and Evidence Synthesis",
+      "company": "University of York",
+      "salary": "Not listed",
+      "location": "University of York",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=506076ad10933507",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "fv1n5h",
+      "title": "VP - Engineering",
+      "company": "Mimecast",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=792ac940e018d94d",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "q6eiel",
+      "title": "Global AI-Enhanced Learning & Development Manager",
+      "company": "SharkNinja",
+      "salary": "Not listed",
+      "location": "Leeds",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=30cb38f743ee6921",
+      "type": [],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "p22eug",
+      "title": "Data Engineer - Dry Bulk Commodities",
+      "company": "Kpler",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ea4c1790eac9bfc2",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ydubr5",
+      "title": "Product Manager – Critical Underwater Infrastructure",
+      "company": "JamesFisher",
+      "salary": "Not listed",
+      "location": "Barrow-In-Furness LA14",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=1f5648df790b1332",
+      "type": [
+        "Permanent"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "2eunhv",
+      "title": "Manager, Tech Value Creation, M&A Technology",
+      "company": "Deloitte",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=3f40fd7cf5f512be",
+      "type": "Contract",
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "duhw2k",
+      "title": "Executive Digital Technology Consultant",
+      "company": "Atos",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=78640d9cf20ebfe2",
+      "type": [],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "3sf70a",
+      "title": "Structural Engineer - International Towers LLC",
+      "company": "S & K Technologies, Inc.",
+      "salary": "$100,000 - $130,000 a year",
+      "location": "Tallahassee, FL 32399",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=efa644ea989ca0dc",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "qe1ttb",
+      "title": "Electrical Engineer/Designer - MEP",
+      "company": "Dialectic Engineering",
+      "salary": "Not listed",
+      "location": "Kansas City, MO 64108",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=dc7f3d2b6efdb4e4",
+      "type": [],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "jpv9q4",
+      "title": "Community & Cohorts Manager",
+      "company": "Searchable",
+      "salary": "£50,000 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=34ffe27211d0050d",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-03",
+      "dateApplied": null,
+      "notes": ""
     }
   ]
 }

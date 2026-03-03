@@ -1,6 +1,6 @@
 {"elements": [
   {"id": "title", "type": "text", "x": 180, "y": 10, "text": "NAVADA SERVER ARCHITECTURE", "fontSize": 28, "fontFamily": "1", "strokeColor": "#1e1e1e"},
-  {"id": "subtitle", "type": "text", "x": 120, "y": 48, "text": "HP Laptop  |  Windows 11  |  192.168.0.36  |  23 MCP Servers", "fontSize": 14, "fontFamily": "1", "strokeColor": "#868e96"},
+  {"id": "subtitle", "type": "text", "x": 120, "y": 48, "text": "HP Laptop  |  Windows 11  |  192.168.0.58  |  23 MCP Servers", "fontSize": 14, "fontFamily": "1", "strokeColor": "#868e96"},
 
   {"id": "iphone", "type": "rectangle", "x": 50, "y": 100, "width": 180, "height": 55, "backgroundColor": "#343a40", "strokeColor": "#495057", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "iPhone 15 Pro Max", "color": "#ffffff"}},
   {"id": "s8", "type": "rectangle", "x": 50, "y": 170, "width": 180, "height": 55, "backgroundColor": "#343a40", "strokeColor": "#495057", "fillStyle": "solid", "roundness": {"type": 3}, "label": {"text": "S8 BT Speaker", "color": "#ffffff"}},

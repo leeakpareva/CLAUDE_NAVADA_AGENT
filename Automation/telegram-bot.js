@@ -33,6 +33,57 @@ const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_T
 const TWILIO_FROM = process.env.TWILIO_PHONE_NUMBER || '';
 const SMS_SIGNATURE = '\n\n— Claude, Chief of Staff\nNAVADA AI Engineering & Consulting\n+447446994961\nnavada-lab.space | navadarobotics.com | navada-edge-server.uk | alexnavada.xyz | raventerminal.xyz | navada-world-view.xyz';
 
+// --- Multi-Channel Push Notifications ---
+const LEE_MOBILE = process.env.LEE_MOBILE || '+447935237704';
+const WHATSAPP_SANDBOX_TO = process.env.WHATSAPP_SANDBOX_TO || 'whatsapp:+447935237704';
+const WHATSAPP_SANDBOX_FROM = process.env.WHATSAPP_SANDBOX_FROM || 'whatsapp:+14155238886';
+
+/**
+ * Send push notification to Lee via all available channels
+ * @param {string} message - Notification text
+ * @param {Object} opts - { telegram: true, sms: true, whatsapp: true }
+ */
+async function notifyAllChannels(message, opts = {}) {
+  const { telegram = true, sms = true, whatsapp = true } = opts;
+  const results = { telegram: null, sms: null, whatsapp: null };
+
+  // Telegram
+  if (telegram) {
+    try {
+      await bot.telegram.sendMessage(OWNER_ID, message, { parse_mode: 'HTML' });
+      results.telegram = 'sent';
+    } catch (e) { results.telegram = `failed: ${e.message}`; }
+  }
+
+  // SMS
+  if (sms && twilioClient) {
+    try {
+      await twilioClient.messages.create({
+        body: message.replace(/<[^>]+>/g, '') + SMS_SIGNATURE,
+        from: TWILIO_FROM,
+        to: LEE_MOBILE,
+      });
+      results.sms = 'sent';
+    } catch (e) { results.sms = `failed: ${e.message}`; }
+  }
+
+  // WhatsApp (sandbox)
+  if (whatsapp && twilioClient) {
+    try {
+      await twilioClient.messages.create({
+        body: message.replace(/<[^>]+>/g, ''),
+        from: WHATSAPP_SANDBOX_FROM,
+        to: WHATSAPP_SANDBOX_TO,
+        statusCallback: 'https://api.navada-edge-server.uk/twilio/status',
+      });
+      results.whatsapp = 'sent';
+    } catch (e) { results.whatsapp = `failed: ${e.message}`; }
+  }
+
+  console.log('[notify]', JSON.stringify(results));
+  return results;
+}
+
 // --- Rate Limiting (per-user) ---
 const RATE_LIMITS = {
   guest: { maxPerDay: 50, maxPerHour: 20 },  // generous for a good UX
@@ -545,6 +596,20 @@ const TOOLS = [
       },
       required: ['to', 'message']
     }
+  },
+  {
+    name: 'push_notification',
+    description: 'Send a push notification to Lee across all channels (Telegram, SMS, WhatsApp). Use for alerts, task completions, important updates.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', description: 'The notification message to send' },
+        telegram: { type: 'boolean', description: 'Send via Telegram (default true)' },
+        sms: { type: 'boolean', description: 'Send via SMS (default true)' },
+        whatsapp: { type: 'boolean', description: 'Send via WhatsApp (default true)' }
+      },
+      required: ['message']
+    }
   }
 ];
 
@@ -665,7 +730,7 @@ async function executeTool(name, input, userRole) {
         ``,
         `Tailscale:\n${tsOut || '  (unavailable)'}`,
         ``,
-        `Local IP: 192.168.0.36`,
+        `Local IP: 192.168.0.58`,
         `Tailscale IP: 100.121.187.67`,
         `AI Model: ${currentModelName} (${currentModel})`
       ].join('\n');
@@ -813,6 +878,19 @@ async function executeTool(name, input, userRole) {
         return `Error making call: ${err.message}`;
       }
     }
+    case 'push_notification': {
+      log(`[TOOL] push_notification: ${input.message}`);
+      try {
+        const results = await notifyAllChannels(input.message, {
+          telegram: input.telegram !== false,
+          sms: input.sms !== false,
+          whatsapp: input.whatsapp !== false,
+        });
+        return `Notification sent: ${JSON.stringify(results)}`;
+      } catch (err) {
+        return `Error sending notification: ${err.message}`;
+      }
+    }
     case 'generate_image': {
       log(`[TOOL] generate_image: ${input.prompt}`);
       if (!openai) return 'Error: OpenAI SDK not available or OPENAI_API_KEY not set.';
@@ -856,7 +934,7 @@ You are not just an assistant. You are the Chief of Staff. You manage the server
 
 ## Server: NAVADA HP Laptop
 - OS: Windows 11 Pro, Git Bash shell
-- Local IP: 192.168.0.36 | Tailscale: 100.121.187.67
+- Local IP: 192.168.0.58 | Tailscale: 100.121.187.67
 - Python: use \`py\` (not python3)
 - Node.js + npm installed globally
 - Docker Desktop (WSL2) | PM2 process management
@@ -1368,7 +1446,7 @@ bot.command('ip', (ctx) => {
   log('/ip');
   ctx.reply(
     `Network Addresses\n\n` +
-    `Local: 192.168.0.36\n` +
+    `Local: 192.168.0.58\n` +
     `Tailscale: 100.121.187.67\n` +
     `Hostname: ${os.hostname()}\n` +
     `iPhone: 100.68.251.111`
@@ -1926,6 +2004,15 @@ guardCommand('call', async (ctx) => {
   }
 });
 
+// /notify <message> — push notification to all channels
+guardCommand('notify', async (ctx) => {
+  const message = ctx.message.text.replace('/notify', '').trim();
+  if (!message) return ctx.reply('Usage: /notify <message>\nSends push notification via Telegram + SMS + WhatsApp');
+  log(`/notify: ${message}`);
+  const results = await notifyAllChannels(message, { telegram: false, sms: true, whatsapp: true });
+  ctx.reply(`Push notification sent:\nSMS: ${results.sms}\nWhatsApp: ${results.whatsapp}\n(Telegram: you're already here)`);
+});
+
 // /memory
 bot.command('memory', (ctx) => {
   log('/memory');
@@ -2109,6 +2196,7 @@ async function registerCommands() {
       { command: 'linkedin', description: 'Post to LinkedIn' },
       { command: 'sms', description: 'Send SMS to a number' },
       { command: 'call', description: 'Voice call with message' },
+      { command: 'notify', description: 'Push notify all channels' },
       // Creative
       { command: 'present', description: 'Email HTML presentation' },
       { command: 'report', description: 'Generate & email report' },
@@ -2292,6 +2380,120 @@ Reply concisely (max 320 chars for text replies). Current time: ${new Date().toL
         res.writeHead(200, { 'Content-Type': 'text/xml' });
         res.end('<Response></Response>');
       }
+    });
+  } else if (req.method === 'POST' && req.url === '/twilio/whatsapp') {
+    // Inbound WhatsApp messages (same pattern as SMS)
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const params = new URLSearchParams(body);
+        const from = (params.get('From') || '').replace('whatsapp:', '');
+        const waBody = params.get('Body') || '';
+        const to = params.get('To') || '';
+        log(`[WHATSAPP IN] From: ${from} | Body: ${waBody}`);
+
+        // Forward to Lee on Telegram
+        await bot.telegram.sendMessage(OWNER_ID,
+          `WhatsApp message from ${from}:\n\n${waBody}`
+        );
+
+        // If it's from Lee's number, process with Claude and reply
+        if (from === '+447935237704' && waBody.trim()) {
+          const claude = new Anthropic({ apiKey: ANTHROPIC_KEY });
+          const waTools = [
+            {
+              name: 'send_sms',
+              description: 'Send an SMS to any phone number.',
+              input_schema: {
+                type: 'object',
+                properties: {
+                  to: { type: 'string', description: 'Phone number (e.g. +447935237704)' },
+                  message: { type: 'string', description: 'Message to send' }
+                },
+                required: ['to', 'message']
+              }
+            },
+            {
+              name: 'run_shell',
+              description: 'Run a shell command on the NAVADA server.',
+              input_schema: {
+                type: 'object',
+                properties: { command: { type: 'string' } },
+                required: ['command']
+              }
+            }
+          ];
+
+          let waMessages = [{ role: 'user', content: waBody }];
+          let maxLoops = 5;
+
+          const response = await claude.messages.create({
+            model: currentModel,
+            max_tokens: 1000,
+            tools: waTools,
+            system: `You are Claude, Chief of Staff at NAVADA AI Engineering & Consulting. Lee Akpareva (Founder) messaged you on WhatsApp. You have FULL access to the NAVADA server. Reply concisely. Current time: ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' })}.`,
+            messages: waMessages,
+          });
+
+          let currentResponse = response;
+          while (currentResponse.stop_reason === 'tool_use' && maxLoops-- > 0) {
+            const toolUses = currentResponse.content.filter(c => c.type === 'tool_use');
+            const toolResults = [];
+            for (const tool of toolUses) {
+              let result = '';
+              if (tool.name === 'send_sms' && twilioClient) {
+                try {
+                  const msg = await twilioClient.messages.create({ body: tool.input.message + SMS_SIGNATURE, from: TWILIO_FROM, to: tool.input.to });
+                  result = JSON.stringify({ status: msg.status, sid: msg.sid, to: tool.input.to });
+                  log(`[SMS OUT via WA] To ${tool.input.to}: ${tool.input.message}`);
+                  await bot.telegram.sendMessage(OWNER_ID, `SMS sent (via WhatsApp cmd) to ${tool.input.to}:\n\n${tool.input.message}`);
+                } catch (err) { result = `Error: ${err.message}`; }
+              } else if (tool.name === 'run_shell') {
+                try {
+                  const { execSync } = require('child_process');
+                  result = execSync(tool.input.command, { timeout: 30000, cwd: NAVADA_DIR }).toString().slice(0, 2000);
+                } catch (err) { result = `Error: ${err.message}`; }
+              }
+              toolResults.push({ type: 'tool_result', tool_use_id: tool.id, content: result });
+            }
+            waMessages.push({ role: 'assistant', content: currentResponse.content });
+            waMessages.push({ role: 'user', content: toolResults });
+            currentResponse = await claude.messages.create({
+              model: currentModel, max_tokens: 1000, tools: waTools,
+              system: `You are Claude, Chief of Staff at NAVADA. Reply concisely. Current time: ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' })}.`,
+              messages: waMessages,
+            });
+          }
+
+          const reply = currentResponse.content.find(c => c.type === 'text')?.text || '';
+          if (reply && twilioClient) {
+            await twilioClient.messages.create({
+              body: reply,
+              from: 'whatsapp:+14155238886',
+              to: `whatsapp:${from}`,
+              statusCallback: 'https://api.navada-edge-server.uk/twilio/status',
+            });
+            log(`[WHATSAPP OUT] Reply to ${from}: ${reply}`);
+            await bot.telegram.sendMessage(OWNER_ID, `WhatsApp reply sent to ${from}:\n\n${reply}`);
+          }
+        }
+
+        res.writeHead(200, { 'Content-Type': 'text/xml' });
+        res.end('<Response></Response>');
+      } catch (err) {
+        log(`[WHATSAPP ERROR] ${err.message}`);
+        res.writeHead(200, { 'Content-Type': 'text/xml' });
+        res.end('<Response></Response>');
+      }
+    });
+  } else if (req.method === 'POST' && req.url === '/twilio/status') {
+    // Twilio status callback (just acknowledge)
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      res.writeHead(200, { 'Content-Type': 'text/xml' });
+      res.end('<Response></Response>');
     });
   } else if (req.method === 'GET' && req.url === '/twilio/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });

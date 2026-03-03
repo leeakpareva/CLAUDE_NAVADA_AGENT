@@ -9,7 +9,7 @@
 | OS | Windows 11 Pro 10.0.22631 |
 | Uptime | 2 days 6 hours |
 | Disk C: | 120GB free / 255GB total (47% free) |
-| Local IP | 192.168.0.36 |
+| Local IP | 192.168.0.58 |
 | Tailscale IP | 100.121.187.67 |
 | Node.js | v24.13.1 |
 | Python | 3.12 |

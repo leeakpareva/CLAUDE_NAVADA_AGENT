@@ -9,7 +9,7 @@
 | **Stack** | TypeScript, Vite, D3.js, MapLibre, DeckGL, AI (Groq/OpenRouter) |
 | **Variants** | Full (geopolitical), Tech, Finance, Happy |
 | **Demo URL** | `https://navada.tail394c36.ts.net` |
-| **Local** | `http://192.168.0.36:4173` |
+| **Local** | `http://192.168.0.58:4173` |
 | **Repo** | `~/Alex/navada-osint/worldmonitor-repo` |
 | **Revenue** | SaaS ($500-5K/mo), Consulting ($150-250/hr), White-label ($10-50K) |
 | **Competitors** | Dataminr, Babel Street, Recorded Future, Palantir |

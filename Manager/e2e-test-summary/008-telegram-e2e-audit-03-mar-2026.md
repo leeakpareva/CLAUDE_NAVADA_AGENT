@@ -40,7 +40,7 @@ Cloudflare tunnel Docker container in restart loop. Error: "Provided Tunnel toke
 | /status | Claude+tool | PASS | Uses server_status tool. Real data. |
 | /disk | Claude+tool | PASS | Verified: C: 120GB free / 255GB total |
 | /uptime | Direct (os.uptime) | PASS | Verified: 2d 6h. No AI involved. |
-| /ip | Direct (hardcoded) | PASS | 192.168.0.36 + Tailscale 100.121.187.67 |
+| /ip | Direct (hardcoded) | PASS | 192.168.0.58 + Tailscale 100.121.187.67 |
 | /processes | Claude+tool | PASS | 8 PM2 + 6 Docker containers |
 
 ### PM2 (5/5 PASS)
