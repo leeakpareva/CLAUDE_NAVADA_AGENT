@@ -2955,6 +2955,32 @@ guardCommand('media', async (ctx) => {
   }
 });
 
+// /video (admin only) - Generate videos and media assets for any topic
+guardCommand('video', async (ctx) => {
+  const args = ctx.message.text.replace('/video', '').trim();
+  log(`/video ${args}`);
+  if (!args) {
+    return ctx.reply(
+      'Usage: /video <description>\n\n' +
+      'Generate videos and media assets for any topic.\n\n' +
+      'Examples:\n' +
+      '/video 60s explainer about AI agents\n' +
+      '/video 15s NAVADA brand intro\n' +
+      '/video thumbnail "Why Enterprise AI Fails"\n' +
+      '/video image hero for UK-Africa investment fund\n' +
+      '/video clip abstract neural network animation 5s\n' +
+      '/video all "NAVADA Edge launch" (full asset pack)\n\n' +
+      'Asset types: video, image, thumbnail, clip, logo, infographic, audio, slides, all'
+    );
+  }
+  // Route through Claude with media generation context
+  await askClaude(ctx, `The user wants to generate media content. Use the available tools (generate_image, gemini_image, flux_image, run_shell) to create this asset. For videos, use Remotion if the navada-video project exists (~/navada-video), otherwise describe what tools are needed. For images, use DALL-E (generate_image), Gemini (gemini_image), or Flux (flux_image) based on what's best for the request. Save outputs to ~/navada-outputs/.
+
+User request: "${args}"
+
+If this is a simple image request, generate it immediately. If it requires Remotion setup or complex video rendering, explain what's needed and offer to set it up.`);
+});
+
 // /r2 (admin only) - Cloudflare R2 object storage
 guardCommand('r2', async (ctx) => {
   const args = ctx.message.text.replace('/r2', '').trim();
@@ -3126,6 +3152,7 @@ async function registerCommands() {
       { command: 'gemini', description: 'Generate AI image (Gemini)' },
       { command: 'r2', description: 'R2 object storage' },
       { command: 'media', description: 'NAVADA media library' },
+      { command: 'video', description: 'Generate videos and media assets' },
       // Voice & Other
       { command: 'voice', description: 'Voice system control' },
       { command: 'voicenote', description: 'Send voice email to Lee' },
