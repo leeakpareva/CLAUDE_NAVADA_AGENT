@@ -250,7 +250,7 @@ const ADMIN_ONLY_COMMANDS = new Set([
   'present', 'report', 'briefing', 'voicenote', 'linkedin',
   'clear', 'grant', 'revoke', 'users',
   'news', 'jobs', 'pipeline', 'prospect', 'ralph',
-  'stream', 'trace', 'flux', 'r2',
+  'stream', 'trace', 'flux', 'gemini', 'r2', 'media', 'logs', 'elk',
 ]);
 
 // Guest-safe commands
@@ -681,6 +681,48 @@ const TOOLS = [
         save_to_r2: { type: 'boolean', description: 'Upload generated image to R2 storage (default false)' }
       },
       required: ['prompt']
+    }
+  },
+  {
+    name: 'gemini_image',
+    description: 'Generate image using Google Gemini 2.0 Flash. ~£0.03/image. Good for photorealistic and artistic images. Third option alongside DALL-E 3 (premium) and Flux (free).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        prompt: { type: 'string', description: 'Image description prompt' },
+        aspect_ratio: { type: 'string', enum: ['1:1', '16:9', '9:16', '4:3', '3:4'], description: 'Aspect ratio (default 1:1)' }
+      },
+      required: ['prompt']
+    }
+  },
+  {
+    name: 'play_media',
+    description: 'Access NAVADA media library hosted on Cloudflare R2. Actions: "list" (list all media), "play" (get playback URL for a media file), "send_email" (email a media file to someone as a link). Zero egress cost.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['list', 'play', 'send_email'], description: 'Action to perform' },
+        filename: { type: 'string', description: 'Media filename (e.g. claude-chief-of-staff.mp4). Required for play and send_email.' },
+        to_email: { type: 'string', description: 'Recipient email address (required for send_email action)' },
+        subject: { type: 'string', description: 'Email subject (optional, for send_email)' },
+        message: { type: 'string', description: 'Email body message (optional, for send_email)' }
+      },
+      required: ['action']
+    }
+  },
+  {
+    name: 'elk_query',
+    description: 'Search and query NAVADA logs via Elasticsearch (ELK stack). Full-text search across all server logs, Telegram interactions, PM2 logs, and automation outputs.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['search', 'tail', 'count', 'indices', 'stats'], description: 'Action: search (full-text), tail (latest N entries), count (matching entries), indices (list available), stats (cluster health)' },
+        query: { type: 'string', description: 'Search text (for search/count actions)' },
+        index: { type: 'string', description: 'Index pattern (e.g. navada-telegram-*, navada-automation-*, navada-pm2-*). Default: all indices.' },
+        size: { type: 'number', description: 'Number of results to return (default 10)' },
+        time_range: { type: 'string', description: 'Time range filter: 1h, 6h, 24h, 7d, 30d (default: 24h)' }
+      },
+      required: ['action']
     }
   }
 ];
@@ -1140,6 +1182,278 @@ async function executeTool(name, input, userRole) {
         return `Error (flux_image): ${err.message}`;
       }
     }
+    case 'gemini_image': {
+      log(`[TOOL] gemini_image: ${input.prompt}`);
+      try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) return 'Error: GEMINI_API_KEY not set in .env';
+
+        const aspectRatio = input.aspect_ratio || '1:1';
+        const requestBody = JSON.stringify({
+          contents: [{ parts: [{ text: input.prompt }] }],
+          generationConfig: {
+            responseModalities: ['TEXT', 'IMAGE'],
+            imageConfig: { aspectRatio }
+          }
+        });
+
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${apiKey}`;
+
+        const imageData = await new Promise((resolve, reject) => {
+          const urlObj = new URL(geminiUrl);
+          const req = https.request({
+            hostname: urlObj.hostname,
+            path: urlObj.pathname + urlObj.search,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          }, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+              if (res.statusCode !== 200) {
+                reject(new Error(`Gemini API ${res.statusCode}: ${data.slice(0, 500)}`));
+                return;
+              }
+              try {
+                const parsed = JSON.parse(data);
+                const parts = parsed.candidates?.[0]?.content?.parts || [];
+                const imgPart = parts.find(p => p.inline_data);
+                const textPart = parts.find(p => p.text);
+                if (!imgPart) {
+                  reject(new Error('No image in Gemini response. Text: ' + (textPart?.text || 'none')));
+                  return;
+                }
+                resolve({
+                  base64: imgPart.inline_data.data,
+                  mimeType: imgPart.inline_data.mime_type,
+                  description: textPart?.text || ''
+                });
+              } catch (e) {
+                reject(new Error('Failed to parse Gemini response: ' + e.message));
+              }
+            });
+          });
+          req.on('error', reject);
+          req.write(requestBody);
+          req.end();
+        });
+
+        const ext = imageData.mimeType.includes('png') ? 'png' : 'jpg';
+        const filename = `gemini-${Date.now()}.${ext}`;
+        const filePath = path.join(UPLOADS_DIR, filename);
+        const buffer = Buffer.from(imageData.base64, 'base64');
+        fs.writeFileSync(filePath, buffer);
+
+        // Log cost
+        const costTracker = require('../Manager/cost-tracking/cost-tracker');
+        costTracker.logCall('gemini-flash-image', { images: 1, script: 'telegram-bot' });
+
+        return JSON.stringify({
+          file_path: filePath,
+          size_kb: (buffer.length / 1024).toFixed(1),
+          description: imageData.description,
+          aspect_ratio: aspectRatio
+        });
+      } catch (err) {
+        return `Error (gemini_image): ${err.message}`;
+      }
+    }
+    case 'play_media': {
+      log(`[TOOL] play_media: ${input.action} ${input.filename || ''}`);
+      const R2_PUBLIC = 'https://pub-60e73a76c6ae44e0a73e6617ada8f376.r2.dev';
+      const MEDIA_PREFIX = 'media/';
+      try {
+        switch (input.action) {
+          case 'list': {
+            const CF_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+            const CF_ACCT = process.env.CLOUDFLARE_ACCOUNT_ID;
+            const listUrl = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCT}/r2/buckets/navada-assets/objects?prefix=${MEDIA_PREFIX}`;
+            const listRes = await new Promise((resolve, reject) => {
+              const urlObj = new URL(listUrl);
+              https.get({
+                hostname: urlObj.hostname,
+                path: urlObj.pathname + urlObj.search,
+                headers: { 'Authorization': `Bearer ${CF_TOKEN}` }
+              }, (res) => {
+                let data = '';
+                res.on('data', c => data += c);
+                res.on('end', () => {
+                  try { resolve(JSON.parse(data)); } catch (e) { reject(e); }
+                });
+              }).on('error', reject);
+            });
+            if (listRes.success && listRes.result) {
+              const files = listRes.result.map(obj => ({
+                name: obj.key.replace(MEDIA_PREFIX, ''),
+                size_mb: (obj.size / 1024 / 1024).toFixed(1),
+                url: `${R2_PUBLIC}/${obj.key}`,
+                uploaded: obj.uploaded
+              }));
+              return JSON.stringify({ media_count: files.length, files });
+            }
+            return JSON.stringify({ media_count: 0, files: [] });
+          }
+          case 'play': {
+            if (!input.filename) return 'Error: filename required for play action';
+            const url = `${R2_PUBLIC}/${MEDIA_PREFIX}${input.filename}`;
+            return JSON.stringify({ filename: input.filename, playback_url: url, type: 'video/mp4' });
+          }
+          case 'send_email': {
+            if (!input.filename) return 'Error: filename required for send_email';
+            if (!input.to_email) return 'Error: to_email required for send_email';
+            const mediaUrl = `${R2_PUBLIC}/${MEDIA_PREFIX}${input.filename}`;
+            const subject = input.subject || `NAVADA Media: ${input.filename}`;
+            const body = input.message
+              ? `${input.message}\n\nWatch here: ${mediaUrl}`
+              : `Here is the media file from NAVADA:\n\nWatch here: ${mediaUrl}`;
+            // Use the send_email tool internally
+            const emailResult = await executeTool('send_email', {
+              to: input.to_email,
+              subject: subject,
+              body: `<p>${body.replace(/\n/g, '<br>')}</p>`
+            }, 'admin');
+            return JSON.stringify({ sent: true, to: input.to_email, subject, media_url: mediaUrl, email_result: emailResult });
+          }
+          default:
+            return `Unknown play_media action: ${input.action}`;
+        }
+      } catch (err) {
+        return `Error (play_media): ${err.message}`;
+      }
+    }
+    case 'elk_query': {
+      log(`[TOOL] elk_query: ${input.action} ${input.query || ''}`);
+      const esHttp = require('http');
+      const ES_BASE = 'http://localhost:9200';
+
+      function esRequest(method, path, body) {
+        return new Promise((resolve, reject) => {
+          const url = new URL(path, ES_BASE);
+          const opts = {
+            hostname: url.hostname,
+            port: url.port,
+            path: url.pathname + url.search,
+            method,
+            headers: { 'Content-Type': 'application/json' },
+          };
+          const req = esHttp.request(opts, (res) => {
+            let data = '';
+            res.on('data', c => data += c);
+            res.on('end', () => {
+              try { resolve(JSON.parse(data)); } catch (e) { resolve(data); }
+            });
+          });
+          req.on('error', reject);
+          req.setTimeout(15000, () => { req.destroy(); reject(new Error('ES request timeout')); });
+          if (body) req.write(JSON.stringify(body));
+          req.end();
+        });
+      }
+
+      function parseTimeRange(tr) {
+        const now = Date.now();
+        const match = (tr || '24h').match(/^(\d+)(h|d|m|w)$/);
+        if (!match) return { gte: 'now-24h' };
+        return { gte: `now-${match[1]}${match[2]}` };
+      }
+
+      try {
+        const index = input.index || 'navada-*';
+        const size = Math.min(input.size || 10, 50);
+        const timeFilter = parseTimeRange(input.time_range);
+
+        switch (input.action) {
+          case 'search': {
+            if (!input.query) return 'Error: query required for search action';
+            const body = {
+              size,
+              sort: [{ '@timestamp': 'desc' }],
+              query: {
+                bool: {
+                  must: [{ query_string: { query: input.query } }],
+                  filter: [{ range: { '@timestamp': timeFilter } }]
+                }
+              }
+            };
+            const res = await esRequest('POST', `/${index}/_search`, body);
+            if (res.error) return `ES Error: ${JSON.stringify(res.error)}`;
+            const hits = res.hits?.hits || [];
+            if (hits.length === 0) return `No results for "${input.query}" in ${index} (${input.time_range || '24h'})`;
+            const lines = hits.map((h, i) => {
+              const s = h._source;
+              const ts = s['@timestamp'] || '';
+              const msg = s.message || s.log || JSON.stringify(s).slice(0, 300);
+              return `[${i + 1}] ${ts} [${h._index}]\n${msg}`;
+            });
+            return `Found ${res.hits.total?.value || hits.length} results for "${input.query}":\n\n${lines.join('\n\n')}`;
+          }
+          case 'tail': {
+            const body = {
+              size,
+              sort: [{ '@timestamp': 'desc' }],
+              query: { bool: { filter: [{ range: { '@timestamp': timeFilter } }] } }
+            };
+            const res = await esRequest('POST', `/${index}/_search`, body);
+            if (res.error) return `ES Error: ${JSON.stringify(res.error)}`;
+            const hits = res.hits?.hits || [];
+            if (hits.length === 0) return `No entries in ${index} (${input.time_range || '24h'})`;
+            const lines = hits.map((h, i) => {
+              const s = h._source;
+              const ts = s['@timestamp'] || '';
+              const msg = s.message || s.log || JSON.stringify(s).slice(0, 300);
+              return `[${i + 1}] ${ts} [${h._index}]\n${msg}`;
+            });
+            return `Latest ${hits.length} entries from ${index}:\n\n${lines.join('\n\n')}`;
+          }
+          case 'count': {
+            const body = {
+              query: input.query
+                ? { bool: { must: [{ query_string: { query: input.query } }], filter: [{ range: { '@timestamp': timeFilter } }] } }
+                : { bool: { filter: [{ range: { '@timestamp': timeFilter } }] } }
+            };
+            const res = await esRequest('POST', `/${index}/_count`, body);
+            if (res.error) return `ES Error: ${JSON.stringify(res.error)}`;
+            return `Count: ${res.count} entries${input.query ? ` matching "${input.query}"` : ''} in ${index} (${input.time_range || '24h'})`;
+          }
+          case 'indices': {
+            const res = await esRequest('GET', '/_cat/indices?format=json&s=index');
+            if (!Array.isArray(res)) return `ES Error: ${JSON.stringify(res)}`;
+            if (res.length === 0) return 'No indices found in Elasticsearch.';
+            const lines = res.map(idx => `${idx.index} | ${idx['docs.count']} docs | ${idx['store.size']} | ${idx.health}`);
+            return `Elasticsearch Indices (${res.length}):\n\n${lines.join('\n')}`;
+          }
+          case 'stats': {
+            const [health, indices] = await Promise.all([
+              esRequest('GET', '/_cluster/health'),
+              esRequest('GET', '/_cat/indices?format=json&s=index'),
+            ]);
+            const indexList = Array.isArray(indices) ? indices : [];
+            const totalDocs = indexList.reduce((sum, idx) => sum + parseInt(idx['docs.count'] || 0), 0);
+            const totalSize = indexList.reduce((sum, idx) => {
+              const s = idx['store.size'] || '0b';
+              const match = s.match(/([\d.]+)(kb|mb|gb|b)/i);
+              if (!match) return sum;
+              const val = parseFloat(match[1]);
+              const unit = match[2].toLowerCase();
+              if (unit === 'gb') return sum + val * 1024;
+              if (unit === 'mb') return sum + val;
+              if (unit === 'kb') return sum + val / 1024;
+              return sum + val / (1024 * 1024);
+            }, 0);
+            return `ELK Cluster Health: ${health.status?.toUpperCase() || 'unknown'}\n` +
+              `Nodes: ${health.number_of_nodes || 0}\n` +
+              `Indices: ${indexList.length}\n` +
+              `Total Documents: ${totalDocs.toLocaleString()}\n` +
+              `Total Size: ${totalSize.toFixed(1)} MB\n` +
+              `Active Shards: ${health.active_shards || 0}`;
+          }
+          default:
+            return `Unknown elk_query action: ${input.action}`;
+        }
+      } catch (err) {
+        return `Error (elk_query): ${err.message}`;
+      }
+    }
     default:
       return `Unknown tool: ${name}`;
   }
@@ -1235,9 +1549,10 @@ Your conversation history persists across bot restarts in kb/telegram-memory.jso
 You remember previous conversations with Lee. Use this context.
 
 ## Image Generation
-Two options:
+Three options:
 1. **DALL-E 3** (generate_image tool): Premium quality, costs per image. Best for client-facing visuals.
 2. **Flux** (flux_image tool): FREE via Cloudflare Workers AI. Good for quick visuals, concepts, drafts. Can save to R2.
+3. **Gemini** (gemini_image tool): Google Gemini 2.0 Flash, ~£0.03/image. Good for photorealistic and artistic images. Supports aspect ratios: 1:1, 16:9, 9:16, 4:3, 3:4.
 Available sizes: 1024x1024, 1792x1024, 1024x1792. DALL-E quality: standard or hd.
 
 ## Voice Notes
@@ -1261,15 +1576,20 @@ You have access to all MCP servers via shell commands:
 - **Cloudflare Stream**: Use stream_video tool to upload, list, serve videos. Playback at customer-ledats0yeh0th9as.cloudflarestream.com
 - **Cloudflare Trace**: Use cloudflare_trace tool to diagnose request routing through Cloudflare
 - **Cloudflare R2**: Use r2_storage tool to upload, list, serve files. Bucket: navada-assets. Zero egress cost.
+- **NAVADA Media Library**: Use play_media tool to list, play, or email media files (videos, audio) from R2. Available media includes "claude-chief-of-staff.mp4" (NotebookLM podcast). Use play_media with action "play" to get a playback URL, or "send_email" to email the media link to someone.
 - **Cloudflare Flux**: Use flux_image tool for FREE AI image generation (no OpenAI cost). Model: Flux Klein 4B.
+- **Google Gemini**: Use gemini_image tool for photorealistic/artistic image generation. ~£0.03/image. Supports aspect ratios.
 - **ChromaDB RAG**: Use chroma_search tool to search the NAVADA knowledge base. 462+ chunks of docs, code, logs indexed. Use it to recall past decisions, find code patterns, or answer questions about the system.
 - All 23 MCP servers accessible via run_shell
+
+## ELK Stack (Log Search & Analysis)
+Use elk_query tool to search all NAVADA logs. Actions: search (full-text), tail (latest entries), count, indices (list), stats (health). Indices: navada-telegram-*, navada-automation-*, navada-pm2-*. Kibana dashboard at http://192.168.0.58:8080/kibana/
 
 ## File Management
 You can read, write, list, AND delete files. Use delete_file tool for cleanup.
 
 ## Tools Available
-You have FULL server access: run any bash command, read/write/delete files, list directories, server status, send emails, read inbox, reply to emails, generate images (DALL-E 3 + Flux FREE), R2 object storage, send voice notes, post to LinkedIn, access all MCP integrations. You ARE the server operator. Same level of access as Claude Code. No restrictions.`;
+You have FULL server access: run any bash command, read/write/delete files, list directories, server status, send emails, read inbox, reply to emails, generate images (DALL-E 3 + Flux FREE + Gemini), R2 object storage, send voice notes, post to LinkedIn, access all MCP integrations. You ARE the server operator. Same level of access as Claude Code. No restrictions.`;
 
 function buildGuestSystemPrompt(displayName) {
   const nameGreeting = displayName ? `You are speaking with ${displayName}.` : '';
@@ -1478,6 +1798,17 @@ async function askClaude(ctx, userMessage) {
             }
           } catch {}
         }
+        if (tool.name === 'gemini_image') {
+          try {
+            const parsed = JSON.parse(result);
+            if (parsed.file_path && fs.existsSync(parsed.file_path)) {
+              await ctx.replyWithPhoto({ source: parsed.file_path }, {
+                caption: parsed.description ? parsed.description.slice(0, 900) : 'Gemini image'
+              });
+              toolResultContent = 'Image generated and already sent to the user in Telegram. Do not send the file path or image again. Just confirm it was delivered.';
+            }
+          } catch {}
+        }
 
         toolResults.push({
           type: 'tool_result',
@@ -1648,13 +1979,15 @@ bot.help((ctx) => {
       `/research <topic> - Deep research task\n` +
       `/draft <topic> - Draft content\n` +
       `/image <description> - Generate DALL-E 3 image\n` +
-      `/flux <description> - Generate FREE AI image (Flux)\n\n` +
+      `/flux <description> - Generate FREE AI image (Flux)\n` +
+      `/gemini <description> - Generate AI image (Gemini)\n\n` +
       `CLOUDFLARE\n` +
       `/stream - Cloudflare Stream videos\n` +
       `/trace <url> - Trace request through Cloudflare\n` +
       `/r2 - R2 object storage\n` +
       `/r2 upload <path> - Upload file to R2\n` +
-      `/r2 buckets - List R2 buckets\n\n` +
+      `/r2 buckets - List R2 buckets\n` +
+      `/media - Play/list NAVADA media library\n\n` +
       `VOICE\n` +
       `/voice - Voice system control\n` +
       `/voicenote <message> - Send voice email to Lee\n\n` +
@@ -1662,6 +1995,13 @@ bot.help((ctx) => {
       `/grant <user_id> [days] - Grant bot access\n` +
       `/revoke <user_id> - Remove bot access\n` +
       `/users - List authorized users\n\n` +
+      `LOGS (ELK)\n` +
+      `/logs - Latest log entries\n` +
+      `/logs search <query> - Search all logs\n` +
+      `/logs telegram - Telegram interactions\n` +
+      `/logs errors - Find errors across logs\n` +
+      `/logs stats - Cluster health & sizes\n` +
+      `/logs indices - List all indices\n\n` +
       `OTHER\n` +
       `/shell <cmd> - Run shell command\n` +
       `/costs - Today's API costs\n` +
@@ -2577,6 +2917,44 @@ guardCommand('flux', async (ctx) => {
   await askClaude(ctx, `Generate an image using the flux_image tool (FREE Cloudflare Workers AI) with this prompt: "${prompt}". After generating, read the file_path from the result and send the image to me by reading and sharing the file.`);
 });
 
+// /gemini (admin only) - Gemini image generation
+guardCommand('gemini', async (ctx) => {
+  const prompt = ctx.message.text.replace('/gemini', '').trim();
+  log(`/gemini ${prompt}`);
+  if (!prompt) return ctx.reply('Usage: /gemini <description>\nGenerates an image via Google Gemini 2.0 Flash (~£0.03/image).\nSupports aspect ratios: 1:1, 16:9, 9:16, 4:3, 3:4\nExample: /gemini futuristic NAVADA server room with holographic displays');
+  await askClaude(ctx, `Generate an image using the gemini_image tool with this prompt: "${prompt}". Use the default 1:1 aspect ratio unless the user specifies otherwise.`);
+});
+
+// /media (admin only) - NAVADA media library (R2-hosted videos/audio)
+guardCommand('media', async (ctx) => {
+  const args = ctx.message.text.replace('/media', '').trim();
+  log(`/media ${args}`);
+  if (!args) {
+    await askClaude(ctx, 'List all media files in the NAVADA media library using the play_media tool with action "list". Show a nicely formatted list with names, sizes, and playback URLs.');
+  } else if (args.startsWith('email ')) {
+    const rest = args.replace('email ', '').trim();
+    const parts = rest.split(' ');
+    const email = parts[0];
+    const filename = parts[1] || 'claude-chief-of-staff.mp4';
+    await askClaude(ctx, `Email the media file "${filename}" to ${email} using the play_media tool with action "send_email". Include a professional message about it being a NAVADA media resource.`);
+  } else {
+    // Send video natively via Telegram for inline playback
+    const filename = args === 'play' ? 'claude-chief-of-staff.mp4' : args;
+    const R2_PUBLIC = 'https://pub-60e73a76c6ae44e0a73e6617ada8f376.r2.dev';
+    const videoUrl = `${R2_PUBLIC}/media/${filename}`;
+    try {
+      await ctx.replyWithVideo({ url: videoUrl }, {
+        caption: `Now playing: ${filename}`,
+        supports_streaming: true,
+      });
+    } catch (err) {
+      // Fallback: if video too large for Telegram (>50MB), send as link
+      log(`Video send failed (${err.message}), falling back to link`);
+      await ctx.reply(`${filename}\n\nWatch here: ${videoUrl}`);
+    }
+  }
+});
+
 // /r2 (admin only) - Cloudflare R2 object storage
 guardCommand('r2', async (ctx) => {
   const args = ctx.message.text.replace('/r2', '').trim();
@@ -2590,6 +2968,28 @@ guardCommand('r2', async (ctx) => {
     await askClaude(ctx, `Upload this file to R2 using the r2_storage tool: file_path="${filePath}". Use a sensible key based on the filename.`);
   } else {
     await askClaude(ctx, `R2 storage request: "${args}". Use the r2_storage tool to handle this. Available actions: list, upload, delete, buckets, url.`);
+  }
+});
+
+// /logs (admin only) - ELK log search
+guardCommand('logs', async (ctx) => {
+  const args = ctx.message.text.replace('/logs', '').trim();
+  log(`/logs ${args}`);
+  if (!args) {
+    await askClaude(ctx, 'Show the latest 10 log entries across all NAVADA logs using the elk_query tool with action "tail". Show timestamps, source index, and message content.');
+  } else if (args === 'stats') {
+    await askClaude(ctx, 'Show ELK cluster health and index stats using the elk_query tool with action "stats".');
+  } else if (args === 'telegram') {
+    await askClaude(ctx, 'Show the latest 10 Telegram interactions using the elk_query tool with action "tail", index "navada-telegram-*".');
+  } else if (args === 'errors') {
+    await askClaude(ctx, 'Search for errors across all NAVADA logs using the elk_query tool with action "search", query "error OR Error OR ERROR OR failed OR exception", time_range "24h".');
+  } else if (args === 'indices') {
+    await askClaude(ctx, 'List all Elasticsearch indices using the elk_query tool with action "indices".');
+  } else if (args.startsWith('search ')) {
+    const query = args.replace('search ', '').trim();
+    await askClaude(ctx, `Search all NAVADA logs for "${query}" using the elk_query tool with action "search". Show results with timestamps and source index.`);
+  } else {
+    await askClaude(ctx, `ELK log query: "${args}". Use the elk_query tool to handle this request. Available actions: search, tail, count, indices, stats. Available indices: navada-telegram-*, navada-automation-*, navada-pm2-*.`);
   }
 });
 
@@ -2723,11 +3123,14 @@ async function registerCommands() {
       { command: 'stream', description: 'Cloudflare Stream videos' },
       { command: 'trace', description: 'Trace request through Cloudflare' },
       { command: 'flux', description: 'Generate FREE AI image (Flux)' },
+      { command: 'gemini', description: 'Generate AI image (Gemini)' },
       { command: 'r2', description: 'R2 object storage' },
+      { command: 'media', description: 'NAVADA media library' },
       // Voice & Other
       { command: 'voice', description: 'Voice system control' },
       { command: 'voicenote', description: 'Send voice email to Lee' },
       { command: 'cost', description: 'Usage & costs in £ (day/week/month)' },
+      { command: 'logs', description: 'Search server logs (ELK)' },
       { command: 'cache', description: 'Semantic cache stats' },
       { command: 'memory', description: 'Check memory status' },
       { command: 'clear', description: 'Reset conversation + memory' },

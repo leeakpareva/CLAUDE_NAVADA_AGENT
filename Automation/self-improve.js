@@ -79,74 +79,139 @@ function getWeekNumber() {
 }
 
 /**
- * Pre-gather system diagnostics in Node.js (fast, no AI needed)
- * Returns a structured report that Claude can analyze in 1-2 turns
+ * Pre-gather system diagnostics using ELK stack (Elasticsearch) + live probes.
+ * Only returns errors from the last 24 hours to prevent stale data reporting.
  */
-function gatherDiagnostics() {
-  const diag = { logs: {}, disk: '', pm2: '', tempFiles: 0, tempSize: '', npmAudit: '', errors: [] };
+async function gatherDiagnostics() {
+  const http = require('http');
+  const diag = { recentErrors: [], pm2Status: [], serviceHealth: {}, diskSpace: '', errorCounts: {}, errors: [] };
 
-  const safeExec = (cmd, opts = {}) => {
-    try {
-      return execSync(cmd, { encoding: 'utf8', timeout: 15000, stdio: 'pipe', ...opts }).trim();
-    } catch (e) {
-      return `ERROR: ${e.message?.substring(0, 100)}`;
-    }
-  };
+  // Helper: query Elasticsearch
+  async function esQuery(esPath, body = null) {
+    return new Promise((resolve) => {
+      const opts = {
+        hostname: 'localhost', port: 9200,
+        path: esPath, method: body ? 'POST' : 'GET',
+        headers: body ? { 'Content-Type': 'application/json' } : {},
+      };
+      const req = http.request(opts, res => {
+        let data = '';
+        res.on('data', c => data += c);
+        res.on('end', () => { try { resolve(JSON.parse(data)); } catch { resolve(null); } });
+      });
+      req.on('error', () => resolve(null));
+      req.setTimeout(10000, () => { req.destroy(); resolve(null); });
+      if (body) req.write(JSON.stringify(body));
+      req.end();
+    });
+  }
 
-  // Check recent log files for errors
-  const logsDir = path.join(__dirname, 'logs');
-  try {
-    const logFiles = fs.readdirSync(logsDir).filter(f => f.endsWith('.log'));
-    for (const file of logFiles) {
-      try {
-        const content = fs.readFileSync(path.join(logsDir, file), 'utf8');
-        const lines = content.split('\n').filter(l => l.trim());
-        const last20 = lines.slice(-20).join('\n');
-        const errorLines = lines.filter(l => /error|fail|crash|exception|ENOENT|ECONNREFUSED/i.test(l));
-        diag.logs[file] = { totalLines: lines.length, recentErrors: errorLines.slice(-5), tail: last20 };
-      } catch (e) { /* skip */ }
-    }
-  } catch (e) { /* no logs dir */ }
+  // Helper: HTTP health probe
+  async function httpProbe(url) {
+    return new Promise((resolve) => {
+      const parsed = new URL(url);
+      const req = http.request({ hostname: parsed.hostname, port: parsed.port, path: parsed.pathname, method: 'GET', timeout: 5000 }, res => {
+        let data = '';
+        res.on('data', c => data += c);
+        res.on('end', () => resolve({ status: res.statusCode, ok: res.statusCode < 400 }));
+      });
+      req.on('error', () => resolve({ status: 0, ok: false }));
+      req.setTimeout(5000, () => { req.destroy(); resolve({ status: 0, ok: false }); });
+      req.end();
+    });
+  }
 
-  // Disk space
-  diag.disk = safeExec('df -h / 2>/dev/null || wmic logicaldisk get size,freespace,caption 2>/dev/null || echo "disk check unavailable"');
-
-  // PM2 status
-  diag.pm2 = safeExec('pm2 jlist 2>/dev/null || echo "pm2 unavailable"');
-
-  // Temp files
-  const tempDir = path.join(__dirname, 'temp');
-  try {
-    if (fs.existsSync(tempDir)) {
-      const files = fs.readdirSync(tempDir);
-      diag.tempFiles = files.length;
-      let totalBytes = 0;
-      for (const f of files) {
-        try { totalBytes += fs.statSync(path.join(tempDir, f)).size; } catch (e) { /* skip */ }
+  // 1. Recent errors from ALL indices (last 24 hours only)
+  const errorResult = await esQuery('/_search', {
+    size: 30,
+    query: {
+      bool: {
+        must: [
+          { query_string: { query: 'error OR fail OR crash OR exception OR ENOENT OR ECONNREFUSED OR ECONNRESET' } },
+          { range: { '@timestamp': { gte: 'now-24h' } } }
+        ]
       }
-      diag.tempSize = `${(totalBytes / 1024 / 1024).toFixed(1)}MB`;
+    },
+    sort: [{ '@timestamp': 'desc' }],
+    _source: ['message', '@timestamp', 'log_type', 'log.file.path']
+  });
+  if (errorResult?.hits?.hits) {
+    diag.recentErrors = errorResult.hits.hits.map(h => ({
+      time: h._source['@timestamp'],
+      type: h._source.log_type,
+      file: h._source.log?.file?.path,
+      message: (h._source.message || '').substring(0, 200),
+    }));
+  } else {
+    log('ELK unavailable or returned no results, falling back to raw log scan');
+    // Fallback: read last 20 lines from log files, but only lines from today
+    const logsDir = path.join(__dirname, 'logs');
+    try {
+      const logFiles = fs.readdirSync(logsDir).filter(f => f.endsWith('.log'));
+      const todayStr = new Date().toISOString().slice(0, 10);
+      for (const file of logFiles) {
+        try {
+          const content = fs.readFileSync(path.join(logsDir, file), 'utf8');
+          const lines = content.split('\n').filter(l => l.trim());
+          const errorLines = lines.filter(l =>
+            /error|fail|crash|exception|ENOENT|ECONNREFUSED|ECONNRESET/i.test(l) && l.includes(todayStr)
+          );
+          for (const line of errorLines.slice(-5)) {
+            diag.recentErrors.push({ time: todayStr, type: file, file: path.join(logsDir, file), message: line.substring(0, 200) });
+          }
+        } catch { /* skip */ }
+      }
+    } catch { /* no logs dir */ }
+  }
+
+  // 2. Error counts by log type (last 24h)
+  const countResult = await esQuery('/_search', {
+    size: 0,
+    query: {
+      bool: {
+        must: [
+          { query_string: { query: 'error OR fail OR crash OR exception' } },
+          { range: { '@timestamp': { gte: 'now-24h' } } }
+        ]
+      }
+    },
+    aggs: { by_type: { terms: { field: 'log_type.keyword', size: 10 } } }
+  });
+  if (countResult?.aggregations?.by_type?.buckets) {
+    for (const b of countResult.aggregations.by_type.buckets) {
+      diag.errorCounts[b.key] = b.doc_count;
     }
-  } catch (e) { /* no temp dir */ }
+  }
 
-  // npm audit (quick)
-  diag.npmAudit = safeExec('npm audit --json 2>/dev/null | head -50', { cwd: __dirname });
+  // 3. PM2 live status (real-time from CLI)
+  try {
+    diag.pm2Status = JSON.parse(execSync('pm2 jlist', { encoding: 'utf8', timeout: 10000, stdio: 'pipe' }));
+  } catch { diag.pm2Status = []; }
 
-  // Check scheduled task scripts exist
+  // 4. Service health checks (direct HTTP probes)
+  const services = [
+    { name: 'elasticsearch', url: 'http://localhost:9200/_cluster/health' },
+    { name: 'worldmonitor', url: 'http://localhost:4173' },
+    { name: 'worldmonitor-api', url: 'http://localhost:46123/health' },
+    { name: 'trading-api', url: 'http://localhost:5678/health' },
+    { name: 'kibana', url: 'http://localhost:5601/kibana/api/status' },
+  ];
+  for (const svc of services) {
+    const result = await httpProbe(svc.url);
+    diag.serviceHealth[svc.name] = result.ok ? 'healthy' : 'unreachable';
+  }
+
+  // 5. Disk space
+  try {
+    diag.diskSpace = execSync('wmic logicaldisk get size,freespace,caption', { encoding: 'utf8', timeout: 10000, stdio: 'pipe' }).trim();
+  } catch { diag.diskSpace = 'unavailable'; }
+
+  // 6. Check scheduled task scripts exist
   const scripts = ['ai-news-mailer.js', 'job-hunter-apify.js', 'uk-us-economy-report.py'];
   for (const s of scripts) {
     if (!fs.existsSync(path.join(__dirname, s))) {
       diag.errors.push(`Missing script: ${s}`);
     }
-  }
-
-  // Check .env exists and has content
-  const envPath = path.join(__dirname, '.env');
-  try {
-    const envContent = fs.readFileSync(envPath, 'utf8');
-    const keyCount = envContent.split('\n').filter(l => l.includes('=')).length;
-    diag.envKeys = keyCount;
-  } catch (e) {
-    diag.errors.push('.env file missing or unreadable');
   }
 
   return diag;
@@ -161,10 +226,10 @@ async function runResearchScan() {
   fs.mkdirSync(path.join(__dirname, 'kb'), { recursive: true });
   fs.mkdirSync(path.join(__dirname, 'logs'), { recursive: true });
 
-  // Phase 1: Gather diagnostics (fast, ~5 seconds)
-  log('Phase 1: Gathering system diagnostics...');
-  const diag = gatherDiagnostics();
-  log(`Diagnostics gathered: ${Object.keys(diag.logs).length} log files, ${diag.tempFiles} temp files, ${diag.errors.length} errors`);
+  // Phase 1: Gather diagnostics via ELK + live probes
+  log('Phase 1: Gathering system diagnostics (ELK + live probes)...');
+  const diag = await gatherDiagnostics();
+  log(`Diagnostics gathered: ${diag.recentErrors.length} recent errors, ${Object.keys(diag.errorCounts).length} error types, ${diag.errors.length} config issues`);
 
   // Phase 2: Ask Claude to analyze and produce findings (1-2 turns)
   log('Phase 2: Sending to Claude for analysis...');
@@ -175,6 +240,14 @@ SYSTEM DIAGNOSTICS:
 ${JSON.stringify(diag, null, 2)}
 
 Based on this data, identify the most important bugs, security issues, performance problems, and improvement ideas for the NAVADA home server (Windows 11, Node.js automation scripts, 23 MCP servers, PM2 services).
+
+IMPORTANT RULES:
+- Only report issues with errors in the LAST 24 HOURS. The diagnostics above are already time-bounded to 24h.
+- Check timestamps carefully. An error from days ago is NOT a current issue.
+- Be precise with error counts. Use the errorCounts data, do not round up or estimate.
+- Cross-reference PM2 status: if a service shows "online" in pm2Status, it is working even if there were past errors.
+- serviceHealth shows live HTTP probe results. Use these to verify service availability.
+- Do NOT report cosmetic issues (encoding warnings, deprecation notices) as high priority.
 
 Respond with ONLY a JSON block:
 \`\`\`json
@@ -201,7 +274,7 @@ Maximum 8 findings. Prioritise the most impactful. Be specific with file paths.`
   let output = '';
   try {
     output = execSync(
-      `claude -p --model haiku --max-turns 3`,
+      `claude -p --model sonnet --max-turns 3`,
       {
         cwd: path.join(__dirname, '..'),
         encoding: 'utf8',
@@ -216,8 +289,9 @@ Maximum 8 findings. Prioritise the most impactful. Be specific with file paths.`
     log(`Claude analysis error: ${e.message?.substring(0, 200)}`);
   }
 
-  // Parse findings from Claude's output
-  const findings = parseFindings(output);
+  // Parse findings from Claude's output, then verify against live state
+  const rawFindings = parseFindings(output);
+  const findings = await verifyFindings(rawFindings, diag);
 
   if (findings.length > 0) {
     const logData = {
@@ -284,6 +358,55 @@ function parseFindings(text) {
   log('Could not parse findings JSON from Claude output.');
   log('Output tail: ' + text.substring(Math.max(0, text.length - 300)));
   return [];
+}
+
+/**
+ * Verify findings against live system state and filter stale/duplicate items.
+ * Cross-references improvement history, PM2 status, and recent ES errors.
+ */
+async function verifyFindings(findings, diag) {
+  const history = getHistory();
+  const recentWeeks = history.weeks.slice(-4);
+  const pastTitles = recentWeeks.flatMap(w => (w.findings || []).map(f => f.title.toLowerCase()));
+
+  const verified = [];
+
+  for (const f of findings) {
+    // 1. Skip if already reported in the last 4 weeks (unless high priority)
+    if (pastTitles.includes(f.title.toLowerCase()) && f.priority !== 'high') {
+      log(`Skipping duplicate finding: "${f.title}"`);
+      continue;
+    }
+
+    // 2. Verify PM2/service issues against live PM2 status
+    if (f.description?.match(/pm2|process|service/i)) {
+      const pm2List = diag.pm2Status || [];
+      const mentioned = pm2List.find(p => f.description.toLowerCase().includes(p.name));
+      if (mentioned && mentioned.pm2_env?.status === 'online') {
+        f.description += ' [VERIFIED: Service currently ONLINE]';
+        if (f.priority === 'high') f.priority = 'low';
+      }
+    }
+
+    // 3. Verify error-based findings exist in last 24h ES data
+    if (f.description?.match(/error|fail|crash|exception/i)) {
+      const keywords = f.title.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+      const recentMatch = diag.recentErrors?.some(e =>
+        keywords.some(kw => e.message?.toLowerCase().includes(kw))
+      );
+      if (!recentMatch && diag.recentErrors.length > 0) {
+        f.title += ' [POSSIBLY STALE]';
+        if (f.priority === 'high') f.priority = 'medium';
+      }
+    }
+
+    verified.push(f);
+  }
+
+  // Re-number
+  verified.forEach((f, i) => f.id = i + 1);
+  log(`Verification: ${findings.length} raw findings -> ${verified.length} verified (${findings.length - verified.length} filtered)`);
+  return verified;
 }
 
 /**
