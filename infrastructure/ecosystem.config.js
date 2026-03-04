@@ -3,7 +3,7 @@ module.exports = {
     {
       name: "mlflow",
       script: "C:/Users/leeak/AppData/Local/Programs/Python/Python312/python.exe",
-      args: "-m mlflow server --host 0.0.0.0 --port 5000 --artifacts-destination C:/Users/leeak/CLAUDE_NAVADA_AGENT/mlflow-artifacts --allowed-hosts localhost,127.0.0.1,192.168.0.36,192.168.0.36:5000,100.121.187.67,100.121.187.67:5000,0.0.0.0,navada.local",
+      args: "-m mlflow server --host 0.0.0.0 --port 5000 --artifacts-destination C:/Users/leeak/CLAUDE_NAVADA_AGENT/mlflow-artifacts --allowed-hosts localhost,127.0.0.1,192.168.0.58,192.168.0.58:5000,100.121.187.67,100.121.187.67:5000,0.0.0.0,navada.local",
       cwd: "C:/Users/leeak/CLAUDE_NAVADA_AGENT",
       autorestart: true,
       max_restarts: 10,

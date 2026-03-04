@@ -1148,7 +1148,7 @@ async function executeTool(name, input, userRole) {
 // ============================================================
 // SYSTEM PROMPTS
 // ============================================================
-const ADMIN_SYSTEM_PROMPT = `You are Claude, Chief of Staff at NAVADA. You are Lee Akpareva's AI partner, running on his HP laptop (permanent always-on home server). You are communicating via Telegram from his iPhone. You are OMNI-CHANNEL: Lee can reach you via Telegram, SMS (+447446994961), and WhatsApp. Your conversation history is SHARED across all channels. Messages are tagged [Telegram], [SMS], or [WhatsApp] so you have full continuity.
+const ADMIN_SYSTEM_PROMPT = `You are Claude, Chief of Staff at NAVADA. You are Lee Akpareva's AI partner, running on his HP laptop (permanent always-on home server). You are communicating via Telegram from his iPhone. You are OMNI-CHANNEL: Lee can reach you via Telegram, SMS (+447446994961), and WhatsApp. Your conversation history is SHARED across all channels. Lee's messages may be prefixed with [Telegram], [SMS], or [WhatsApp] to indicate which channel they came from. NEVER include channel tags, timestamps, or brackets in YOUR responses. Just respond naturally as Claude.
 
 ## Your Identity
 You are not just an assistant. You are the Chief of Staff. You manage the server, run automations, monitor systems, write code, deploy services, send emails, and keep everything running 24/7. Lee trusts you with full control.
@@ -1344,10 +1344,9 @@ async function askClaude(ctx, userMessage) {
   // Get per-user conversation history
   const history = getUserHistory(userId);
 
-  // For admin (Lee): tag with channel + timestamp for omni-channel continuity
+  // For admin (Lee): tag with channel for omni-channel continuity
   if (userRole === 'admin') {
-    const now = new Date().toISOString();
-    history.push({ role: 'user', content: `[${now}][Telegram] ${userMessage}` });
+    history.push({ role: 'user', content: `[Telegram] ${userMessage}` });
   } else {
     history.push({ role: 'user', content: userMessage });
   }
@@ -1439,13 +1438,8 @@ async function askClaude(ctx, userMessage) {
       if (toolBlocks.length === 0 || response.stop_reason === 'end_turn') {
         const finalText = textBlocks.map(b => b.text).join('\n');
         if (finalText.trim()) {
-          // Tag admin assistant responses for omni-channel continuity
-          if (userRole === 'admin') {
-            const now = new Date().toISOString();
-            history.push({ role: 'assistant', content: `[${now}][Telegram] ${finalText}` });
-          } else {
-            history.push({ role: 'assistant', content: finalText });
-          }
+          // Save assistant response to history (no channel tag - only tag user messages)
+          history.push({ role: 'assistant', content: finalText });
         }
         break;
       }
@@ -2171,11 +2165,149 @@ guardCommand('voice', async (ctx) => {
   }
 });
 
-// /costs
+// /costs (legacy alias)
 bot.command('costs', async (ctx) => {
-  log('/costs');
-  await askClaude(ctx, 'Run: node Manager/cost-tracker.js --summary. Show me today\'s API costs, ROI, and breakdown. Keep it mobile-friendly.');
+  log('/costs -> /cost');
+  return handleCostCommand(ctx, '');
 });
+
+// /cost — comprehensive cost & usage tracking
+bot.command('cost', async (ctx) => {
+  const args = ctx.message.text.replace(/^\/cost\s*/, '').trim().toLowerCase();
+  log(`/cost ${args}`);
+  return handleCostCommand(ctx, args);
+});
+
+async function handleCostCommand(ctx, args) {
+  const GBP_RATE = 0.79;
+
+  // Determine period
+  const period = ['week', 'weekly'].includes(args) ? 'weekly'
+    : ['month', 'monthly'].includes(args) ? 'monthly'
+    : ['session'].includes(args) ? 'session'
+    : 'daily'; // default
+
+  const periodLabel = period === 'daily' ? 'Today' : period === 'weekly' ? 'This Week' : period === 'monthly' ? 'This Month' : 'Session';
+
+  try {
+    await ctx.reply(`Fetching ${periodLabel.toLowerCase()} usage...`);
+
+    // Run ccusage + cost-tracker in parallel
+    const { execSync } = require('child_process');
+    let ccData = null;
+    let costTrackerData = null;
+
+    // 1) ccusage (Claude Code subscription usage)
+    try {
+      const raw = execSync(`ccusage ${period} --json --no-color`, {
+        encoding: 'utf-8',
+        timeout: 30000,
+        env: { ...process.env, NO_COLOR: '1' },
+      });
+      ccData = JSON.parse(raw);
+    } catch (e) {
+      console.warn('[cost] ccusage failed:', e.message);
+    }
+
+    // 2) Cost tracker (Telegram API gateway costs)
+    try {
+      const tracker = require(path.join(NAVADA_DIR, 'Manager/cost-tracking/cost-tracker'));
+      if (period === 'weekly') {
+        costTrackerData = tracker.getWeeklySummary();
+      } else {
+        costTrackerData = tracker.getDailySummary();
+      }
+    } catch (e) {
+      console.warn('[cost] cost-tracker failed:', e.message);
+    }
+
+    // Build report
+    let msg = `**NAVADA Cost Report | ${periodLabel}**\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    // --- Claude Code (Subscription) ---
+    if (ccData) {
+      const entries = ccData[period] || ccData.daily || [];
+      const totals = ccData.totals || {};
+      const totalUSD = period === 'daily' || period === 'session'
+        ? entries.reduce((s, e) => s + (e.totalCost || 0), 0)
+        : totals.totalCost || entries.reduce((s, e) => s + (e.totalCost || 0), 0);
+      const totalGBP = (totalUSD * GBP_RATE).toFixed(2);
+      const totalTokens = period === 'daily' || period === 'session'
+        ? entries.reduce((s, e) => s + (e.totalTokens || 0), 0)
+        : totals.totalTokens || entries.reduce((s, e) => s + (e.totalTokens || 0), 0);
+
+      msg += `**Claude Code (Subscription)**\n`;
+      msg += `Cost: £${totalGBP} ($${totalUSD.toFixed(2)})\n`;
+      msg += `Tokens: ${formatNum(totalTokens)}\n`;
+
+      // Model breakdown for daily
+      if (entries.length > 0) {
+        const latest = entries[entries.length - 1];
+        if (latest.modelBreakdowns) {
+          for (const mb of latest.modelBreakdowns) {
+            const name = mb.modelName.replace('claude-', '').replace(/-\d+$/, '');
+            const gbp = (mb.cost * GBP_RATE).toFixed(2);
+            msg += `  ${name}: £${gbp}\n`;
+          }
+        }
+      }
+
+      // Show per-day for weekly/monthly
+      if ((period === 'weekly' || period === 'monthly') && entries.length > 1) {
+        msg += `\nDaily breakdown:\n`;
+        for (const e of entries.slice(-7)) {
+          const dayGBP = (e.totalCost * GBP_RATE).toFixed(2);
+          msg += `  ${e.date}: £${dayGBP}\n`;
+        }
+      }
+      msg += `\n`;
+    }
+
+    // --- API Gateway (Telegram/SMS/WhatsApp channel costs) ---
+    if (costTrackerData && costTrackerData.total_calls > 0) {
+      msg += `**API Gateway (Channels)**\n`;
+      msg += `Calls: ${costTrackerData.total_calls}\n`;
+      msg += `Cost: £${costTrackerData.total_cost_gbp.toFixed(4)}\n`;
+      msg += `Human equiv: ${costTrackerData.total_human_hours}h (£${costTrackerData.total_human_cost_gbp})\n`;
+      msg += `ROI: ${costTrackerData.roi_multiplier}x cheaper\n`;
+
+      if (costTrackerData.by_model) {
+        for (const [model, data] of Object.entries(costTrackerData.by_model)) {
+          msg += `  ${model}: ${data.calls} calls, £${data.cost_gbp.toFixed(4)}\n`;
+        }
+      }
+      msg += `\n`;
+    } else {
+      msg += `**API Gateway (Channels)**\n`;
+      msg += `No API gateway calls today\n\n`;
+    }
+
+    // --- Combined total ---
+    const ccTotal = ccData
+      ? (ccData.totals?.totalCost || (ccData[period] || ccData.daily || []).reduce((s, e) => s + (e.totalCost || 0), 0)) * GBP_RATE
+      : 0;
+    const apiTotal = costTrackerData?.total_cost_gbp || 0;
+    const grandTotal = ccTotal + apiTotal;
+
+    msg += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `**Total: £${grandTotal.toFixed(2)}**\n`;
+    msg += `Claude Code: £${ccTotal.toFixed(2)} | API: £${apiTotal.toFixed(4)}\n\n`;
+    msg += `_/cost day | week | month | session_`;
+
+    await ctx.reply(msg, { parse_mode: 'Markdown' });
+  } catch (err) {
+    console.error('[cost] Error:', err.message);
+    await ctx.reply(`Cost report error: ${err.message}`);
+  }
+}
+
+function formatNum(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return String(n);
+}
 
 // ============================================================
 // COMMUNICATION COMMANDS
@@ -2595,7 +2727,7 @@ async function registerCommands() {
       // Voice & Other
       { command: 'voice', description: 'Voice system control' },
       { command: 'voicenote', description: 'Send voice email to Lee' },
-      { command: 'costs', description: 'API cost tracking' },
+      { command: 'cost', description: 'Usage & costs in £ (day/week/month)' },
       { command: 'cache', description: 'Semantic cache stats' },
       { command: 'memory', description: 'Check memory status' },
       { command: 'clear', description: 'Reset conversation + memory' },
@@ -2684,20 +2816,12 @@ async function processInboundMessage(message, channel) {
   // Use shared owner conversation history (same across Telegram, SMS, WhatsApp)
   const history = getUserHistory(OWNER_ID);
 
-  // --- 2-day auto-purge: remove old turns ---
-  const twoDaysAgo = Date.now() - (2 * 24 * 60 * 60 * 1000);
-  while (history.length > 2) {
-    const firstMsg = typeof history[0]?.content === 'string' ? history[0].content : '';
-    const tsMatch = firstMsg.match(/\[(\d{4}-\d{2}-\d{2}T[\d:.]+Z?)\]/);
-    if (tsMatch && new Date(tsMatch[1]).getTime() < twoDaysAgo) {
-      history.splice(0, 2); // Remove user+assistant pair
-    } else {
-      break; // Once we hit a non-expired turn, stop
-    }
+  // --- Auto-purge: keep last 40 turns max (roughly 2 days of normal usage) ---
+  while (history.length > 40) {
+    history.splice(0, 2); // Remove oldest user+assistant pair
   }
 
-  const now = new Date().toISOString();
-  history.push({ role: 'user', content: `[${now}][${channelLabel}] ${message}` });
+  history.push({ role: 'user', content: `[${channelLabel}] ${message}` });
 
   // Trim history (hard cap)
   while (history.length > MAX_HISTORY * 2) {
@@ -2707,7 +2831,7 @@ async function processInboundMessage(message, channel) {
   // Omni-channel system prompt
   const systemPrompt = ADMIN_SYSTEM_PROMPT.replace(
     'You are communicating via Telegram from his iPhone.',
-    `You are communicating via ${channelLabel}. You are OMNI-CHANNEL: Lee reaches you on Telegram, SMS (+447446994961), and WhatsApp. Your conversation history is SHARED across ALL channels. Messages are tagged [Telegram], [SMS], or [WhatsApp] so you know where each message came from. You have full continuity: if Lee told you something on Telegram, you remember it here.`
+    `You are communicating via ${channelLabel}. You are OMNI-CHANNEL: Lee reaches you on Telegram, SMS (+447446994961), and WhatsApp. Your conversation history is SHARED across ALL channels. Lee's messages may be prefixed with [Telegram], [SMS], or [WhatsApp] to show which channel they came from. NEVER include channel tags, timestamps, or brackets in YOUR responses. Just respond naturally as Claude.`
   ) + `\n\n## ${channelLabel} Channel Rules
 - Keep responses concise (max ${maxChars} chars). ${channel === 'sms' ? 'SMS is expensive, be brief but helpful.' : 'WhatsApp allows more detail.'}
 - Do NOT use markdown formatting (no **, ##, \`\`\`). Use plain text only.
@@ -2749,10 +2873,24 @@ async function processInboundMessage(message, channel) {
       } else {
         // Final text response
         let reply = response.content.find(c => c.type === 'text')?.text || '';
+
+        // Hard-strip markdown for SMS/WhatsApp (models sometimes ignore the prompt)
+        reply = reply
+          .replace(/\*\*(.+?)\*\*/g, '$1')   // **bold** -> bold
+          .replace(/\*(.+?)\*/g, '$1')        // *italic* -> italic
+          .replace(/__(.+?)__/g, '$1')        // __underline__
+          .replace(/~~(.+?)~~/g, '$1')        // ~~strikethrough~~
+          .replace(/```[\s\S]*?```/g, '')     // code blocks
+          .replace(/`(.+?)`/g, '$1')          // inline code
+          .replace(/^#{1,6}\s+/gm, '')        // # headings
+          .replace(/^[-*]\s+/gm, '- ')        // normalize bullet points
+          .replace(/\n{3,}/g, '\n\n')         // collapse excessive newlines
+          .trim();
+
         reply = reply.slice(0, maxChars);
 
-        // Save to shared history (tagged with channel)
-        history.push({ role: 'assistant', content: `[${now}][${channelLabel}] ${reply}` });
+        // Save to shared history (no channel tag on assistant responses)
+        history.push({ role: 'assistant', content: reply });
         conversationHistories.set(OWNER_ID, history);
         saveConversationHistory(OWNER_ID, history);
 
@@ -2846,12 +2984,7 @@ const webhookServer = http.createServer(async (req, res) => {
           return res.end('<Response></Response>');
         }
 
-        // Forward to Lee on Telegram
-        await bot.telegram.sendMessage(OWNER_ID,
-          `SMS received from ${from}:\n\n${smsBody}`
-        );
-
-        // If it's from Lee's number, process with Claude (shared memory + full tools)
+        // If it's from Lee's number, process with Claude and reply on SMS (same channel)
         if (from === '+447935237704' && smsBody.trim()) {
           const reply = await processInboundMessage(smsBody, 'sms');
           if (reply && twilioClient) {
@@ -2861,8 +2994,12 @@ const webhookServer = http.createServer(async (req, res) => {
               to: from,
             });
             log(`[SMS OUT] Reply to ${from}: ${reply}`);
-            await bot.telegram.sendMessage(OWNER_ID, `SMS reply sent to ${from}:\n\n${reply}`);
           }
+        } else if (from !== '+447935237704') {
+          // Only forward to Telegram if it's from an unknown number
+          await bot.telegram.sendMessage(OWNER_ID,
+            `SMS from ${from}:\n\n${smsBody}`
+          );
         }
 
         // Respond with empty TwiML (don't send Twilio's default reply)
@@ -2895,12 +3032,7 @@ const webhookServer = http.createServer(async (req, res) => {
           return res.end('<Response></Response>');
         }
 
-        // Forward to Lee on Telegram
-        await bot.telegram.sendMessage(OWNER_ID,
-          `WhatsApp message from ${from}:\n\n${waBody}`
-        );
-
-        // If it's from Lee's number, process with Claude (shared memory + full tools)
+        // If it's from Lee's number, process with Claude and reply on WhatsApp (same channel)
         if (from === '+447935237704' && waBody.trim()) {
           const reply = await processInboundMessage(waBody, 'whatsapp');
           if (reply && twilioClient) {
@@ -2911,8 +3043,12 @@ const webhookServer = http.createServer(async (req, res) => {
               statusCallback: 'https://api.navada-edge-server.uk/twilio/status',
             });
             log(`[WHATSAPP OUT] Reply to ${from}: ${reply}`);
-            await bot.telegram.sendMessage(OWNER_ID, `WhatsApp reply sent to ${from}:\n\n${reply}`);
           }
+        } else if (from !== '+447935237704') {
+          // Only forward to Telegram if it's from an unknown number
+          await bot.telegram.sendMessage(OWNER_ID,
+            `WhatsApp from ${from}:\n\n${waBody}`
+          );
         }
 
         res.writeHead(200, { 'Content-Type': 'text/xml' });
@@ -2940,7 +3076,18 @@ const webhookServer = http.createServer(async (req, res) => {
   }
 });
 
+// Listen with retry for port conflicts during PM2 restarts
+let webhookBound = false;
+webhookServer.on('error', (err) => {
+  if (err.code === 'EADDRINUSE' && !webhookBound) {
+    console.log(`[NAVADA] Port ${WEBHOOK_PORT} busy, will retry in 5s...`);
+    setTimeout(() => { if (!webhookBound) webhookServer.listen(WEBHOOK_PORT, '0.0.0.0'); }, 5000);
+  } else if (!webhookBound) {
+    console.error(`[NAVADA] Webhook server error: ${err.message}`);
+  }
+});
 webhookServer.listen(WEBHOOK_PORT, '0.0.0.0', () => {
+  webhookBound = true;
   console.log(`[NAVADA] Twilio webhook listening on port ${WEBHOOK_PORT}`);
 });
 
@@ -2951,12 +3098,35 @@ console.log(`[NAVADA] Multi-user: enabled | Owner: ${OWNER_ID}`);
 
 registerCommands();
 
-bot.launch()
-  .then(() => console.log('[NAVADA] Online. Claude Chief of Staff ready.'))
-  .catch((err) => {
-    console.error(`[NAVADA] Failed to start: ${err.message}`);
-    process.exit(1);
-  });
+// Launch Telegram bot — clear stale sessions first, then start polling
+async function launchBot() {
+  try {
+    // Clear any stale polling sessions from zombie processes
+    await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+    console.log('[NAVADA] Cleared stale Telegram sessions');
+    await new Promise(r => setTimeout(r, 2000));
+    await bot.launch({ dropPendingUpdates: true });
+    console.log('[NAVADA] Online. Claude Chief of Staff ready.');
+  } catch (err) {
+    console.error(`[NAVADA] Telegram launch error: ${err.message}`);
+    // On 409, wait longer and retry once
+    if (err.message.includes('409')) {
+      console.log('[NAVADA] Waiting 30s for stale polling to clear...');
+      await new Promise(r => setTimeout(r, 30000));
+      try {
+        await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+        await bot.launch({ dropPendingUpdates: true });
+        console.log('[NAVADA] Online. Claude Chief of Staff ready (retry).');
+      } catch (err2) {
+        console.error(`[NAVADA] Telegram retry failed: ${err2.message}`);
+        process.exit(1);
+      }
+    } else {
+      process.exit(1);
+    }
+  }
+}
+launchBot();
 
 process.once('SIGINT', () => { webhookServer.close(); bot.stop('SIGINT'); });
 process.once('SIGTERM', () => { webhookServer.close(); bot.stop('SIGTERM'); });
