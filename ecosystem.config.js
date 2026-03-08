@@ -34,6 +34,7 @@ module.exports = {
       max_restarts: 20,
       restart_delay: 3000,
       watch: false,
+      windowsHide: true,
     },
 
     // --- WorldMonitor Local API Server ---
@@ -46,6 +47,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 20,
       restart_delay: 3000,
+      windowsHide: true,
     },
 
     // --- NAVADA Trading API (FastAPI / Uvicorn) ---
@@ -57,6 +59,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 10,
       restart_delay: 5000,
+      windowsHide: true,
     },
 
     // --- Inbox Auto-Responder ---
@@ -68,6 +71,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 10,
       restart_delay: 5000,
+      windowsHide: true,
     },
 
     // --- WorldMonitor Auto-Deploy (Git Poller) ---
@@ -79,6 +83,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 5,
       restart_delay: 10000,
+      windowsHide: true,
     },
 
     // --- Trading Scheduler (cron-style, triggers Python scripts at set times) ---
@@ -90,6 +95,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 10,
       restart_delay: 5000,
+      windowsHide: true,
     },
 
     // --- NAVADA Edge Telegram Bot ---
@@ -102,6 +108,7 @@ module.exports = {
       max_restarts: 20,
       restart_delay: 3000,
       watch: false,
+      windowsHide: true,
     },
 
     // --- Network Scanner & Router Dashboard ---
@@ -114,6 +121,7 @@ module.exports = {
       max_restarts: 10,
       restart_delay: 5000,
       watch: false,
+      windowsHide: true,
     },
 
     // --- Voice Command System (S8 Bluetooth) ---
@@ -126,6 +134,20 @@ module.exports = {
       max_restarts: 10,
       restart_delay: 5000,
       watch: false,
+      windowsHide: true,
+    },
+
+    // --- CloudWatch ASUS Reporter (pushes system metrics to AWS) ---
+    {
+      name: 'cloudwatch-asus',
+      script: 'cloudwatch-asus-reporter.js',
+      cwd: 'C:/Users/leeak/CLAUDE_NAVADA_AGENT',
+      interpreter: 'node',
+      autorestart: true,
+      max_restarts: 20,
+      restart_delay: 5000,
+      watch: false,
+      windowsHide: true,
     },
   ],
 };

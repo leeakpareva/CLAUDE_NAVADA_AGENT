@@ -1,0 +1,250 @@
+{
+  "widgets": [
+    {
+      "type": "text",
+      "x": 0,
+      "y": 0,
+      "width": 24,
+      "height": 2,
+      "properties": {
+        "markdown": "# NAVADA World View — Global Intelligence Dashboard\n**URL**: `https://world.navada-edge-server.uk` | **Host**: AWS EC2 (`i-0055e7ace24db38b0`, t3.medium) | **Tailscale**: `100.98.118.33:4000`\n**Stack**: Next.js 16 + OpenAI GPT-4o-mini | **Proxy**: Oracle VM nginx → Cloudflare Tunnel | **Status**: 24/7 always-on\n**Data Sources**: BBC, Reuters, Al Jazeera, CSIS, Defense One, Krebs on Security + AI-powered intelligence briefings"
+      }
+    },
+    {
+      "type": "text",
+      "x": 0,
+      "y": 2,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "## API Health — are the data endpoints responding?"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 3,
+      "width": 4,
+      "height": 3,
+      "properties": {
+        "metrics": [["NAVADA/WorldView", "SiteUp", {"label": "1=Up 0=Down", "color": "#2ca02c"}]],
+        "period": 60,
+        "stat": "Minimum",
+        "region": "eu-west-2",
+        "title": "Site Online",
+        "view": "singleValue",
+        "sparkline": true,
+        "liveData": true
+      }
+    },
+    {
+      "type": "metric",
+      "x": 4,
+      "y": 3,
+      "width": 4,
+      "height": 3,
+      "properties": {
+        "metrics": [["NAVADA/WorldView", "AlertsApiUp", {"label": "1=Up 0=Down", "color": "#2ca02c"}]],
+        "period": 60,
+        "stat": "Minimum",
+        "region": "eu-west-2",
+        "title": "/api/alerts",
+        "view": "singleValue",
+        "sparkline": true,
+        "liveData": true
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 3,
+      "width": 4,
+      "height": 3,
+      "properties": {
+        "metrics": [["NAVADA/WorldView", "InsightsApiUp", {"label": "1=Up 0=Down", "color": "#2ca02c"}]],
+        "period": 60,
+        "stat": "Minimum",
+        "region": "eu-west-2",
+        "title": "/api/insights",
+        "view": "singleValue",
+        "sparkline": true,
+        "liveData": true
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 3,
+      "width": 4,
+      "height": 3,
+      "properties": {
+        "metrics": [["NAVADA/WorldView", "AnalyticsApiUp", {"label": "1=Up 0=Down", "color": "#2ca02c"}]],
+        "period": 60,
+        "stat": "Minimum",
+        "region": "eu-west-2",
+        "title": "/api/analytics",
+        "view": "singleValue",
+        "sparkline": true,
+        "liveData": true
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 3,
+      "width": 4,
+      "height": 3,
+      "properties": {
+        "metrics": [["NAVADA/WorldView", "ResponseTimeMs", {"label": "ms", "color": "#1f77b4"}]],
+        "period": 60,
+        "stat": "Average",
+        "region": "eu-west-2",
+        "title": "Response Time",
+        "view": "singleValue",
+        "sparkline": true,
+        "liveData": true
+      }
+    },
+    {
+      "type": "metric",
+      "x": 20,
+      "y": 3,
+      "width": 4,
+      "height": 3,
+      "properties": {
+        "metrics": [["NAVADA/WorldView", "AlertCount", {"label": "Alerts", "color": "#ff7f0e"}]],
+        "period": 60,
+        "stat": "Maximum",
+        "region": "eu-west-2",
+        "title": "Live Alert Count",
+        "view": "singleValue",
+        "sparkline": true,
+        "liveData": true
+      }
+    },
+
+    {
+      "type": "text",
+      "x": 0,
+      "y": 6,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "## Uptime & Performance — response time and availability over time"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 7,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["NAVADA/WorldView", "SiteUp", {"label": "Site", "color": "#2ca02c"}],
+          ["NAVADA/WorldView", "AlertsApiUp", {"label": "/api/alerts", "color": "#1f77b4"}],
+          ["NAVADA/WorldView", "InsightsApiUp", {"label": "/api/insights", "color": "#ff7f0e"}],
+          ["NAVADA/WorldView", "AnalyticsApiUp", {"label": "/api/analytics", "color": "#9467bd"}]
+        ],
+        "period": 60,
+        "stat": "Minimum",
+        "region": "eu-west-2",
+        "title": "Endpoint Availability — 1 = Up, 0 = Down",
+        "view": "timeSeries",
+        "yAxis": {"left": {"min": 0, "max": 1.5}},
+        "liveData": true
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 7,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["NAVADA/WorldView", "ResponseTimeMs", {"label": "Homepage (ms)", "color": "#1f77b4"}],
+          ["NAVADA/WorldView", "AlertsResponseMs", {"label": "/api/alerts (ms)", "color": "#2ca02c"}],
+          ["NAVADA/WorldView", "InsightsResponseMs", {"label": "/api/insights (ms)", "color": "#ff7f0e"}]
+        ],
+        "period": 60,
+        "stat": "Average",
+        "region": "eu-west-2",
+        "title": "Response Times (ms) — lower is better",
+        "view": "timeSeries",
+        "yAxis": {"left": {"min": 0, "label": "ms"}},
+        "annotations": {
+          "horizontal": [
+            {"label": "Slow (>3s)", "value": 3000, "color": "#d62728", "fill": "above"}
+          ]
+        },
+        "liveData": true
+      }
+    },
+
+    {
+      "type": "text",
+      "x": 0,
+      "y": 13,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "## Data Quality — are feeds returning real data?"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 14,
+      "width": 12,
+      "height": 5,
+      "properties": {
+        "metrics": [
+          ["NAVADA/WorldView", "AlertCount", {"label": "Total Alerts", "color": "#ff7f0e"}]
+        ],
+        "period": 300,
+        "stat": "Maximum",
+        "region": "eu-west-2",
+        "title": "Alert Count Over Time — should be 20-50 at all times",
+        "view": "timeSeries",
+        "yAxis": {"left": {"min": 0, "label": "Alerts"}},
+        "annotations": {
+          "horizontal": [
+            {"label": "Low data warning", "value": 5, "color": "#d62728", "fill": "below"}
+          ]
+        },
+        "liveData": true
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 14,
+      "width": 12,
+      "height": 5,
+      "properties": {
+        "metrics": [
+          ["NAVADA/WorldView", "FeedSourceCount", {"label": "Active Feed Sources", "color": "#9467bd"}]
+        ],
+        "period": 300,
+        "stat": "Maximum",
+        "region": "eu-west-2",
+        "title": "Active Feed Sources — should be 6-8",
+        "view": "timeSeries",
+        "yAxis": {"left": {"min": 0, "max": 10, "label": "Sources"}},
+        "liveData": true
+      }
+    },
+
+    {
+      "type": "text",
+      "x": 0,
+      "y": 19,
+      "width": 24,
+      "height": 2,
+      "properties": {
+        "markdown": "## Architecture\n| Layer | Component | Location |\n|---|---|---|\n| **Frontend** | Next.js SSR | AWS EC2 (t3.medium, `100.98.118.33:4000`) |\n| **API** | Next.js API Routes (alerts, insights, analytics, briefs) | AWS EC2 (same process) |\n| **Proxy** | nginx reverse proxy | Oracle VM (`navada-proxy`) |\n| **Tunnel** | Cloudflare Tunnel → `world.navada-edge-server.uk` | Oracle VM (`navada-tunnel`) |\n| **AI** | OpenAI GPT-4o-mini | External API |\n| **Data** | RSS feeds (BBC, Reuters, Al Jazeera, etc.) | External feeds |"
+      }
+    }
+  ]
+}

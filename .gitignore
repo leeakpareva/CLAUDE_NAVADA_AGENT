@@ -22,3 +22,6 @@ build/
 .next/
 .cache/
 infrastructure/.env
+nul
+*.msi
+.claude/

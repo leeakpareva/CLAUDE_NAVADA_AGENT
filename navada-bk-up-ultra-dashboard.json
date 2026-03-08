@@ -1,0 +1,241 @@
+{
+  "widgets": [
+    {
+      "type": "text",
+      "x": 0,
+      "y": 0,
+      "width": 24,
+      "height": 3,
+      "properties": {
+        "markdown": "# NAVADA BACKUP ULTRA\n**Purpose**: Weekly full backup of ASUS and HP laptops to Oracle Cloud VM via Tailscale\n**Location**: `ubuntu@100.77.206.9:/opt/navada-backup-ultra/`\n**Schedule**: Every Sunday at 03:00 AM | **Retention**: All versions kept (rsync --delete syncs latest state)\n\n| Node | Folder | Machine | What's Backed Up |\n|---|---|---|---|\n| **ASUS** | `/opt/navada-backup-ultra/ASUS/` | Zenbook Duo (100.88.118.128) | CLAUDE_NAVADA_AGENT, Documents, Desktop, .ssh, .claude, VS Code config, opencode |\n| **HP** | `/opt/navada-backup-ultra/HP/` | EliteBook 840 G5 (100.121.187.67) | CLAUDE_NAVADA_AGENT, Documents, Desktop, .ssh, .claude |"
+      }
+    },
+
+    {
+      "type": "text",
+      "x": 0,
+      "y": 3,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "## ASUS Backup Status"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 4,
+      "width": 4,
+      "height": 4,
+      "properties": {
+        "metrics": [["NAVADA/BackupUltra", "BackupSuccess", "Node", "ASUS", {"label": "1=OK 0=Failed", "color": "#2ca02c"}]],
+        "period": 86400,
+        "stat": "Maximum",
+        "region": "eu-west-2",
+        "title": "ASUS Last Backup",
+        "view": "singleValue",
+        "sparkline": false,
+        "liveData": true
+      }
+    },
+    {
+      "type": "metric",
+      "x": 4,
+      "y": 4,
+      "width": 4,
+      "height": 4,
+      "properties": {
+        "metrics": [["NAVADA/BackupUltra", "BackupSizeMB", "Node", "ASUS", {"label": "MB", "color": "#1f77b4"}]],
+        "period": 86400,
+        "stat": "Maximum",
+        "region": "eu-west-2",
+        "title": "ASUS Backup Size",
+        "view": "singleValue",
+        "sparkline": true,
+        "liveData": true
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 4,
+      "width": 4,
+      "height": 4,
+      "properties": {
+        "metrics": [["NAVADA/BackupUltra", "BackupDirsSynced", "Node", "ASUS", {"label": "Dirs Synced", "color": "#2ca02c"}]],
+        "period": 86400,
+        "stat": "Maximum",
+        "region": "eu-west-2",
+        "title": "ASUS Dirs Synced",
+        "view": "singleValue",
+        "sparkline": false,
+        "liveData": true
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 4,
+      "width": 12,
+      "height": 4,
+      "properties": {
+        "metrics": [
+          ["NAVADA/BackupUltra", "BackupSuccess", "Node", "ASUS", {"label": "ASUS Backup OK", "color": "#2ca02c"}],
+          ["NAVADA/BackupUltra", "BackupFailed", "Node", "ASUS", {"label": "ASUS Backup Failed", "color": "#d62728"}]
+        ],
+        "period": 86400,
+        "stat": "Maximum",
+        "region": "eu-west-2",
+        "title": "ASUS Backup History — 1 = ran that day",
+        "view": "timeSeries",
+        "yAxis": {"left": {"min": 0, "max": 1.5}},
+        "liveData": true
+      }
+    },
+
+    {
+      "type": "text",
+      "x": 0,
+      "y": 8,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "## HP Server Backup Status"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 9,
+      "width": 4,
+      "height": 4,
+      "properties": {
+        "metrics": [["NAVADA/BackupUltra", "BackupSuccess", "Node", "HP", {"label": "1=OK 0=Failed", "color": "#2ca02c"}]],
+        "period": 86400,
+        "stat": "Maximum",
+        "region": "eu-west-2",
+        "title": "HP Last Backup",
+        "view": "singleValue",
+        "sparkline": false,
+        "liveData": true
+      }
+    },
+    {
+      "type": "metric",
+      "x": 4,
+      "y": 9,
+      "width": 4,
+      "height": 4,
+      "properties": {
+        "metrics": [["NAVADA/BackupUltra", "BackupSizeMB", "Node", "HP", {"label": "MB", "color": "#1f77b4"}]],
+        "period": 86400,
+        "stat": "Maximum",
+        "region": "eu-west-2",
+        "title": "HP Backup Size",
+        "view": "singleValue",
+        "sparkline": true,
+        "liveData": true
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 9,
+      "width": 4,
+      "height": 4,
+      "properties": {
+        "metrics": [["NAVADA/BackupUltra", "BackupDirsSynced", "Node", "HP", {"label": "Dirs Synced", "color": "#2ca02c"}]],
+        "period": 86400,
+        "stat": "Maximum",
+        "region": "eu-west-2",
+        "title": "HP Dirs Synced",
+        "view": "singleValue",
+        "sparkline": false,
+        "liveData": true
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 9,
+      "width": 12,
+      "height": 4,
+      "properties": {
+        "metrics": [
+          ["NAVADA/BackupUltra", "BackupSuccess", "Node", "HP", {"label": "HP Backup OK", "color": "#2ca02c"}],
+          ["NAVADA/BackupUltra", "BackupFailed", "Node", "HP", {"label": "HP Backup Failed", "color": "#d62728"}]
+        ],
+        "period": 86400,
+        "stat": "Maximum",
+        "region": "eu-west-2",
+        "title": "HP Backup History — 1 = ran that day",
+        "view": "timeSeries",
+        "yAxis": {"left": {"min": 0, "max": 1.5}},
+        "liveData": true
+      }
+    },
+
+    {
+      "type": "text",
+      "x": 0,
+      "y": 13,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "## Total Backup Storage on Oracle VM"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 14,
+      "width": 12,
+      "height": 5,
+      "properties": {
+        "metrics": [
+          ["NAVADA/BackupUltra", "BackupSizeMB", "Node", "ASUS", {"label": "ASUS Size (MB)", "color": "#1f77b4"}],
+          ["NAVADA/BackupUltra", "BackupSizeMB", "Node", "HP", {"label": "HP Size (MB)", "color": "#ff7f0e"}]
+        ],
+        "period": 86400,
+        "stat": "Maximum",
+        "region": "eu-west-2",
+        "title": "Backup Size Over Time (MB) — per node",
+        "view": "timeSeries",
+        "stacked": true,
+        "yAxis": {"left": {"min": 0, "label": "MB"}},
+        "liveData": true
+      }
+    },
+    {
+      "type": "text",
+      "x": 12,
+      "y": 14,
+      "width": 12,
+      "height": 5,
+      "properties": {
+        "markdown": "### Recovery Instructions\nIf a laptop is lost or breaks:\n1. SSH to Oracle VM: `ssh ubuntu@100.77.206.9`\n2. Navigate to backup: `cd /opt/navada-backup-ultra/ASUS/` or `.../HP/`\n3. Read `BACKUP_MANIFEST.txt` for details\n4. Copy files to new machine with rsync:\n```\nrsync -avz ubuntu@100.77.206.9:/opt/navada-backup-ultra/ASUS/ /c/Users/leeak/\n```\n\n### Oracle VM Disk\n- **Total**: 45 GB | **Used**: ~32 GB | **Free**: ~13 GB\n- Backups use incremental rsync (only changed files transfer)"
+      }
+    },
+
+    {
+      "type": "text",
+      "x": 0,
+      "y": 19,
+      "width": 24,
+      "height": 5,
+      "properties": {
+        "markdown": "## ASUS Backed Up Files — CLAUDE_NAVADA_AGENT (677 MB)\n| Folder | Size | Contents |\n|---|---|---|\n| `Automation/` | 343 MB | Telegram bot, inbox responder, network scanner, voice command, AI news mailer |\n| `Manager/` | 45 MB | Manager/org tools, team ops |\n| `worldmonitor-proxy/` | 9.1 MB | WorldMonitor proxy config |\n| `navada-osint/` | 916 KB | WorldMonitor source (Next.js intelligence dashboard) |\n| `navada-robotics-landing/` | 700 KB | Robotics landing page |\n| `templates/` | 696 KB | Email/doc templates |\n| `LeadPipeline/` | 472 KB | Lead pipeline automation |\n| `NAVADA-Trading/` | 144 KB | Trading API + scheduler |\n| `infrastructure/` | 84 KB | Infrastructure configs |\n| `crow_theme/` | 68 KB | Crow theme assets |\n| `gradio-mcp/` | 28 KB | Gradio MCP integration |\n| `tensorboard-demo/` | 12 KB | ML tensorboard demo |"
+      }
+    },
+    {
+      "type": "text",
+      "x": 0,
+      "y": 24,
+      "width": 24,
+      "height": 3,
+      "properties": {
+        "markdown": "### CI/CD — Gitea + Jenkins on Oracle VM\n| Service | URL (via Tailscale) | Purpose |\n|---|---|---|\n| **Gitea** (Private Git) | `http://100.77.206.9:3002` | Private repos for NAVADA Edge code — no public exposure |\n| **Jenkins** (CI/CD) | `http://100.77.206.9:8082/jenkins` | Build, test, deploy pipelines for all NAVADA projects |\n| **Portainer** | `http://100.77.206.9:9000` | Docker container management |\n| **Grafana** | `http://100.77.206.9:3000` | Monitoring dashboards |"
+      }
+    }
+  ]
+}

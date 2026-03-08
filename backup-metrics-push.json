@@ -1,0 +1,6 @@
+[
+  {"MetricName":"BackupSuccess","Value":1,"Unit":"None","Dimensions":[{"Name":"Node","Value":"ASUS"}],"Timestamp":"2026-03-08T03:43:00Z"},
+  {"MetricName":"BackupSizeMB","Value":877,"Unit":"Megabytes","Dimensions":[{"Name":"Node","Value":"ASUS"}],"Timestamp":"2026-03-08T03:43:00Z"},
+  {"MetricName":"BackupDirsSynced","Value":3,"Unit":"Count","Dimensions":[{"Name":"Node","Value":"ASUS"}],"Timestamp":"2026-03-08T03:43:00Z"},
+  {"MetricName":"BackupFailed","Value":0,"Unit":"None","Dimensions":[{"Name":"Node","Value":"ASUS"}],"Timestamp":"2026-03-08T03:43:00Z"}
+]
