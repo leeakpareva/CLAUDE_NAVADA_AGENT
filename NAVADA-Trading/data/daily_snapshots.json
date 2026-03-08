@@ -92,5 +92,162 @@
     "position_count": 4,
     "total_return_pct": 399017.8,
     "daily_pnl": 0.1900000000023283
+  },
+  {
+    "timestamp": "2026-03-03T21:15:17.012398",
+    "date": "2026-03-03",
+    "equity": 99777.85,
+    "cash": 97941.05,
+    "positions": [
+      {
+        "symbol": "AAPL",
+        "qty": 2.0,
+        "entry_price": 270.7225,
+        "current_price": 263.9,
+        "market_value": 527.8,
+        "unrealized_pl": -13.645,
+        "unrealized_plpc": -0.0252
+      },
+      {
+        "symbol": "META",
+        "qty": 2.0,
+        "entry_price": 653.71,
+        "current_price": 654.5,
+        "market_value": 1309.0,
+        "unrealized_pl": 1.58,
+        "unrealized_plpc": 0.00121
+      }
+    ],
+    "position_count": 2,
+    "total_return_pct": 399011.4,
+    "daily_pnl": -1.5999999999912689
+  },
+  {
+    "timestamp": "2026-03-03T21:15:25.945015",
+    "date": "2026-03-03",
+    "equity": 99777.85,
+    "cash": 97941.05,
+    "positions": [
+      {
+        "symbol": "AAPL",
+        "qty": 2.0,
+        "entry_price": 270.7225,
+        "current_price": 263.9,
+        "market_value": 527.8,
+        "unrealized_pl": -13.645,
+        "unrealized_plpc": -0.0252
+      },
+      {
+        "symbol": "META",
+        "qty": 2.0,
+        "entry_price": 653.71,
+        "current_price": 654.5,
+        "market_value": 1309.0,
+        "unrealized_pl": 1.58,
+        "unrealized_plpc": 0.00121
+      }
+    ],
+    "position_count": 2,
+    "total_return_pct": 399011.4,
+    "daily_pnl": 0.0
+  },
+  {
+    "timestamp": "2026-03-04T21:15:11.252199",
+    "date": "2026-03-04",
+    "equity": 99801.68,
+    "cash": 97941.04,
+    "positions": [
+      {
+        "symbol": "AAPL",
+        "qty": 2.0,
+        "entry_price": 270.7225,
+        "current_price": 262.74,
+        "market_value": 525.48,
+        "unrealized_pl": -15.965,
+        "unrealized_plpc": -0.02949
+      },
+      {
+        "symbol": "META",
+        "qty": 2.0,
+        "entry_price": 653.71,
+        "current_price": 667.58,
+        "market_value": 1335.16,
+        "unrealized_pl": 27.74,
+        "unrealized_plpc": 0.02122
+      }
+    ],
+    "position_count": 2,
+    "total_return_pct": 399106.72,
+    "daily_pnl": 23.829999999987194
+  },
+  {
+    "timestamp": "2026-03-05T21:15:06.116412",
+    "date": "2026-03-05",
+    "equity": 99780.28,
+    "cash": 98461.64,
+    "positions": [
+      {
+        "symbol": "META",
+        "qty": 2.0,
+        "entry_price": 653.71,
+        "current_price": 659.32,
+        "market_value": 1318.64,
+        "unrealized_pl": 11.22,
+        "unrealized_plpc": 0.00858
+      }
+    ],
+    "position_count": 1,
+    "total_return_pct": 399021.12,
+    "daily_pnl": -21.39999999999418
+  },
+  {
+    "timestamp": "2026-03-05T21:15:35.300657",
+    "date": "2026-03-05",
+    "equity": 99780.28,
+    "cash": 98461.64,
+    "positions": [
+      {
+        "symbol": "META",
+        "qty": 2.0,
+        "entry_price": 653.71,
+        "current_price": 659.32,
+        "market_value": 1318.64,
+        "unrealized_pl": 11.22,
+        "unrealized_plpc": 0.00858
+      }
+    ],
+    "position_count": 1,
+    "total_return_pct": 399021.12,
+    "daily_pnl": 0.0
+  },
+  {
+    "timestamp": "2026-03-06T20:30:03.769217",
+    "date": "2026-03-06",
+    "equity": 99748.51,
+    "cash": 98461.63,
+    "positions": [
+      {
+        "symbol": "META",
+        "qty": 2.0,
+        "entry_price": 653.71,
+        "current_price": 643.44,
+        "market_value": 1286.88,
+        "unrealized_pl": -20.54,
+        "unrealized_plpc": -0.01571
+      }
+    ],
+    "position_count": 1,
+    "total_return_pct": 398894.04,
+    "daily_pnl": -31.770000000004075
+  },
+  {
+    "timestamp": "2026-03-06T21:15:04.915415",
+    "date": "2026-03-06",
+    "equity": 99748.32,
+    "cash": 99748.32,
+    "positions": [],
+    "position_count": 0,
+    "total_return_pct": 398893.28,
+    "daily_pnl": -0.1899999999877764
   }
 ]

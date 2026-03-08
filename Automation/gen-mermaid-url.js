@@ -61,7 +61,7 @@ const mermaidDef = `graph TD
     end
 
     subgraph LAN["LAN ACCESS"]
-        LOCAL["192.168.0.36:4173"]
+        LOCAL["192.168.0.58:4173"]
     end
 
     PHONE --> DOMAIN

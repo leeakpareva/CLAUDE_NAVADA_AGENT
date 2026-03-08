@@ -1,0 +1,89 @@
+Here's the complete end-to-end setup to connect Claude Code to both your local Oracle DB Docker container and your Oracle Cloud instance via SSH.
+Part 1 — Connect Claude Code to your Local Oracle DB (via MCP)
+Claude Code uses MCP (Model Context Protocol) to talk to databases. The best Oracle-specific MCP server found is danielmeppiel/oracle-mcp-server (116 stars, actively maintained).
+Step 1: Install the Oracle MCP server
+bash# Clone it
+git clone https://github.com/danielmeppiel/oracle-mcp-server
+cd oracle-mcp-server
+# Install dependencies (requires Python 3.10+)
+pip install -r requirements.txt
+# or with uv (faster):
+uv pip install -r requirements.txt
+Step 2: Register it with Claude Code
+Run this once in your terminal — it wires the MCP server into Claude Code permanently:
+bashclaude mcp add --transport stdio \\
+  --env ORACLE_USER=system \\
+  --env ORACLE_PASSWORD=YourStrongPassword1 \\
+  --env ORACLE_DSN=localhost:1521/FREEPDB1 \\
+  oracle-db -- python /path/to/oracle-mcp-server/server.py
+Replace /path/to/oracle-mcp-server/ with the actual clone path, and your actual password.
+Step 3: Verify it's registered
+bashclaude mcp list
+# Should show: oracle-db
+Step 4: Use it inside Claude Code
+Open any project in your terminal and start Claude Code:
+bashclaude
+```
+Then just talk to it naturally:
+```
+> Show me all tables in FREEPDB1
+> Write me a query to find users who signed up in the last 30 days
+> Create a new table for storing products
+```
+---
+## Part 2 — Connect Claude Code to your Oracle Cloud VM via SSH
+You don't have a running instance yet, so here's the full flow — create the instance, then connect.
+### Step 1: Create your Free Tier compute instance
+Go back to Oracle Cloud → Compute → Instances → **Create Instance**.
+Choose:
+- **Image:** Oracle Linux 8 (or Ubuntu 22.04)
+- **Shape:** VM.Standard.E2.1.Micro (Always Free) or Ampere A1 (4 OCPUs free)
+- **SSH Keys:** Upload your existing public key (`~/.ssh/id_rsa.pub`) or generate a new one
+- Note the **Public IP address** after creation
+### Step 2: Configure your local SSH
+Add this to your `~/.ssh/config` file:
+```
+Host oracle-free
+  HostName <YOUR_INSTANCE_PUBLIC_IP>
+  User opc
+  IdentityFile ~/.ssh/id_rsa
+  ServerAliveInterval 60
+  ServerAliveCountMax 3
+Test the connection:
+bashssh oracle-free
+Step 3: Use Claude Code over SSH
+Claude Code can work directly on your remote Oracle Cloud server:
+bash# SSH into your instance first
+ssh oracle-free
+# Then on the remote machine, install Claude Code
+curl -fsSL https://claude.ai/install.sh | bash
+# Navigate to your project and run Claude Code there
+cd ~/your-project
+claude
+Claude Code will now run on the Oracle Cloud instance, reading and editing files remotely, running commands, and using the full server resources.
+Step 4 (Alternative): Remote Control from your local machine
+If you want to control the remote session from your local Claude Code, use SSH tunnelling:
+bash# On your local machine — tunnel the Oracle DB port too
+ssh -L 1521:localhost:1521 oracle-free
+This lets your local Claude Code MCP connection to localhost:1521 transparently reach the Oracle DB running on your cloud instance.
+Part 3 — Wire everything into a CLAUDE.md file
+Create a CLAUDE.md in your project root so Claude Code always knows your setup:
+markdown# Project Setup
+## Oracle Database (Local Docker)
+- Host: localhost:1521
+- PDB: FREEPDB1
+- CDB: FREE
+- Default user: system
+- MCP server registered as: oracle-db
+## Oracle Cloud Instance
+- SSH alias: oracle-free
+- User: opc
+- Region: uk-london-1 (London)
+- Tenancy: leeakpareva
+## Conventions
+- Always use FREEPDB1 for application data
+- Use sys/sysdba only for admin tasks
+- DB passwords stored in .env (never commit)
+
+Quick Reference
+What you wantCommandTalk to local Oracle DBclaude → ask naturallyList MCP serversclaude mcp listCheck MCP status in session/mcpSSH into Oracle Cloudssh oracle-freeRun Claude Code remotelyssh oracle-free then claudeChange DB passworddocker exec oracle-free ./setPassword.sh NewPass1

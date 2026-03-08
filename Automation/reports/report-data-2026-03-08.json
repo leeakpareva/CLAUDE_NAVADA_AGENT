@@ -1,0 +1,77 @@
+{
+  "news": [
+    {
+      "title": "Owner of ICE detention facility sees big opportunity in AI man camps",
+      "link": "https://techcrunch.com/2026/03/08/owner-of-ice-detention-facility-sees-big-opportunity-in-ai-man-camps/",
+      "source": "AI News & Artificial Intelligence | TechCrunch",
+      "date": "2026-03-08T16:30:00.000Z"
+    },
+    {
+      "title": "A roadmap for AI, if anyone will listen",
+      "link": "https://techcrunch.com/2026/03/07/a-roadmap-for-ai-if-anyone-will-listen/",
+      "source": "AI News & Artificial Intelligence | TechCrunch",
+      "date": "2026-03-08T06:05:26.000Z"
+    },
+    {
+      "title": "Google just gave Sundar Pichai a $692M pay package",
+      "link": "https://techcrunch.com/2026/03/07/google-just-gave-sundar-pichai-a-692m-pay-package/",
+      "source": "AI News & Artificial Intelligence | TechCrunch",
+      "date": "2026-03-08T00:20:10.000Z"
+    },
+    {
+      "title": "Grammarly’s ‘expert review’ is just missing the actual experts",
+      "link": "https://techcrunch.com/2026/03/07/grammarlys-expert-review-is-just-missing-the-actual-experts/",
+      "source": "AI News & Artificial Intelligence | TechCrunch",
+      "date": "2026-03-07T22:56:31.000Z"
+    },
+    {
+      "title": "OpenAI hardware exec Caitlin Kalinowski quits in response to Pentagon deal",
+      "link": "https://techcrunch.com/2026/03/07/openai-robotics-lead-caitlin-kalinowski-quits-in-response-to-pentagon-deal/",
+      "source": "AI News & Artificial Intelligence | TechCrunch",
+      "date": "2026-03-07T20:44:25.000Z"
+    },
+    {
+      "title": "The OpenClaw superfan meetup serves optimism and lobster",
+      "link": "https://www.theverge.com/ai-artificial-intelligence/890517/openclaw-clawcon-meetup-nyc-open-source-ai",
+      "source": "AI | The Verge",
+      "date": "2026-03-07T14:00:00.000Z"
+    },
+    {
+      "title": "Grammarly is using our identities without permission",
+      "link": "https://www.theverge.com/ai-artificial-intelligence/890921/grammarly-ai-expert-reviews",
+      "source": "AI | The Verge",
+      "date": "2026-03-06T20:58:24.000Z"
+    },
+    {
+      "title": "Feds take notice of iOS vulnerabilities exploited under mysterious circumstances",
+      "link": "https://arstechnica.com/security/2026/03/cisa-adds-3-ios-flaws-to-its-catalog-of-known-exploited-vulnerabilities/",
+      "source": "Biz & IT - Ars Technica",
+      "date": "2026-03-06T19:41:33.000Z"
+    },
+    {
+      "title": "The AI Doc is an overwrought hype piece for doomers and accelerationists alike",
+      "link": "https://www.theverge.com/entertainment/890806/the-ai-doc-or-how-i-became-an-apocaloptimist-review",
+      "source": "AI | The Verge",
+      "date": "2026-03-06T19:05:00.000Z"
+    },
+    {
+      "title": "The Pentagon formally labels Anthropic a supply-chain risk",
+      "link": "https://www.theverge.com/ai-artificial-intelligence/890347/pentagon-anthropic-supply-chain-risk",
+      "source": "AI | The Verge",
+      "date": "2026-03-05T23:02:22.000Z"
+    }
+  ],
+  "metrics": {
+    "total": 889,
+    "thisWeek": 373,
+    "New": 889,
+    "topCompanies": [
+      "JPMorganChase",
+      "NewDay",
+      "CGI",
+      "Lloyds Banking Group",
+      "Grafana Labs"
+    ]
+  },
+  "date": "2026-03-08"
+}

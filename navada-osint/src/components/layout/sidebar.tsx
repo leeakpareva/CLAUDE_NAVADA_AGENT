@@ -37,7 +37,7 @@ const QUICK_ACTIONS = [
   {
     label: "JupyterLab",
     icon: FlaskConical,
-    href: "http://192.168.0.36:8888",
+    href: "http://192.168.0.58:8888",
     external: true,
   },
 ];

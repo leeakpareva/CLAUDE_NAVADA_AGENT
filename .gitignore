@@ -25,3 +25,7 @@ infrastructure/.env
 nul
 *.msi
 .claude/
+Automation/uploads/
+Automation/data/*.db
+Automation/data/*.db-shm
+Automation/data/*.db-wal

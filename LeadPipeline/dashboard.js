@@ -252,6 +252,6 @@ setInterval(async()=>{
 // ─── START ────────────────────────────────────────────────────
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`NAVADA Lead Pipeline Dashboard running on http://0.0.0.0:${PORT}`);
-  console.log(`Access: http://192.168.0.36:${PORT}`);
+  console.log(`Access: http://192.168.0.58:${PORT}`);
   console.log('WebSocket: live real-time updates enabled');
 });

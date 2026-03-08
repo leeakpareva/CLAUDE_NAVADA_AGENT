@@ -24,7 +24,6 @@ function connectImap() {
       host: 'imap.zoho.eu',
       port: 993,
       tls: true,
-      tlsOptions: { rejectUnauthorized: false },
     });
     imap.once('ready', () => resolve(imap));
     imap.once('error', reject);

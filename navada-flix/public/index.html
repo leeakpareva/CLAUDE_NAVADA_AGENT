@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NAVADA Flix</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #080C22;
+      color: #fff;
+      min-height: 100vh;
+    }
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 40px;
+      background: linear-gradient(180deg, #0A0F2C 0%, transparent 100%);
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    }
+    .logo {
+      font-size: 28px; font-weight: 800; letter-spacing: 6px;
+      color: #C9A84C;
+      text-shadow: 0 0 20px #C9A84C40;
+    }
+    .logo span { color: #fff; font-weight: 300; font-size: 16px; letter-spacing: 2px; margin-left: 8px; }
+    .nav { display: flex; align-items: center; gap: 16px; }
+    .nav a { color: #999; text-decoration: none; font-size: 14px; }
+    .nav a:hover, .nav a.active { color: #C9A84C; }
+
+    .auth-btn {
+      padding: 8px 20px; border-radius: 6px; border: 1px solid #C9A84C40;
+      background: transparent; color: #C9A84C; cursor: pointer; font-size: 13px;
+      letter-spacing: 1px; transition: all 0.2s;
+    }
+    .auth-btn:hover { background: #C9A84C20; }
+    .auth-btn.signed-in { border-color: #4ade8040; color: #4ade80; }
+
+    .user-avatar {
+      width: 32px; height: 32px; border-radius: 50%; border: 2px solid #C9A84C;
+      cursor: pointer;
+    }
+
+    .auth-gate {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 80vh; text-align: center; padding: 40px;
+    }
+    .auth-gate h1 { font-size: 48px; color: #C9A84C; margin-bottom: 12px; }
+    .auth-gate p { color: #888; font-size: 18px; margin-bottom: 32px; }
+    .auth-gate .login-btn {
+      padding: 14px 40px; font-size: 16px; font-weight: 700;
+      background: linear-gradient(135deg, #C9A84C, #a88a3a);
+      color: #080C22; border: none; border-radius: 8px; cursor: pointer;
+      letter-spacing: 1px; text-transform: uppercase;
+    }
+    .auth-gate .login-btn:hover { opacity: 0.9; }
+
+    .hero {
+      padding: 120px 40px 40px;
+      text-align: center;
+    }
+    .hero h1 { font-size: 48px; color: #C9A84C; margin-bottom: 12px; }
+    .hero p { color: #888; font-size: 18px; }
+
+    .player-section {
+      max-width: 1200px; margin: 0 auto; padding: 20px 40px;
+    }
+    .player-container {
+      position: relative; width: 100%; padding-top: 56.25%;
+      background: #0A0F2C; border-radius: 12px; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .player-container video {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: #000;
+    }
+
+    .video-grid {
+      max-width: 1200px; margin: 40px auto; padding: 0 40px;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px;
+    }
+    .video-card {
+      background: #0F1535; border-radius: 12px; overflow: hidden;
+      cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid #1A2550;
+    }
+    .video-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(201, 168, 76, 0.15);
+      border-color: #C9A84C40;
+    }
+    .video-thumb {
+      width: 100%; aspect-ratio: 16/9; background: #1A2550;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 48px; color: #C9A84C40;
+    }
+    .video-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .video-info { padding: 16px; }
+    .video-info h3 { font-size: 16px; margin-bottom: 4px; color: #E8D5A0; }
+    .video-info p { font-size: 13px; color: #666; }
+    .video-info .meta { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: #555; }
+
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    }
+    .badge-ready { background: #1a3a2a; color: #4ade80; }
+    .badge-processing { background: #3a3a1a; color: #fbbf24; }
+
+    .empty-state {
+      text-align: center; padding: 80px 40px; color: #555;
+    }
+    .empty-state h2 { color: #C9A84C; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">NAVADA <span>FLIX</span></div>
+    <div class="nav">
+      <a href="#" class="active" onclick="showHome()">Library</a>
+      <a href="#" onclick="showLive()">Live</a>
+      <div id="authArea">
+        <button class="auth-btn" onclick="handleAuth()" id="authBtn">Sign In</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth gate (shown when not signed in) -->
+  <div class="auth-gate" id="authGate">
+    <h1>NAVADA Flix</h1>
+    <p>AI-generated video streaming | Powered by Remotion</p>
+    <p style="color: #666; font-size: 14px; margin-bottom: 24px;">Sign in with Google to access the video library</p>
+    <button class="login-btn" onclick="handleAuth()">Sign in with Google</button>
+    <p style="color: #444; font-size: 12px; margin-top: 16px;">Powered by Clerk authentication</p>
+  </div>
+
+  <!-- Main content (shown when signed in) -->
+  <div id="mainContent" style="display:none;">
+    <div class="hero" id="hero">
+      <h1>NAVADA Flix</h1>
+      <p>AI-generated video streaming | Powered by Remotion</p>
+    </div>
+
+    <div class="player-section" id="playerSection" style="display:none;">
+      <div class="player-container">
+        <video id="videoPlayer" controls playsinline></video>
+      </div>
+      <div style="padding: 20px 0;">
+        <h2 id="nowPlaying" style="color: #E8D5A0;"></h2>
+        <p id="nowDesc" style="color: #666; margin-top: 8px;"></p>
+      </div>
+    </div>
+
+    <div class="video-grid" id="videoGrid"></div>
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <h2>No videos yet</h2>
+      <p>Use /video in Telegram to generate Remotion videos, then /flix import to add them.</p>
+    </div>
+  </div>
+
+  <script>
+    // Auth state
+    let currentUser = null;
+    let clerkLoaded = false;
+    let clerkPK = null;
+
+    // Initialize: check if Clerk is configured
+    async function initAuth() {
+      try {
+        const res = await fetch('/api/auth/config');
+        const config = await res.json();
+        clerkPK = config.publishableKey;
+
+        if (config.enabled && clerkPK) {
+          // Load Clerk JS SDK
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js';
+          script.onload = async () => {
+            const Clerk = window.Clerk;
+            await Clerk.load({ publishableKey: clerkPK });
+            clerkLoaded = true;
+
+            if (Clerk.user) {
+              currentUser = {
+                name: Clerk.user.fullName || Clerk.user.firstName,
+                email: Clerk.user.primaryEmailAddress?.emailAddress,
+                image: Clerk.user.imageUrl,
+              };
+              showSignedIn();
+            } else {
+              showSignedOut();
+            }
+          };
+          document.head.appendChild(script);
+        } else {
+          // Clerk not configured, allow guest access
+          showSignedIn();
+        }
+      } catch {
+        // API unreachable, allow guest access
+        showSignedIn();
+      }
+    }
+
+    function showSignedIn() {
+      document.getElementById('authGate').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'block';
+      const btn = document.getElementById('authBtn');
+      if (currentUser) {
+        btn.textContent = currentUser.name || currentUser.email || 'Signed In';
+        btn.classList.add('signed-in');
+      } else {
+        btn.textContent = 'Guest';
+        btn.classList.add('signed-in');
+      }
+      loadVideos();
+    }
+
+    function showSignedOut() {
+      document.getElementById('authGate').style.display = 'flex';
+      document.getElementById('mainContent').style.display = 'none';
+    }
+
+    async function handleAuth() {
+      if (clerkLoaded && window.Clerk) {
+        if (window.Clerk.user) {
+          await window.Clerk.signOut();
+          currentUser = null;
+          showSignedOut();
+        } else {
+          window.Clerk.openSignIn({ redirectUrl: window.location.href });
+        }
+      } else {
+        window.location.href = '/api/auth/login';
+      }
+    }
+
+    let hls;
+    const player = document.getElementById('videoPlayer');
+
+    async function loadVideos() {
+      try {
+        const res = await fetch('/api/videos');
+        const videos = await res.json();
+        const grid = document.getElementById('videoGrid');
+
+        if (videos.length === 0) {
+          document.getElementById('emptyState').style.display = 'block';
+          grid.innerHTML = '';
+          return;
+        }
+        document.getElementById('emptyState').style.display = 'none';
+
+        grid.innerHTML = videos.map(v => `
+          <div class="video-card" onclick="playVideo('${v.id}')">
+            <div class="video-thumb">
+              ${v.thumbnail ? `<img src="${v.thumbnail}" alt="${v.title}">` : '&#9654;'}
+            </div>
+            <div class="video-info">
+              <h3>${v.title}</h3>
+              <p>${v.description || 'No description'}</p>
+              <div class="meta">
+                <span class="badge ${v.status === 'ready' ? 'badge-ready' : 'badge-processing'}">${v.status}</span>
+                <span>${v.duration ? Math.round(v.duration) + 's' : ''}</span>
+                <span>${v.source}</span>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load videos:', err);
+      }
+    }
+
+    async function playVideo(id) {
+      const res = await fetch(`/api/videos/${id}`);
+      const video = await res.json();
+      if (video.status !== 'ready') return alert('Video is still processing');
+
+      document.getElementById('playerSection').style.display = 'block';
+      document.getElementById('nowPlaying').textContent = video.title;
+      document.getElementById('nowDesc').textContent = video.description;
+      document.getElementById('hero').style.display = 'none';
+
+      const src = video.hls_path;
+      if (src && Hls.isSupported()) {
+        if (hls) hls.destroy();
+        hls = new Hls();
+        hls.loadSource(src);
+        hls.attachMedia(player);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => player.play());
+      } else if (src && player.canPlayType('application/vnd.apple.mpegurl')) {
+        player.src = src;
+        player.play();
+      } else {
+        // Fallback: direct MP4 playback
+        player.src = `/uploads/${video.filename}`;
+        player.play();
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function showLive() {
+      document.getElementById('playerSection').style.display = 'block';
+      document.getElementById('hero').style.display = 'none';
+      document.getElementById('nowPlaying').textContent = 'NAVADA Flix Live';
+      document.getElementById('nowDesc').textContent = '24/7 streaming';
+
+      const src = '/api/stream/live';
+      if (Hls.isSupported()) {
+        if (hls) hls.destroy();
+        hls = new Hls();
+        hls.loadSource(src);
+        hls.attachMedia(player);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => player.play());
+      }
+    }
+
+    function showHome() {
+      document.getElementById('playerSection').style.display = 'none';
+      document.getElementById('hero').style.display = 'block';
+      loadVideos();
+    }
+
+    // Initialize
+    initAuth();
+    setInterval(loadVideos, 30000);
+  </script>
+</body>
+</html>

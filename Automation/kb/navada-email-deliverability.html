@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Deliverability Fix: SES Production Access + DMARC</title>
+</head>
+<body style="margin:0; padding:0; background:#ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+<div style="display:none;max-height:0;overflow:hidden">DMARC added, SES production access requested. Here's the full picture.</div>
+
+<!-- Header -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#000000;">
+  <tr>
+    <td style="padding: 28px 40px;">
+      <div style="font-size:22px; font-weight:800; color:#ffffff; letter-spacing:0.15em; font-family: 'Helvetica Neue', Arial, sans-serif;">
+        NAVADA
+      </div>
+      <div style="font-size:11px; color:#999999; letter-spacing:0.08em; margin-top:4px; text-transform:uppercase;">
+        AI Engineering & Consulting
+      </div>
+    </td>
+  </tr>
+</table>
+
+<!-- Date Bar -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#fafafa; border-bottom: 1px solid #eaeaea;">
+  <tr>
+    <td style="padding: 10px 40px;">
+      <span style="font-size:11px; color:#888888; letter-spacing:0.04em;">
+        Thursday, 5 March 2026 &middot; 18:15
+      </span>
+    </td>
+  </tr>
+</table>
+
+<!-- Heading -->
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+  <tr>
+    <td style="padding: 32px 40px 0 40px;">
+      <h1 style="margin:0; font-size:20px; font-weight:700; color:#111111; line-height:1.3;">
+        Email Deliverability: The Spam Fix
+      </h1>
+    </td>
+  </tr>
+</table>
+
+
+<!-- Body Content -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+  <tr>
+    <td style="padding: 20px 40px 32px 40px; font-size:14px; line-height:1.7; color:#333333;">
+      
+<p style="margin:0 0 12px 0;">Lee,</p>
+
+<p style="margin:0 0 12px 0;">Following Nisha's emails landing in spam, here is a summary of the problem, what we've done to fix it, and what happens next.</p>
+
+<h2 style="font-size:18px; font-weight:700; color:#111; margin:24px 0 12px;">The Problem</h2>
+
+<p style="margin:0 0 12px 0;">We've been sending emails from <code>claude.navada@zohomail.eu</code> (free Zoho). Gmail and other providers see this as a generic free-tier address with low sender reputation. Combined with HTML-heavy content, images, and a reply-to on a different domain (<code>claude@navada-edge-server.uk</code>), spam filters flag the mismatch.</p>
+
+<h2 style="font-size:18px; font-weight:700; color:#111; margin:24px 0 12px;">What We Already Had</h2>
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:12px 0;">
+    <thead><tr><th style="padding:8px 12px; font-size:11px; font-weight:600; color:#666666; text-transform:uppercase; letter-spacing:0.06em; border-bottom:2px solid #111111; text-align:left;">Layer</th><th style="padding:8px 12px; font-size:11px; font-weight:600; color:#666666; text-transform:uppercase; letter-spacing:0.06em; border-bottom:2px solid #111111; text-align:left;">Status</th><th style="padding:8px 12px; font-size:11px; font-weight:600; color:#666666; text-transform:uppercase; letter-spacing:0.06em; border-bottom:2px solid #111111; text-align:left;">Detail</th></tr></thead>
+    <tbody><tr><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">Domain Verification</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;"><span style="color:#00b894; font-weight:700;">Verified</span></td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">navada-edge-server.uk verified in AWS SES</td></tr><tr><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">SPF</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;"><span style="color:#00b894; font-weight:700;">Configured</span></td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">Cloudflare DNS, authorises SES to send on our behalf</td></tr><tr><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">DKIM</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;"><span style="color:#00b894; font-weight:700;">Verified</span></td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">3 DKIM keys active, emails are cryptographically signed</td></tr><tr><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">SES Sending</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;"><span style="color:#ff9500; font-weight:700;">Sandbox</span></td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">Can only deliver to verified email addresses</td></tr></tbody>
+  </table>
+
+<div style="background:#fffbe6; border-left:3px solid #ffe58f; padding:12px 16px; margin:12px 0; font-size:13px; border-radius:0 2px 2px 0;">SES was silently accepting our emails but <strong>never delivering them</strong> to unverified recipients. That's why the first business case email never arrived in your Gmail. We switched to Zoho, which delivers but lands in spam.</div>
+
+<h2 style="font-size:18px; font-weight:700; color:#111; margin:24px 0 12px;">What We Fixed Today</h2>
+
+<div style="display:flex; align-items:flex-start; margin-bottom:14px;">
+  <div style="background:#00b894; color:white; min-width:32px; height:32px; border-radius:50%; text-align:center; line-height:32px; font-weight:700; font-size:14px; margin-right:12px;">1</div>
+  <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:12px 16px; flex:1;">
+    <div style="font-size:14px; font-weight:600; color:#333;">Added DMARC Record</div>
+    <div style="font-size:12px; color:#888; margin-top:4px;">
+      <code style="background:#f5f5f5; padding:2px 6px; border-radius:3px;">v=DMARC1; p=none; rua=mailto:leeakpareva@gmail.com; pct=100</code><br>
+      Tells Gmail: "Here's how to verify emails from our domain, and send reports to Lee if anything fails."
+    </div>
+  </div>
+</div>
+
+<div style="display:flex; align-items:flex-start; margin-bottom:14px;">
+  <div style="background:#00b894; color:white; min-width:32px; height:32px; border-radius:50%; text-align:center; line-height:32px; font-weight:700; font-size:14px; margin-right:12px;">2</div>
+  <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:12px 16px; flex:1;">
+    <div style="font-size:14px; font-weight:600; color:#333;">Requested SES Production Access</div>
+    <div style="font-size:12px; color:#888; margin-top:4px;">
+      Submitted request to AWS with our use case: transactional emails, small opt-in list (16 people), under 50 emails/day. Usually approved within 24 hours.
+    </div>
+  </div>
+</div>
+
+<h2 style="font-size:18px; font-weight:700; color:#111; margin:24px 0 12px;">Before vs After</h2>
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:12px 0;">
+    <thead><tr><th style="padding:8px 12px; font-size:11px; font-weight:600; color:#666666; text-transform:uppercase; letter-spacing:0.06em; border-bottom:2px solid #111111; text-align:left;"></th><th style="padding:8px 12px; font-size:11px; font-weight:600; color:#666666; text-transform:uppercase; letter-spacing:0.06em; border-bottom:2px solid #111111; text-align:left;">Current (Zoho)</th><th style="padding:8px 12px; font-size:11px; font-weight:600; color:#666666; text-transform:uppercase; letter-spacing:0.06em; border-bottom:2px solid #111111; text-align:left;">After SES Approval</th></tr></thead>
+    <tbody><tr><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">Sender</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">claude.navada@zohomail.eu</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">claude@navada-edge-server.uk</td></tr><tr><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">SPF</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">Zoho's generic SPF</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">Our domain, our SPF record</td></tr><tr><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">DKIM</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">Zoho's signature</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">Our 3 DKIM keys, cryptographically ours</td></tr><tr><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">DMARC</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">No alignment</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">Full alignment (sender = domain = DKIM)</td></tr><tr><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">Reputation</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">Free tier, shared with millions</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">Dedicated, builds over time</td></tr><tr><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">Spam risk</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;"><span style="color:#e74c3c; font-weight:600;">High</span></td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;"><span style="color:#00b894; font-weight:600;">Very Low</span></td></tr><tr><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">Daily limit</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">Zoho free tier limits</td><td style="padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;">50,000/day</td></tr></tbody>
+  </table>
+
+<div style="background:#fafafa; border-left:3px solid #e0e0e0; padding:12px 16px; margin:12px 0; font-size:13px; border-radius:0 2px 2px 0;"><strong>The key difference:</strong> When Gmail receives an email from <code>claude@navada-edge-server.uk</code> via SES, it checks SPF (pass), DKIM (pass), and DMARC (aligned). All three green. That's how enterprise email works. No more spam folder.</div>
+
+<h2 style="font-size:18px; font-weight:700; color:#111; margin:24px 0 12px;">What the Three Layers Do</h2>
+
+<div style="background:#fafafa; border:1px solid #eaeaea; border-radius:8px; padding:16px 20px; margin:12px 0;">
+  <div style="margin-bottom:14px;">
+    <div style="font-size:14px; font-weight:700; color:#111;">SPF (Sender Policy Framework)</div>
+    <div style="font-size:13px; color:#555; margin-top:4px;">A DNS record that says: "Only these servers (AWS SES) are allowed to send email on behalf of navada-edge-server.uk." If someone else tries to spoof our domain, SPF fails and the email gets rejected.</div>
+  </div>
+  <div style="border-top:1px solid #eaeaea; padding-top:14px; margin-bottom:14px;">
+    <div style="font-size:14px; font-weight:700; color:#111;">DKIM (DomainKeys Identified Mail)</div>
+    <div style="font-size:13px; color:#555; margin-top:4px;">A cryptographic signature attached to every email. Gmail checks the signature against our public keys in DNS. If the email was tampered with in transit, DKIM fails. Our 3 DKIM keys prove every email genuinely came from us.</div>
+  </div>
+  <div style="border-top:1px solid #eaeaea; padding-top:14px;">
+    <div style="font-size:14px; font-weight:700; color:#111;">DMARC (Domain-based Message Authentication)</div>
+    <div style="font-size:13px; color:#555; margin-top:4px;">The policy layer that ties SPF and DKIM together. It tells Gmail: "If an email claims to be from navada-edge-server.uk but fails SPF or DKIM, here's what to do with it." Also sends reports to Lee so we can monitor for spoofing attempts.</div>
+  </div>
+</div>
+
+<h2 style="font-size:18px; font-weight:700; color:#111; margin:24px 0 12px;">Next Steps</h2>
+
+<ol style="font-size:14px; color:#333; line-height:2; padding-left:20px;">
+  <li><strong>Wait for AWS approval</strong> (usually within 24 hours)</li>
+  <li>Once approved, I switch the email service to use SES as primary</li>
+  <li>All future emails send from <code>claude@navada-edge-server.uk</code> with full authentication</li>
+  <li>Zoho stays as fallback in case SES ever has an outage</li>
+</ol>
+
+<h2 style="font-size:18px; font-weight:700; color:#111; margin:24px 0 12px;">For Now: Tell Nisha</h2>
+
+<p style="margin:0 0 12px 0;">Ask Nisha to:</p>
+<ol style="font-size:14px; color:#333; line-height:2; padding-left:20px;">
+  <li>Open the emails in her spam folder</li>
+  <li>Click <strong>"Not spam"</strong> on both</li>
+  <li>Add <code>claude.navada@zohomail.eu</code> to her Google Contacts</li>
+</ol>
+
+<p style="margin:0 0 12px 0;">Once SES is live, this won't be needed for anyone going forward.</p>
+
+    </td>
+  </tr>
+</table>
+
+<!-- Divider -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+  <tr>
+    <td style="padding: 0 40px;">
+      <hr style="border:none; border-top:1px solid #eaeaea; margin:0;">
+    </td>
+  </tr>
+</table>
+
+<!-- Signature Image -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+  <tr>
+    <td style="padding: 24px 40px 0 40px;">
+      <img src="cid:claude-signature" alt="Claude | NAVADA" style="width:280px; height:auto; display:block;" />
+    </td>
+  </tr>
+</table>
+
+<!-- Signature Details -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+  <tr>
+    <td style="padding: 16px 40px 8px 40px;">
+      <table role="presentation" cellspacing="0" cellpadding="0">
+        <tr>
+          <td style="vertical-align:top;">
+            <div style="font-size:16px; font-weight:800; color:#000000; letter-spacing:0.03em; font-family:'Helvetica Neue', Arial, sans-serif;">
+              CLAUDE
+            </div>
+            <div style="font-size:10px; font-weight:600; color:#666666; letter-spacing:0.12em; text-transform:uppercase; margin-top:2px;">
+              Chief of Staff
+            </div>
+            <div style="width:40px; height:2px; background:#000000; margin:8px 0;"></div>
+            <div style="font-size:12px; color:#555555; line-height:1.6;">
+              NAVADA AI Engineering &amp; Consulting<br>
+              On behalf of <strong>Lee Akpareva</strong>, Founder<br>
+              <a href="tel:+447446994961" style="color:#555555; text-decoration:none;">+44 7446 994961</a>
+              &nbsp;|&nbsp;
+              <a href="mailto:claude@navada-edge-server.uk" style="color:#555555; text-decoration:none;">claude@navada-edge-server.uk</a>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- Footer -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#fafafa; border-top:1px solid #eaeaea;">
+  <tr>
+    <td style="padding: 16px 40px 20px 40px;">
+      <div style="font-size:10px; color:#aaaaaa; line-height:1.6;">
+        This report was generated by Claude, Chief of Staff at NAVADA.<br><br>
+        NAVADA AI Engineering &amp; Consulting
+        <br>
+        <a href="https://www.navada-lab.space" style="color:#888888; text-decoration:none;">navada-lab.space</a>
+        &middot;
+        <a href="https://www.navadarobotics.com" style="color:#888888; text-decoration:none;">navadarobotics.com</a>
+        &middot;
+        <a href="https://www.navada-edge-server.uk" style="color:#888888; text-decoration:none;">navada-edge-server.uk</a>
+        &middot;
+        <a href="https://www.alexnavada.xyz" style="color:#888888; text-decoration:none;">alexnavada.xyz</a>
+        &middot;
+        <a href="https://www.raventerminal.xyz" style="color:#888888; text-decoration:none;">raventerminal.xyz</a>
+        &middot;
+        <a href="https://www.navada-world-view.xyz" style="color:#888888; text-decoration:none;">navada-world-view.xyz</a>
+      </div>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

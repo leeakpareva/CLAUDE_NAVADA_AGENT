@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f5f5f0; font-family: 'Segoe UI', system-ui, sans-serif; }
+.canvas { width: 1400px; height: 900px; position: relative; overflow: hidden; padding: 30px; }
+h1 { font-size: 28px; color: #1a1a2e; margin-bottom: 5px; letter-spacing: -0.5px; }
+.subtitle { font-size: 13px; color: #888; margin-bottom: 25px; }
+
+.node {
+  position: absolute;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.node-b {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  color: white;
+  width: 420px;
+  top: 100px; left: 490px;
+}
+.node-b h2 { color: #00d4ff; font-size: 18px; margin-bottom: 2px; }
+.node-b .role { color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+.node-b .specs { color: #aaa; font-size: 11px; margin-bottom: 10px; }
+
+.node-a {
+  background: #fff;
+  border: 2px solid #ff9500;
+  width: 320px;
+  top: 100px; left: 30px;
+}
+.node-a h2 { color: #ff9500; font-size: 16px; margin-bottom: 2px; }
+.node-a .role { color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+
+.node-c {
+  background: #fff;
+  border: 2px solid #00b894;
+  width: 370px;
+  top: 100px; right: 30px;
+}
+.node-c h2 { color: #00b894; font-size: 16px; margin-bottom: 2px; }
+.node-c .role { color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+
+.service-list { font-size: 11px; line-height: 1.7; }
+.service-list .svc { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.08); padding: 2px 0; }
+.node-a .service-list .svc, .node-c .service-list .svc { border-bottom: 1px solid #f0f0f0; color: #333; }
+.svc .port { color: #00d4ff; font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+.node-a .svc .port { color: #ff9500; }
+.node-c .svc .port { color: #00b894; }
+.section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #666; margin: 8px 0 4px; font-weight: 700; }
+.node-b .section-label { color: #00d4ff; }
+
+/* Connection lines */
+.mesh-line {
+  position: absolute;
+  height: 3px;
+  background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+  border-radius: 2px;
+}
+.mesh-label {
+  position: absolute;
+  font-size: 10px;
+  color: #7b2ff7;
+  font-weight: 600;
+  background: #f5f5f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Cloudflare */
+.cloudflare {
+  position: absolute;
+  top: 620px; left: 370px;
+  width: 660px;
+  background: linear-gradient(135deg, #f48120, #faad3f);
+  color: white;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 15px rgba(244,129,32,0.3);
+}
+.cloudflare h3 { font-size: 15px; margin-bottom: 6px; }
+.cloudflare .cf-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-size: 11px; }
+.cloudflare .cf-item { background: rgba(255,255,255,0.2); border-radius: 6px; padding: 6px 8px; text-align: center; }
+
+/* iPhone */
+.iphone {
+  position: absolute;
+  top: 640px; left: 80px;
+  text-align: center;
+}
+.iphone-body {
+  width: 70px; height: 120px;
+  border: 3px solid #333;
+  border-radius: 16px;
+  background: #1a1a2e;
+  margin: 0 auto 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00d4ff;
+  font-size: 10px;
+  font-weight: 700;
+}
+.iphone-label { font-size: 11px; color: #555; font-weight: 600; }
+
+/* Arrows */
+.arrow {
+  position: absolute;
+  font-size: 20px;
+  color: #f48120;
+}
+
+/* Failover indicator */
+.failover-badge {
+  position: absolute;
+  top: 555px; right: 100px;
+  background: #e74c3c;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+}
+
+.failover-arrow {
+  position: absolute;
+  top: 530px; left: 700px;
+  width: 200px; height: 2px;
+  border-top: 2px dashed #e74c3c;
+}
+.failover-label {
+  position: absolute;
+  top: 510px; left: 720px;
+  font-size: 10px;
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+.ip-badge {
+  display: inline-block;
+  background: rgba(0,0,0,0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  margin-top: 2px;
+}
+.node-b .ip-badge { background: rgba(255,255,255,0.1); }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <h1>NAVADA Edge Infrastructure: Three-Node Global Mesh</h1>
+  <div class="subtitle">All nodes connected via Tailscale WireGuard (ChaCha20-Poly1305) | Zero services exposed to internet | 5 March 2026</div>
+
+  <!-- Mesh connection lines -->
+  <div class="mesh-line" style="top:310px; left:340px; width:160px; transform:rotate(-5deg);"></div>
+  <div class="mesh-line" style="top:310px; left:900px; width:120px; transform:rotate(5deg);"></div>
+  <div class="mesh-line" style="top:550px; left:200px; width:900px; transform:rotate(0deg); height:2px; opacity:0.3;"></div>
+  <div class="mesh-label" style="top:295px; left:370px;">Tailscale Mesh</div>
+  <div class="mesh-label" style="top:295px; left:920px;">Tailscale Mesh</div>
+
+  <!-- NODE A: EC2 -->
+  <div class="node node-a">
+    <h2>Node A: AWS EC2</h2>
+    <div class="role">Watchdog + Serverless Gateway</div>
+    <div style="font-size:11px;color:#666;margin-bottom:8px;">
+      t3.micro | 1GB RAM | eu-west-2<br>
+      <span class="ip-badge">18.130.39.222</span> <span class="ip-badge">100.98.118.33</span>
+      <span style="display:inline-block;background:#00b894;color:white;font-size:9px;padding:1px 6px;border-radius:4px;margin-left:4px;">FREE TIER</span>
+    </div>
+    <div class="section-label">PM2 Services</div>
+    <div class="service-list">
+      <div class="svc"><span>ec2-health-monitor</span><span class="port">failover trigger</span></div>
+      <div class="svc"><span>health-monitor</span><span class="port">legacy</span></div>
+    </div>
+    <div class="section-label" style="margin-top:8px;">AWS Serverless</div>
+    <div class="service-list">
+      <div class="svc"><span>Lambda API Gateway</span><span class="port">REST</span></div>
+      <div class="svc"><span>SES Email</span><span class="port">SMTP</span></div>
+    </div>
+  </div>
+
+  <!-- NODE B: HP Laptop -->
+  <div class="node node-b">
+    <h2>Node B: HP Laptop (Primary Compute)</h2>
+    <div class="role">Brain: All services, all control</div>
+    <div class="specs">
+      Windows 11 Pro | 16GB RAM | Intel i7 | Always-on<br>
+      <span class="ip-badge">192.168.0.58</span> <span class="ip-badge">100.121.187.67</span>
+    </div>
+    <div class="section-label">14 PM2 Services</div>
+    <div class="service-list">
+      <div class="svc"><span>telegram-bot</span><span class="port">:3456</span></div>
+      <div class="svc"><span>inbox-responder</span><span class="port">email</span></div>
+      <div class="svc"><span>trading-api + scheduler</span><span class="port">:5678</span></div>
+      <div class="svc"><span>worldmonitor + api</span><span class="port">:4173</span></div>
+      <div class="svc"><span>navada-flix</span><span class="port">:4000</span></div>
+      <div class="svc"><span>network-scanner</span><span class="port">:7777</span></div>
+      <div class="svc"><span>voice-command</span><span class="port">:7778</span></div>
+      <div class="svc"><span>failover-sync</span><span class="port">SCP 5m</span></div>
+      <div class="svc"><span>+ 6 more (deploy, logo, elk-tunnel...)</span><span class="port"></span></div>
+    </div>
+    <div class="section-label" style="margin-top:6px;">3 Docker Containers</div>
+    <div class="service-list">
+      <div class="svc"><span>navada-proxy (Nginx)</span><span class="port">:80/:8080</span></div>
+      <div class="svc"><span>navada-tunnel (Cloudflared)</span><span class="port">outbound</span></div>
+      <div class="svc"><span>navada-portainer</span><span class="port">:9000</span></div>
+    </div>
+  </div>
+
+  <!-- NODE C: Oracle -->
+  <div class="node node-c">
+    <h2>Node C: Oracle Cloud VM</h2>
+    <div class="role">Database + Monitoring + Failover</div>
+    <div style="font-size:11px;color:#666;margin-bottom:8px;">
+      E5.Flex 1 OCPU | 12GB RAM | uk-london-1<br>
+      <span class="ip-badge">132.145.46.184</span> <span class="ip-badge">100.77.206.9</span>
+      <span style="display:inline-block;background:#00b894;color:white;font-size:9px;padding:1px 6px;border-radius:4px;margin-left:4px;">FREE FOREVER</span>
+    </div>
+    <div class="section-label">7 Docker Containers</div>
+    <div class="service-list">
+      <div class="svc"><span>elasticsearch</span><span class="port">:9200</span></div>
+      <div class="svc"><span>kibana</span><span class="port">:5601</span></div>
+      <div class="svc"><span>prometheus</span><span class="port">:9091</span></div>
+      <div class="svc"><span>grafana</span><span class="port">:9090</span></div>
+      <div class="svc"><span>uptime-kuma</span><span class="port">:3002</span></div>
+      <div class="svc"><span>cloudbeaver</span><span class="port">:8978</span></div>
+      <div class="svc"><span>oracle-xe 21c</span><span class="port">:1521</span></div>
+    </div>
+    <div class="section-label" style="margin-top:6px;color:#e74c3c;">Failover Ready</div>
+    <div class="service-list">
+      <div class="svc"><span>Node.js v20 + PM2</span><span class="port">standby</span></div>
+      <div class="svc"><span>telegram-bot (copy)</span><span class="port">dormant</span></div>
+      <div class="svc"><span>Cloudflare tunnel #2</span><span class="port">dormant</span></div>
+    </div>
+  </div>
+
+  <!-- Failover arrow -->
+  <div class="failover-label">FAILOVER PATH (auto 17m / manual 2m)</div>
+  <div class="failover-arrow"></div>
+  <div class="failover-badge">DR FAILOVER</div>
+
+  <!-- iPhone -->
+  <div class="iphone">
+    <div class="iphone-body">LEE</div>
+    <div class="iphone-label">iPhone<br><span style="font-size:10px;color:#888;">Operator</span></div>
+  </div>
+
+  <div class="arrow" style="top:690px; left:180px;">&#8594;</div>
+
+  <!-- Cloudflare -->
+  <div class="cloudflare">
+    <h3>Cloudflare Edge Network (Gate 1-4)</h3>
+    <div class="cf-grid">
+      <div class="cf-item"><strong>DNS</strong><br>navada-edge-server.uk</div>
+      <div class="cf-item"><strong>WAF</strong><br>OWASP Rules</div>
+      <div class="cf-item"><strong>Tunnel</strong><br>7c9e3c36 (HP)<br>96e30aeb (Oracle)</div>
+      <div class="cf-item"><strong>Workers AI</strong><br>Flux + BGE (Free)</div>
+      <div class="cf-item"><strong>R2 Storage</strong><br>navada-assets</div>
+      <div class="cf-item"><strong>Stream</strong><br>HLS Video CDN</div>
+      <div class="cf-item"><strong>Access</strong><br>Zero Trust Auth</div>
+      <div class="cf-item"><strong>Email Routing</strong><br>claude@navada-edge-server.uk</div>
+    </div>
+  </div>
+
+  <!-- Arrow from Cloudflare to HP -->
+  <div class="arrow" style="top:610px; left:700px; transform:rotate(-90deg);">&#8594;</div>
+  <div style="position:absolute; top:596px; left:660px; font-size:10px; color:#f48120; font-weight:600;">Encrypted Tunnel</div>
+
+</div>
+</body>
+</html>

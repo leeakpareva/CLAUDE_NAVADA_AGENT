@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: navada-aws-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - flix-api
+    restart: unless-stopped
+    networks:
+      - navada-aws
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: navada-aws-tunnel
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    restart: unless-stopped
+    networks:
+      - navada-aws
+
+  flix-api:
+    build:
+      context: ../../navada-flix
+      dockerfile: Dockerfile
+    container_name: navada-flix-api
+    ports:
+      - "4000:4000"
+    volumes:
+      - flix-data:/app/data
+      - flix-hls:/app/hls
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
+      - R2_ACCESS_KEY=${R2_ACCESS_KEY}
+      - R2_SECRET_KEY=${R2_SECRET_KEY}
+      - R2_BUCKET=navada-assets
+    restart: unless-stopped
+    networks:
+      - navada-aws
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.17.0
+    container_name: navada-aws-filebeat
+    user: root
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/log:/var/log:ro
+    restart: unless-stopped
+    networks:
+      - navada-aws
+
+volumes:
+  flix-data:
+  flix-hls:
+
+networks:
+  navada-aws:
+    driver: bridge

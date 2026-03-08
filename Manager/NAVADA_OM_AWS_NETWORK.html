@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NAVADA OM_AWS_NETWORK - Operations Manual</title>
+<style>
+  @media print {
+    body { margin: 0.5in; }
+    .page-break { page-break-before: always; }
+    a { color: #000; text-decoration: underline; }
+  }
+  body {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #000;
+    background: #fff;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  h1 { font-size: 18px; text-align: center; border-bottom: 3px double #000; padding-bottom: 10px; margin-top: 30px; }
+  h2 { font-size: 14px; border-bottom: 1px solid #000; padding-bottom: 4px; margin-top: 30px; text-transform: uppercase; }
+  h3 { font-size: 12px; margin-top: 20px; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 10px; }
+  th, td { border: 1px solid #000; padding: 4px 6px; text-align: left; vertical-align: top; }
+  th { background: #eee; font-weight: bold; }
+  pre { background: #f5f5f5; border: 1px solid #ccc; padding: 8px; font-size: 10px; overflow-x: auto; white-space: pre; }
+  code { font-family: 'Courier New', monospace; font-size: 10px; background: #f0f0f0; padding: 1px 3px; }
+  .diagram { font-family: 'Courier New', monospace; font-size: 9px; line-height: 1.3; white-space: pre; background: #fafafa; border: 1px solid #000; padding: 10px; margin: 10px 0; }
+  .header-block { text-align: center; margin: 40px 0 30px 0; }
+  .header-block p { margin: 2px 0; }
+  .toc { margin: 20px 0; }
+  .toc a { color: #000; }
+  .toc li { margin: 3px 0; }
+  hr { border: none; border-top: 1px solid #000; margin: 20px 0; }
+  .warning { border: 2px solid #000; padding: 8px; margin: 10px 0; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div class="header-block">
+  <h1>NAVADA OPERATIONS MANUAL</h1>
+  <p><strong>AWS + NETWORK INFRASTRUCTURE</strong></p>
+  <p>Document ID: NAVADA_OM_AWS_NETWORK</p>
+  <p>Version: 1.0 | Date: 7 March 2026</p>
+  <p>Classification: INTERNAL</p>
+  <p>Owner: Lee Akpareva, Founder</p>
+  <p>Domain: navada-edge-server.uk</p>
+</div>
+
+<hr>
+
+<h2>TABLE OF CONTENTS</h2>
+<ol class="toc">
+  <li><a href="#network-diagram">Network Architecture Diagram</a></li>
+  <li><a href="#nodes">Node Inventory</a></li>
+  <li><a href="#tailscale">Tailscale Mesh Network</a></li>
+  <li><a href="#subdomains">Subdomains and Routing</a></li>
+  <li><a href="#dashboards">Dashboards Summary</a></li>
+  <li><a href="#pm2">PM2 Running Services</a></li>
+  <li><a href="#docker">Docker Containers</a></li>
+  <li><a href="#scheduled-tasks">Scheduled Tasks (Windows Task Scheduler)</a></li>
+  <li><a href="#aws">AWS Infrastructure</a></li>
+  <li><a href="#jenkins">Jenkins CI/CD</a></li>
+  <li><a href="#failover">Failover System (HP to Oracle)</a></li>
+  <li><a href="#elk">ELK Stack (Logging)</a></li>
+  <li><a href="#cloudflare">Cloudflare Services</a></li>
+  <li><a href="#commands">Essential Commands Reference</a></li>
+  <li><a href="#scripts">Key Scripts Reference</a></li>
+  <li><a href="#ssh">SSH Access Guide</a></li>
+  <li><a href="#remaining">Remaining Setup Tasks</a></li>
+</ol>
+
+<div class="page-break"></div>
+
+<h2 id="network-diagram">1. NETWORK ARCHITECTURE DIAGRAM</h2>
+
+<div class="diagram">
+                            NAVADA EDGE INFRASTRUCTURE
+                            =========================
+
+                         +--[ INTERNET ]--+
+                         |                |
+                    Cloudflare DNS        AWS
+                    navada-edge-          eu-west-2
+                    server.uk             (London)
+                         |                |
+              +----------+----------+     |
+              |                     |     |
+     +--------v--------+  +--------v--------+--------v-----------+
+     | CLOUDFLARE       |  | CLOUDFLARE       | AWS API GATEWAY   |
+     | Tunnel (HP)      |  | Workers          | xxqtcilmzi        |
+     | 7c9e3c36...      |  | navada-edge      | /vision/*         |
+     +--------+---------+  +------------------+ /mcp, /api/*      |
+              |                                +--------+---------+
+              |                                         |
+              v                                         v
++==============================+         +============================+
+| HP LAPTOP (NAVADA)           |         | AWS EC2 (navada-ec2)       |
+| PRODUCTION SERVER            |         | t3.medium                  |
+| Win 11 Pro | Ethernet        |         | Ubuntu 24.04               |
+| LAN: 192.168.0.58            |         | Public: 18.130.242.13      |
+| Tailscale: 100.121.187.67    |         | Tailscale: 100.98.118.33   |
+|------------------------------|         |----------------------------|
+| Docker:                      |         | Services:                  |
+|   navada-proxy (Nginx:80)    |         |   navada-dashboard (:9090) |
+|   navada-tunnel (Cloudflared)|         |   Claude CLI               |
+|   navada-portainer (:9000)   |         |   PM2 + Node.js 22         |
+|   navada-jenkins (:8082)     |         |   Docker + Tailscale       |
+|                              |         |   ec2-health-monitor       |
+| PM2 (13 services):           |         |                            |
+|   telegram-bot (:3456)       |         | IAM Roles:                 |
+|   worldmonitor (:4173)       |         |   navada-ec2-role          |
+|   worldmonitor-api (:46123)  |         |   (Bedrock, CW, DDB, S3)  |
+|   trading-api (:5678)        |         +============================+
+|   inbox-responder            |
+|   auto-deploy                |              TAILSCALE MESH
+|   trading-scheduler          |              100.x.x.x/32
+|   network-scanner (:7777)    |         (encrypted, zero-config VPN)
+|   navada-flix (:4000)        |
+|   navada-logo (:3000)        |
+|   oracle-elk-tunnel          |
+|   notebooklm-watcher         |
+|   failover-sync              |
++==============+===============+
+               |
+               | Tailscale (100.x.x.x)
+               |
+    +----------+----------+
+    |                     |
++===v==================+  +===v===================+
+| ASUS (NAVADA2025)    |  | ORACLE VM             |
+| DEV WORKSTATION      |  | (navada-oracle)       |
+| Win 11 Home | WiFi   |  | Ubuntu 24.04          |
+| LAN: 192.168.0.18   |  | Public: 132.145.46.184|
+| TS: 100.88.118.128  |  | TS: 100.77.206.9      |
+|----------------------|  |-----------------------|
+| Claude Code (dev)    |  | Docker:               |
+| VS Code              |  |   Elasticsearch :9200 |
+| LM Studio + Ollama   |  |   Kibana :5601        |
+|   :11434 (inference) |  |   Prometheus :9091    |
+| PostgreSQL :5433     |  |   Grafana :3000       |
+| Docker Desktop       |  |   Uptime Kuma :3001   |
+| YOLO service :8765   |  |   Oracle XE :1521     |
+| SSM Plugin           |  |   CloudBeaver :8978   |
++======================+  | Failover (dormant):   |
+                          |   Nginx + Cloudflared  |
+    +==================+  |   telegram-bot         |
+    | iPHONE 15 Pro Max|  |   inbox-responder     |
+    | TS: 100.68.251.111| +======================+
+    | Mobile client    |
+    +==================+         AWS SERVERLESS
+                          +========================+
+                          | Lambda:                |
+                          |   navada-vision-router |
+                          |   navada-mcp-handler   |
+                          |   navada-api-gateway   |
+                          | SageMaker:             |
+                          |   navada-yolov8n       |
+                          |   (serverless, 3GB)    |
+                          | Bedrock:               |
+                          |   Claude Sonnet 4.6    |
+                          |   Claude Opus 4.6      |
+                          | Rekognition:           |
+                          |   navada-faces         |
+                          | DynamoDB:              |
+                          |   navada-faces         |
+                          |   navada-vision-log    |
+                          | S3:                    |
+                          |   navada-vision-eu-w-2 |
+                          | ECR:                   |
+                          |   navada-yolo          |
+                          +========================+
+</div>
+
+<h3>Data Flow Diagram</h3>
+<div class="diagram">
+  USER (iPhone/Browser)
+       |
+       v
+  Cloudflare DNS (navada-edge-server.uk)
+       |
+       +---&gt; Cloudflare Tunnel ---&gt; HP Nginx (:80/:8080)
+       |                                |
+       |                          +-----+-----+-----+-----+-----+
+       |                          |     |     |     |     |     |
+       |                         Flix  Trade  Net  Kibana Logo Jenkins
+       |                        :4000 :5678 :7777 :5601 :3000 :8082
+       |
+       +---&gt; Cloudflare Worker ---&gt; navada-edge.workers.dev
+       |
+       +---&gt; AWS API Gateway ---&gt; Lambda ---&gt; Bedrock/Rekognition/YOLO
+       |
+       +---&gt; Tailscale (direct) ---&gt; Any node (LAN-like access)
+
+  HP failover-sync (every 5 min) ---&gt; Oracle VM
+  EC2 health-monitor (every 5 min) ---&gt; HP
+       |
+       +---&gt; If HP down (15 min) ---&gt; Oracle failover activated
+</div>
+
+<div class="page-break"></div>
+
+<h2 id="nodes">2. NODE INVENTORY</h2>
+
+<table>
+  <tr>
+    <th>Node</th>
+    <th>Hostname</th>
+    <th>Role</th>
+    <th>OS</th>
+    <th>Specs</th>
+    <th>Status</th>
+  </tr>
+  <tr>
+    <td>HP Laptop</td>
+    <td>NAVADA</td>
+    <td>Always-on production server</td>
+    <td>Windows 11 Pro</td>
+    <td>Ethernet, 238GB disk (FULL)</td>
+    <td>ACTIVE</td>
+  </tr>
+  <tr>
+    <td>ASUS Zenbook Duo</td>
+    <td>NAVADA2025 / navada-asus-control</td>
+    <td>Primary dev workstation</td>
+    <td>Windows 11 Home</td>
+    <td>Intel Core Ultra 7, 16GB RAM, ~478GB free</td>
+    <td>ACTIVE (not always-on)</td>
+  </tr>
+  <tr>
+    <td>AWS EC2</td>
+    <td>navada-ec2</td>
+    <td>Cloud gateway, failover monitor, dashboard</td>
+    <td>Ubuntu 24.04</td>
+    <td>t3.medium (2 vCPU, 4GB RAM, 30GB EBS)</td>
+    <td>ACTIVE</td>
+  </tr>
+  <tr>
+    <td>Oracle VM</td>
+    <td>navada-oracle</td>
+    <td>ELK, monitoring, DB, failover standby</td>
+    <td>Ubuntu 24.04</td>
+    <td>E5.Flex (1 OCPU, 12GB RAM) Always Free</td>
+    <td>ACTIVE</td>
+  </tr>
+  <tr>
+    <td>iPhone 15 Pro Max</td>
+    <td>iphone-15-pro-max</td>
+    <td>Mobile client</td>
+    <td>iOS</td>
+    <td>-</td>
+    <td>ACTIVE</td>
+  </tr>
+</table>
+
+<div class="warning">
+  WARNING: HP disk is FULL (0 bytes free). Do NOT save new files to HP. Use EC2, Oracle, ASUS, R2, or S3 for storage.
+</div>
+
+<h2 id="tailscale">3. TAILSCALE MESH NETWORK</h2>
+
+<table>
+  <tr><th>Node</th><th>Tailscale IP</th><th>LAN / Public IP</th><th>Hostname</th></tr>
+  <tr><td>HP (NAVADA)</td><td>100.121.187.67</td><td>192.168.0.58 (LAN)</td><td>navada</td></tr>
+  <tr><td>ASUS (NAVADA2025)</td><td>100.88.118.128</td><td>192.168.0.18 (LAN)</td><td>navada-asus-control</td></tr>
+  <tr><td>Oracle VM</td><td>100.77.206.9</td><td>132.145.46.184</td><td>navada-oracle</td></tr>
+  <tr><td>AWS EC2</td><td>100.98.118.33</td><td>18.130.242.13</td><td>navada-ec2</td></tr>
+  <tr><td>iPhone</td><td>100.68.251.111</td><td>-</td><td>iphone-15-pro-max</td></tr>
+</table>
+
+<p>All nodes can reach each other via Tailscale IPs. Encrypted WireGuard tunnels, zero-config.</p>
+
+<div class="page-break"></div>
+
+<h2 id="subdomains">4. SUBDOMAINS AND ROUTING</h2>
+
+<h3>4.1 Cloudflare Public Subdomains (HTTPS via Tunnel)</h3>
+<table>
+  <tr><th>Subdomain</th><th>URL</th><th>Backend Port</th><th>Service</th></tr>
+  <tr><td>api</td><td>https://api.navada-edge-server.uk</td><td>Nginx :80</td><td>API gateway, Telegram/Twilio webhooks</td></tr>
+  <tr><td>flix</td><td>https://flix.navada-edge-server.uk</td><td>:4000</td><td>NAVADA Flix video streaming</td></tr>
+  <tr><td>network</td><td>https://network.navada-edge-server.uk</td><td>:7777</td><td>Network scanner dashboard</td></tr>
+  <tr><td>trading</td><td>https://trading.navada-edge-server.uk</td><td>:5678</td><td>NAVADA Trading API</td></tr>
+  <tr><td>kibana</td><td>https://kibana.navada-edge-server.uk</td><td>:5601</td><td>Kibana log search</td></tr>
+  <tr><td>cloudbeaver</td><td>https://cloudbeaver.navada-edge-server.uk</td><td>:8978</td><td>Database UI (Oracle VM)</td></tr>
+  <tr><td>logo</td><td>https://logo.navada-edge-server.uk</td><td>:3000</td><td>NAVADA logo service</td></tr>
+  <tr><td>monitor</td><td>https://monitor.navada-edge-server.uk</td><td>:3002</td><td>Uptime Kuma (Oracle VM tunnel)</td></tr>
+  <tr><td>grafana</td><td>https://grafana.navada-edge-server.uk</td><td>:9090</td><td>Grafana dashboards (Oracle VM tunnel)</td></tr>
+  <tr><td>nodes</td><td>https://nodes.navada-edge-server.uk</td><td>Nginx static</td><td>Network node diagram</td></tr>
+  <tr><td>dashboard</td><td>https://dashboard.navada-edge-server.uk</td><td>EC2 :9090</td><td>Mobile Command Centre (EC2 direct)</td></tr>
+</table>
+
+<h3>4.2 LAN Path-Based Routing (iPhone access, no DNS needed)</h3>
+<p>Base URL: <code>http://192.168.0.58:8080/</code> or <code>http://100.121.187.67:8080/</code></p>
+<table>
+  <tr><th>Path</th><th>Backend Port</th><th>Service</th></tr>
+  <tr><td>/kibana/</td><td>:5601</td><td>Kibana log search</td></tr>
+  <tr><td>/flix/</td><td>:4000</td><td>NAVADA Flix</td></tr>
+  <tr><td>/network/</td><td>:7777</td><td>Network scanner</td></tr>
+  <tr><td>/trading/</td><td>:5678</td><td>Trading API</td></tr>
+  <tr><td>/portainer/</td><td>:9000</td><td>Portainer (Docker UI)</td></tr>
+  <tr><td>/canvas/</td><td>:3001</td><td>Excalidraw whiteboard</td></tr>
+  <tr><td>/logo/</td><td>:3000</td><td>NAVADA Logo</td></tr>
+  <tr><td>/mlflow/</td><td>:5000</td><td>MLflow experiment tracking</td></tr>
+  <tr><td>/jenkins/</td><td>:8082</td><td>Jenkins CI/CD</td></tr>
+  <tr><td>/jupyter/</td><td>:8888</td><td>Jupyter Lab</td></tr>
+  <tr><td>/cloudbeaver/</td><td>:8978</td><td>CloudBeaver DB UI</td></tr>
+  <tr><td>/nodes/</td><td>static</td><td>Network diagram</td></tr>
+</table>
+
+<h3>4.3 Webhook Endpoints</h3>
+<table>
+  <tr><th>Endpoint</th><th>Backend</th><th>Purpose</th></tr>
+  <tr><td>api.navada-edge-server.uk/telegram/</td><td>:3456</td><td>Telegram bot webhook</td></tr>
+  <tr><td>api.navada-edge-server.uk/twilio/</td><td>:3456</td><td>Twilio SMS/voice webhook</td></tr>
+</table>
+
+<h3>4.4 AWS API Endpoints</h3>
+<table>
+  <tr><th>Endpoint</th><th>Method</th><th>Service</th></tr>
+  <tr><td>https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/vision/detect</td><td>POST</td><td>Rekognition detection</td></tr>
+  <tr><td>https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/vision/faces</td><td>POST</td><td>Rekognition face indexing/search</td></tr>
+  <tr><td>https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/vision/yolo</td><td>POST</td><td>YOLOv8 detection (SageMaker)</td></tr>
+  <tr><td>https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/vision/analyse</td><td>POST</td><td>Bedrock Claude image analysis</td></tr>
+  <tr><td>https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/vision/status</td><td>GET</td><td>Vision pipeline health check</td></tr>
+  <tr><td>https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/mcp</td><td>POST</td><td>MCP tool calls</td></tr>
+  <tr><td>https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/api/*</td><td>ANY</td><td>General API gateway</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2 id="dashboards">5. DASHBOARDS SUMMARY</h2>
+
+<table>
+  <tr><th>Dashboard</th><th>URL</th><th>Purpose</th><th>Location</th></tr>
+  <tr>
+    <td>Mobile Command Centre</td>
+    <td>https://dashboard.navada-edge-server.uk</td>
+    <td>Overview of all NAVADA nodes, PM2 status, quick actions. Crow theme. Primary mobile control panel.</td>
+    <td>EC2 (:9090)</td>
+  </tr>
+  <tr>
+    <td>WorldMonitor</td>
+    <td>http://192.168.0.58:4173</td>
+    <td>OSINT dashboard. Real-time geopolitical, economic, and threat intelligence feeds with live maps.</td>
+    <td>HP (PM2)</td>
+  </tr>
+  <tr>
+    <td>Network Scanner</td>
+    <td>https://network.navada-edge-server.uk</td>
+    <td>Real-time network device discovery, router status, connected devices with WebSocket updates.</td>
+    <td>HP (PM2 :7777)</td>
+  </tr>
+  <tr>
+    <td>Kibana</td>
+    <td>https://kibana.navada-edge-server.uk</td>
+    <td>Log search and analysis. Indices: telegram, automation, PM2 logs. Query via Telegram /logs.</td>
+    <td>Oracle VM (tunnel :5601)</td>
+  </tr>
+  <tr>
+    <td>Grafana</td>
+    <td>https://grafana.navada-edge-server.uk</td>
+    <td>Prometheus metrics dashboards. CPU, RAM, disk, Docker stats, PM2 health.</td>
+    <td>Oracle VM (tunnel :9090)</td>
+  </tr>
+  <tr>
+    <td>Uptime Kuma</td>
+    <td>https://monitor.navada-edge-server.uk</td>
+    <td>Service uptime monitoring. Pings all endpoints, alerts on failure.</td>
+    <td>Oracle VM (tunnel :3002)</td>
+  </tr>
+  <tr>
+    <td>Portainer</td>
+    <td>http://192.168.0.58:8080/portainer/</td>
+    <td>Docker container management UI. Start/stop/inspect containers, view logs.</td>
+    <td>HP (Docker :9000)</td>
+  </tr>
+  <tr>
+    <td>Jenkins</td>
+    <td>http://192.168.0.58:8080/jenkins/</td>
+    <td>CI/CD pipeline. Build, test, deploy automation. EC2 as remote build agent.</td>
+    <td>HP (Docker :8082)</td>
+  </tr>
+  <tr>
+    <td>CloudBeaver</td>
+    <td>http://100.77.206.9:8978</td>
+    <td>Web-based database client. PostgreSQL, Oracle XE, SQLite. SQL editor.</td>
+    <td>Oracle VM (:8978)</td>
+  </tr>
+  <tr>
+    <td>NAVADA Flix</td>
+    <td>https://flix.navada-edge-server.uk</td>
+    <td>Video streaming platform. HLS adaptive streaming, Remotion generation, R2 storage.</td>
+    <td>HP (PM2 :4000)</td>
+  </tr>
+  <tr>
+    <td>Trading API</td>
+    <td>https://trading.navada-edge-server.uk</td>
+    <td>Paper trading bot API. FastAPI/Uvicorn. Pre-market, execution, reporting.</td>
+    <td>HP (PM2 :5678)</td>
+  </tr>
+  <tr>
+    <td>Node Network Diagram</td>
+    <td>https://nodes.navada-edge-server.uk</td>
+    <td>Static HTML diagram showing all NAVADA nodes and connections.</td>
+    <td>HP (Nginx static)</td>
+  </tr>
+  <tr>
+    <td>CloudWatch: NAVADA-Edge-Network</td>
+    <td>AWS Console</td>
+    <td>23-widget dashboard. Full mesh overview, EC2 metrics, Tailscale, Jenkins.</td>
+    <td>AWS eu-west-2</td>
+  </tr>
+  <tr>
+    <td>CloudWatch: NAVADA-EC2-Operations</td>
+    <td>AWS Console</td>
+    <td>EC2-specific metrics. CPU, network, disk, status checks.</td>
+    <td>AWS eu-west-2</td>
+  </tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2 id="pm2">6. PM2 RUNNING SERVICES</h2>
+
+<p>Config: <code>C:\Users\leeak\CLAUDE_NAVADA_AGENT\ecosystem.config.js</code></p>
+
+<table>
+  <tr><th>#</th><th>Process</th><th>Port</th><th>Script</th><th>Working Dir</th><th>Purpose</th></tr>
+  <tr><td>1</td><td>worldmonitor</td><td>4173</td><td>serve-local.mjs</td><td>navada-osint/worldmonitor-repo</td><td>OSINT frontend + proxy server</td></tr>
+  <tr><td>2</td><td>worldmonitor-api</td><td>46123</td><td>start-api.mjs</td><td>navada-osint/worldmonitor-repo</td><td>WorldMonitor local API (RSS, data feeds)</td></tr>
+  <tr><td>3</td><td>trading-api</td><td>5678</td><td>uvicorn src.api:app</td><td>NAVADA-Trading</td><td>FastAPI trading bot (Python)</td></tr>
+  <tr><td>4</td><td>inbox-responder</td><td>-</td><td>inbox-auto-responder.js</td><td>Automation</td><td>Zoho email auto-reply + approval gate</td></tr>
+  <tr><td>5</td><td>auto-deploy</td><td>-</td><td>scripts/auto-deploy.js</td><td>navada-osint/worldmonitor-repo</td><td>Git poll every 2 min, rebuild on change</td></tr>
+  <tr><td>6</td><td>trading-scheduler</td><td>-</td><td>scripts/scheduler.js</td><td>NAVADA-Trading</td><td>Cron triggers for pre-market/execute/report</td></tr>
+  <tr><td>7</td><td>telegram-bot</td><td>3456</td><td>telegram-bot.js</td><td>Automation</td><td>Claude Chief of Staff (49+ commands)</td></tr>
+  <tr><td>8</td><td>network-scanner</td><td>7777</td><td>network-scanner.js</td><td>Automation</td><td>Network device scanner + router dashboard</td></tr>
+  <tr><td>9</td><td>navada-flix</td><td>4000</td><td>server.js</td><td>navada-flix</td><td>Video streaming platform (HLS)</td></tr>
+  <tr><td>10</td><td>navada-logo</td><td>3000</td><td>-</td><td>-</td><td>NAVADA logo rendering service</td></tr>
+  <tr><td>11</td><td>notebooklm-watcher</td><td>-</td><td>notebooklm-r2-watcher.js</td><td>Automation</td><td>Auto-upload NotebookLM files to R2</td></tr>
+  <tr><td>12</td><td>oracle-elk-tunnel</td><td>-</td><td>oracle-elk-tunnel.js</td><td>infrastructure</td><td>SSH tunnels to Oracle (ES:9200, Kibana:5601)</td></tr>
+  <tr><td>13</td><td>failover-sync</td><td>-</td><td>failover-sync.js</td><td>Automation</td><td>SCP state to Oracle VM every 5 min</td></tr>
+</table>
+
+<h3>PM2 Essential Commands</h3>
+<pre>
+pm2 list                          # Show all processes
+pm2 start ecosystem.config.js     # Start all services
+pm2 restart all                   # Restart all
+pm2 restart telegram-bot          # Restart specific service
+pm2 stop trading-api              # Stop specific service
+pm2 logs telegram-bot --lines 50  # View recent logs
+pm2 monit                         # Real-time monitor (CPU/RAM)
+pm2 save                          # Save current process list
+pm2 resurrect                     # Restore saved processes
+pm2 delete all                    # Remove all processes
+</pre>
+
+<div class="warning">
+  PM2 FIX (Node v24): pm2/paths.js patched to use MD5 hash pipe names.
+  Location: AppData/Roaming/npm/node_modules/pm2/paths.js lines 84-87.
+  Must re-patch after npm update -g pm2.
+  If stuck: kill all Daemon.js in elevated PowerShell, then pm2 start ecosystem.config.js
+</div>
+
+<div class="page-break"></div>
+
+<h2 id="docker">7. DOCKER CONTAINERS</h2>
+
+<h3>7.1 HP Docker Containers</h3>
+<p>Config: <code>infrastructure/docker-compose.yml</code></p>
+<table>
+  <tr><th>Container</th><th>Image</th><th>Port</th><th>Purpose</th></tr>
+  <tr><td>navada-proxy</td><td>nginx:alpine</td><td>80, 443, 8080</td><td>Reverse proxy, routes all traffic</td></tr>
+  <tr><td>navada-tunnel</td><td>cloudflare/cloudflared</td><td>-</td><td>Cloudflare tunnel for public HTTPS</td></tr>
+  <tr><td>navada-portainer</td><td>portainer/portainer-ce</td><td>9000</td><td>Docker management UI</td></tr>
+  <tr><td>navada-jenkins</td><td>jenkins/jenkins:lts-jdk17</td><td>8082, 50000</td><td>CI/CD server (prefix: /jenkins)</td></tr>
+</table>
+
+<h3>7.2 Oracle VM Docker Containers</h3>
+<table>
+  <tr><th>Container</th><th>Image</th><th>Port</th><th>Purpose</th></tr>
+  <tr><td>navada-elasticsearch</td><td>elasticsearch:8.17.0</td><td>9200</td><td>Log storage and search (1GB heap)</td></tr>
+  <tr><td>navada-kibana</td><td>kibana:8.17.0</td><td>5601</td><td>Log visualization UI (basePath: /kibana)</td></tr>
+  <tr><td>prometheus</td><td>prom/prometheus</td><td>9091</td><td>Metrics collection</td></tr>
+  <tr><td>grafana</td><td>grafana/grafana</td><td>3000</td><td>Metrics dashboards</td></tr>
+  <tr><td>uptime-kuma</td><td>louislam/uptime-kuma</td><td>3001</td><td>Service uptime monitor</td></tr>
+  <tr><td>oracle-xe</td><td>gvenzl/oracle-xe:21-slim</td><td>1521</td><td>Oracle Database XE (PDB: XEPDB1)</td></tr>
+  <tr><td>cloudbeaver</td><td>dbeaver/cloudbeaver</td><td>8978</td><td>Web database client</td></tr>
+</table>
+
+<h3>Docker Commands</h3>
+<pre>
+# HP infrastructure
+cd C:\Users\leeak\CLAUDE_NAVADA_AGENT\infrastructure
+docker compose up -d                    # Start all containers
+docker compose down                     # Stop all
+docker compose restart nginx            # Restart Nginx only
+docker compose logs -f nginx            # Follow Nginx logs
+
+# Jenkins (separate compose)
+cd infrastructure/jenkins
+docker compose up -d
+
+# Check running containers
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+</pre>
+
+<div class="page-break"></div>
+
+<h2 id="scheduled-tasks">8. SCHEDULED TASKS (Windows Task Scheduler)</h2>
+
+<table>
+  <tr><th>Task Name</th><th>Schedule</th><th>Script</th><th>Purpose</th></tr>
+  <tr><td>Morning-Briefing</td><td>Daily 6:30 AM</td><td>Automation/morning-briefing.js</td><td>Daily briefing email to Lee</td></tr>
+  <tr><td>AI-News-Digest</td><td>Daily 7:00 AM</td><td>Automation/ai-news-mailer.js</td><td>AI industry news digest email</td></tr>
+  <tr><td>Economy-Report</td><td>Monday 8:00 AM</td><td>Automation/uk-us-economy-report.py</td><td>Weekly UK/US economy analysis</td></tr>
+  <tr><td>NAVADA-LeadPipeline</td><td>Daily 8:30 AM</td><td>LeadPipeline/pipeline.js</td><td>CRM lead scanning and updates</td></tr>
+  <tr><td>Job-Hunter-Daily</td><td>Daily 9:00 AM</td><td>Automation/job-hunter-apify.js</td><td>Job listing scrape (AI/ML roles)</td></tr>
+  <tr><td>NAVADA-ProspectPipeline</td><td>Daily 9:30 AM</td><td>LeadPipeline/prospect-pipeline.js</td><td>Prospect scrape, verify, outreach</td></tr>
+  <tr><td>Self-Improve-Weekly</td><td>Monday 10:00 AM</td><td>Automation/self-improve.js</td><td>System improvement research</td></tr>
+  <tr><td>NAVADA-Trading-PreMarket</td><td>Daily 2:15 PM</td><td>Trading pre-market scan</td><td>Market screening before open</td></tr>
+  <tr><td>NAVADA-Trading-Execute</td><td>Daily 3:45 PM</td><td>Trading execution</td><td>Execute paper trades</td></tr>
+  <tr><td>Market-Intelligence</td><td>Daily 6:00 PM</td><td>Market analysis</td><td>End-of-day market analysis</td></tr>
+  <tr><td>Weekly-Report</td><td>Sunday 6:00 PM</td><td>Automation/weekly-report.js</td><td>Weekly ops summary to Lee</td></tr>
+  <tr><td>NAVADA-Trading-FridayClose</td><td>Friday 8:30 PM</td><td>Trading close</td><td>Close all open positions</td></tr>
+  <tr><td>Daily-Ops-Report</td><td>Daily 9:00 PM</td><td>Operations summary</td><td>Daily operations report</td></tr>
+  <tr><td>NAVADA-Trading-Report</td><td>Daily 9:15 PM</td><td>Trading daily report</td><td>Trading P&L daily report</td></tr>
+  <tr><td>Inbox-Monitor</td><td>Every 2hrs 8AM-10PM</td><td>Automation/inbox-monitor.js</td><td>Email inbox scanning</td></tr>
+  <tr><td>VC-Response-Monitor</td><td>At startup</td><td>Automation/vc-response-monitor.js</td><td>VC email response tracking</td></tr>
+  <tr><td>NAVADA-Infrastructure</td><td>At startup</td><td>Infrastructure health check</td><td>Startup health verification</td></tr>
+  <tr><td>PM2-Resurrect</td><td>At startup</td><td>pm2 resurrect</td><td>Restore PM2 processes on boot</td></tr>
+</table>
+
+<p><strong>Note:</strong> All scheduled tasks run for FREE (no API cost). Only Telegram interactions cost money.</p>
+
+<div class="page-break"></div>
+
+<h2 id="aws">9. AWS INFRASTRUCTURE</h2>
+
+<h3>9.1 Account Details</h3>
+<table>
+  <tr><th>Item</th><th>Value</th></tr>
+  <tr><td>Account ID</td><td>491085390194</td></tr>
+  <tr><td>Region</td><td>eu-west-2 (London)</td></tr>
+  <tr><td>IAM User</td><td>lee-admin (AdministratorAccess)</td></tr>
+  <tr><td>Console</td><td>https://491085390194.signin.aws.amazon.com/console</td></tr>
+  <tr><td>SSH Key</td><td>~/.ssh/aws-navada.pem</td></tr>
+</table>
+
+<h3>9.2 EC2 Instance</h3>
+<table>
+  <tr><th>Item</th><th>Value</th></tr>
+  <tr><td>Instance ID</td><td>i-0055e7ace24db38b0</td></tr>
+  <tr><td>Type</td><td>t3.medium (2 vCPU, 4GB RAM)</td></tr>
+  <tr><td>AMI</td><td>Ubuntu 24.04 LTS</td></tr>
+  <tr><td>Public IP</td><td>18.130.242.13 (changes on restart)</td></tr>
+  <tr><td>Tailscale IP</td><td>100.98.118.33 (stable)</td></tr>
+  <tr><td>EBS</td><td>30GB gp3</td></tr>
+  <tr><td>Security Group</td><td>sg-04f276f8012370b03 (navada-edge-aws)</td></tr>
+  <tr><td>IAM Role</td><td>navada-ec2-role (Bedrock, CW, DDB, S3, SSM)</td></tr>
+  <tr><td>Auto-sleep</td><td>CPU &lt; 5% for 30min triggers stop</td></tr>
+  <tr><td>Budget</td><td>$1.50/day, alerts at 50/80/100%</td></tr>
+  <tr><td>Stack</td><td>Node.js 22, PM2, Docker, Tailscale, Claude CLI</td></tr>
+</table>
+
+<h3>9.3 Serverless Resources</h3>
+<table>
+  <tr><th>Service</th><th>Resource</th><th>Details</th></tr>
+  <tr><td>Lambda</td><td>navada-vision-router</td><td>Vision AI: /yolo, /detect, /faces, /analyse, /status</td></tr>
+  <tr><td>Lambda</td><td>navada-mcp-handler</td><td>MCP tool calls (Node.js 20, 256MB)</td></tr>
+  <tr><td>Lambda</td><td>navada-api-gateway</td><td>General API handler (Node.js 20, 256MB)</td></tr>
+  <tr><td>API Gateway</td><td>xxqtcilmzi</td><td>HTTP API, routes to Lambda functions</td></tr>
+  <tr><td>SageMaker</td><td>navada-yolov8n</td><td>Serverless endpoint (3GB, max 2, scales to 0)</td></tr>
+  <tr><td>ECR</td><td>navada-yolo</td><td>Container repo for YOLO Docker image</td></tr>
+  <tr><td>Bedrock</td><td>Claude Sonnet 4.6 + Opus 4.6</td><td>LLM inference (IAM auth, no API key)</td></tr>
+  <tr><td>Rekognition</td><td>navada-faces</td><td>Face collection (FaceModelVersion 7.0)</td></tr>
+  <tr><td>DynamoDB</td><td>navada-faces</td><td>Face metadata (PAY_PER_REQUEST)</td></tr>
+  <tr><td>DynamoDB</td><td>navada-vision-log</td><td>Vision API usage log (PAY_PER_REQUEST)</td></tr>
+  <tr><td>S3</td><td>navada-vision-eu-west-2</td><td>Vision pipeline storage</td></tr>
+</table>
+
+<h3>9.4 IAM Roles</h3>
+<table>
+  <tr><th>Role</th><th>Attached To</th><th>Policies</th></tr>
+  <tr><td>navada-lambda-role</td><td>Lambda functions</td><td>Rekognition, Bedrock, DDB, S3, SageMaker, X-Ray, CW</td></tr>
+  <tr><td>navada-ec2-role</td><td>EC2 instance</td><td>Bedrock, CloudWatch, DynamoDB, S3, SSMManagedInstanceCore</td></tr>
+  <tr><td>navada-sagemaker-role</td><td>SageMaker</td><td>SageMakerFullAccess, S3, ECR, CloudWatch</td></tr>
+</table>
+
+<h3>9.5 AWS CLI Commands</h3>
+<pre>
+# EC2 Management
+aws ec2 describe-instances --instance-ids i-0055e7ace24db38b0 \
+  --query 'Reservations[0].Instances[0].{State:State.Name,IP:PublicIpAddress}'
+aws ec2 start-instances --instance-ids i-0055e7ace24db38b0
+aws ec2 stop-instances --instance-ids i-0055e7ace24db38b0
+
+# SSM Session (needs SSM plugin installed)
+aws ssm start-session --target i-0055e7ace24db38b0
+
+# SSH via Tailscale (RECOMMENDED for Claude Code)
+ssh -i ~/.ssh/aws-navada.pem ubuntu@100.98.118.33
+
+# Lambda invocation
+aws lambda invoke --function-name navada-vision-router \
+  --payload '{"path":"/status"}' /dev/stdout
+
+# SageMaker endpoint status
+aws sagemaker describe-endpoint --endpoint-name navada-yolov8n \
+  --query 'EndpointStatus'
+
+# CloudWatch dashboards
+aws cloudwatch get-dashboard --dashboard-name NAVADA-Edge-Network
+</pre>
+
+<div class="page-break"></div>
+
+<h2 id="jenkins">10. JENKINS CI/CD</h2>
+
+<h3>10.1 Overview</h3>
+<p>Jenkins runs as a Docker container on the HP production server. It provides automated build, test, and deploy pipelines for NAVADA services. The EC2 instance is planned as a remote build agent via Tailscale SSH.</p>
+
+<h3>10.2 Architecture</h3>
+<div class="diagram">
+  Developer (Lee on ASUS)
+       |
+       | git push / manual trigger
+       v
+  +--------------------+
+  | Jenkins Controller |
+  | HP Docker :8082    |
+  | navada-jenkins     |
+  | JDK 17 LTS        |
+  | Prefix: /jenkins   |
+  +--------+-----------+
+           |
+           | Tailscale SSH (planned)
+           v
+  +--------------------+
+  | Jenkins Agent      |
+  | EC2 t3.medium      |
+  | Node.js 22, Docker |
+  | Build + test env   |
+  +--------------------+
+           |
+           v
+  Deploy to: HP PM2 / EC2 PM2 / Docker / Lambda
+</div>
+
+<h3>10.3 Access</h3>
+<table>
+  <tr><th>Access Method</th><th>URL</th></tr>
+  <tr><td>LAN (from ASUS/iPhone)</td><td>http://192.168.0.58:8080/jenkins/</td></tr>
+  <tr><td>Tailscale</td><td>http://100.121.187.67:8080/jenkins/</td></tr>
+  <tr><td>Direct Docker port</td><td>http://192.168.0.58:8082/jenkins/</td></tr>
+</table>
+<p>Initial admin password: <code>350f9209c539485986b57d3ff3924748</code></p>
+
+<h3>10.4 Docker Configuration</h3>
+<pre>
+File: infrastructure/jenkins/docker-compose.yml
+Container: navada-jenkins
+Image: jenkins/jenkins:lts-jdk17
+Ports: 8082:8080 (UI), 50000:50000 (agent)
+Volume: navada-jenkins-data (persistent)
+Java opts: -Xmx512m -Xms256m
+Prefix: /jenkins
+Network: infrastructure_navada-net (shared with Nginx)
+</pre>
+
+<h3>10.5 How Jenkins Works in the NAVADA Network</h3>
+<p>Jenkins provides continuous integration and deployment across the NAVADA mesh:</p>
+<ol>
+  <li><strong>Trigger</strong>: Git push to GitHub, scheduled cron, or manual trigger from Jenkins UI</li>
+  <li><strong>Build</strong>: Jenkins controller (HP) dispatches job to local or remote agent (EC2)</li>
+  <li><strong>Test</strong>: Agent runs unit tests, linting, type checks in isolated environment</li>
+  <li><strong>Deploy</strong>: On success, artifacts are pushed to target node and PM2 service restarted</li>
+  <li><strong>Notify</strong>: Result sent to Telegram via bot webhook for real-time alerts</li>
+</ol>
+
+<p><strong>Network integration:</strong></p>
+<ul>
+  <li>Jenkins controller on HP communicates with EC2 agent via Tailscale (100.98.118.33)</li>
+  <li>Nginx reverse proxy on HP provides /jenkins/ path routing from LAN and Cloudflare</li>
+  <li>Jenkins shares the Docker network (infrastructure_navada-net) with Nginx for internal routing</li>
+  <li>Build artifacts can be deployed to any node in the Tailscale mesh via SSH/SCP</li>
+</ul>
+
+<h3>10.6 Setting Up a Pipeline</h3>
+<pre>
+1. Open Jenkins UI: http://192.168.0.58:8080/jenkins/
+2. Click "New Item" &gt; Enter name &gt; Select "Pipeline" &gt; OK
+3. Under "Pipeline", select "Pipeline script from SCM"
+4. SCM: Git
+5. Repository URL: https://github.com/Navada25/your-repo.git
+6. Branch: */main
+7. Script Path: Jenkinsfile
+8. Save
+
+Example Jenkinsfile:
+--------------------
+pipeline {
+    agent any
+    stages {
+        stage('Install') {
+            steps { sh 'npm ci' }
+        }
+        stage('Test') {
+            steps { sh 'npm test' }
+        }
+        stage('Deploy') {
+            steps { sh 'pm2 restart service-name' }
+        }
+    }
+    post {
+        always {
+            sh 'curl -s "https://api.navada-edge-server.uk/telegram/"'
+        }
+    }
+}
+</pre>
+
+<h3>10.7 Adding EC2 as Build Agent</h3>
+<pre>
+1. Jenkins UI &gt; Manage Jenkins &gt; Nodes &gt; New Node
+2. Name: navada-ec2
+3. Remote root directory: /home/ubuntu/jenkins-agent
+4. Launch method: Launch agents via SSH
+5. Host: 100.98.118.33 (Tailscale IP)
+6. Credentials: Add SSH key (~/.ssh/aws-navada.pem, user: ubuntu)
+7. Host Key Verification: Non verifying
+8. Save and connect
+</pre>
+
+<h3>10.8 Jenkins Commands</h3>
+<pre>
+# Start/stop Jenkins
+cd C:\Users\leeak\CLAUDE_NAVADA_AGENT\infrastructure\jenkins
+docker compose up -d         # Start
+docker compose down          # Stop
+docker compose logs -f       # View logs
+
+# Get initial admin password (first time only)
+docker exec navada-jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+
+# Restart Jenkins
+docker restart navada-jenkins
+
+# Backup Jenkins data
+docker run --rm -v navada-jenkins-data:/data \
+  -v $(pwd):/backup alpine tar czf /backup/jenkins-backup.tar.gz /data
+</pre>
+
+<div class="page-break"></div>
+
+<h2 id="failover">11. FAILOVER SYSTEM (HP TO ORACLE)</h2>
+
+<div class="diagram">
+  NORMAL OPERATION:
+  Internet --&gt; Cloudflare Tunnel (HP 7c9e3c36...) --&gt; HP Nginx --&gt; PM2 services
+  HP failover-sync -----(SCP every 5 min)-----&gt; Oracle VM
+  EC2 health-monitor ---(ping every 5 min)----&gt; HP
+
+  HP GOES DOWN (detected after 3 failures = 15 min):
+  EC2 ---SSH---&gt; Oracle VM ---runs---&gt; failover-activate.sh
+      1. Cloudflare DNS switches api.navada-edge-server.uk
+         FROM: HP tunnel (7c9e3c36...)
+         TO:   Oracle tunnel (96e30aeb...)
+      2. Oracle starts: Docker (Nginx + Cloudflared), PM2 (bot, inbox, trading)
+      3. Telegram notification: "FAILOVER ACTIVE"
+
+  HP RECOVERS:
+  EC2 detects HP is back --&gt; Oracle failover-deactivate.sh
+      1. State synced back to HP
+      2. Oracle services stopped
+      3. DNS restored to HP tunnel
+      4. Telegram notification: "FAILBACK COMPLETE"
+</div>
+
+<h3>What Fails Over</h3>
+<table>
+  <tr><th>Tier</th><th>Services</th><th>Mode</th></tr>
+  <tr><td>Tier 1 (Critical)</td><td>telegram-bot, inbox-responder</td><td>Automatic</td></tr>
+  <tr><td>Tier 2 (Important)</td><td>trading-scheduler, trading-api</td><td>Auto if Python available</td></tr>
+  <tr><td>Skipped</td><td>worldmonitor, navada-flix, network-scanner, notebooklm-watcher</td><td>Not critical</td></tr>
+</table>
+
+<h3>Telegram Failover Commands</h3>
+<pre>
+/failover          # Manual failover trigger
+/failback          # Manual failback trigger
+/failover-status   # Check if failover is active
+</pre>
+
+<h2 id="elk">12. ELK STACK (LOGGING)</h2>
+
+<table>
+  <tr><th>Component</th><th>Location</th><th>Port</th><th>Details</th></tr>
+  <tr><td>Elasticsearch</td><td>Oracle VM (Docker)</td><td>9200</td><td>v8.17.0, 1GB heap, single node</td></tr>
+  <tr><td>Kibana</td><td>Oracle VM (Docker)</td><td>5601</td><td>v8.17.0, basePath: /kibana</td></tr>
+  <tr><td>Filebeat</td><td>HP (Windows host)</td><td>-</td><td>Collects PM2, Telegram, automation logs</td></tr>
+  <tr><td>SSH Tunnels</td><td>HP (PM2: oracle-elk-tunnel)</td><td>-</td><td>Tunnels 9200+5601 from Oracle via Tailscale</td></tr>
+</table>
+
+<h3>Log Indices</h3>
+<table>
+  <tr><th>Index Pattern</th><th>Contents</th></tr>
+  <tr><td>navada-telegram-*</td><td>All Telegram bot interactions (in/out messages, tokens, cost)</td></tr>
+  <tr><td>navada-automation-*</td><td>Scheduled task execution logs</td></tr>
+  <tr><td>navada-pm2-*</td><td>PM2 process stdout/stderr logs</td></tr>
+</table>
+
+<h3>Access</h3>
+<pre>
+Kibana UI:  https://kibana.navada-edge-server.uk
+LAN:        http://192.168.0.58:8080/kibana/
+Telegram:   /logs command + elk_query tool
+</pre>
+
+<div class="page-break"></div>
+
+<h2 id="cloudflare">13. CLOUDFLARE SERVICES</h2>
+
+<table>
+  <tr><th>Service</th><th>Details</th></tr>
+  <tr><td>Domain</td><td>navada-edge-server.uk (Zone: 38050dc00f45f0c23f8142b4d74525df)</td></tr>
+  <tr><td>Tunnel (HP)</td><td>ID: 7c9e3c36-162a-4bb3-9f4e-8aab3f552636</td></tr>
+  <tr><td>Tunnel (Oracle failover)</td><td>ID: 96e30aeb-94e2-4ab3-a6f8-6e8f6fb526ad</td></tr>
+  <tr><td>Workers</td><td>navada-edge.leeakpareva.workers.dev (flix proxy)</td></tr>
+  <tr><td>R2 Bucket</td><td>navada-assets (S3-compatible, zero egress)</td></tr>
+  <tr><td>Stream</td><td>customer-ledats0yeh0th9as.cloudflarestream.com ($5/mo)</td></tr>
+  <tr><td>Workers AI</td><td>Flux Klein 4B (FREE image gen), BGE embeddings (FREE)</td></tr>
+  <tr><td>Account ID</td><td>ff6607db333b4ff7822c52cbe0b7d1be</td></tr>
+</table>
+
+<h2 id="commands">14. ESSENTIAL COMMANDS REFERENCE</h2>
+
+<h3>14.1 PM2</h3>
+<pre>
+pm2 list                              # List all processes
+pm2 start ecosystem.config.js         # Start all from config
+pm2 restart &lt;name&gt;                    # Restart process
+pm2 stop &lt;name&gt;                       # Stop process
+pm2 logs &lt;name&gt; --lines 100           # View logs
+pm2 monit                             # Real-time dashboard
+pm2 save &amp;&amp; pm2 resurrect             # Persist across reboots
+</pre>
+
+<h3>14.2 Docker</h3>
+<pre>
+docker ps                             # Running containers
+docker compose up -d                  # Start compose stack
+docker compose down                   # Stop compose stack
+docker compose restart nginx          # Restart single service
+docker compose logs -f &lt;service&gt;      # Follow logs
+docker exec -it &lt;container&gt; sh        # Shell into container
+</pre>
+
+<h3>14.3 SSH Access</h3>
+<pre>
+ssh -i ~/.ssh/aws-navada.pem ubuntu@100.98.118.33    # EC2 via Tailscale
+ssh oracle-navada                                     # Oracle VM
+ssh navada-asus                                       # ASUS (from HP)
+</pre>
+
+<h3>14.4 AWS CLI</h3>
+<pre>
+aws ssm start-session --target i-0055e7ace24db38b0   # SSM session to EC2
+aws ec2 start-instances --instance-ids i-0055e7ace24db38b0
+aws ec2 stop-instances --instance-ids i-0055e7ace24db38b0
+aws lambda invoke --function-name navada-vision-router \
+  --payload '{}' /dev/stdout
+aws sagemaker describe-endpoint --endpoint-name navada-yolov8n
+</pre>
+
+<h3>14.5 Tailscale</h3>
+<pre>
+tailscale status                      # Show all connected nodes
+tailscale ping &lt;hostname&gt;             # Test connectivity
+tailscale ip -4                       # Show own Tailscale IP
+</pre>
+
+<h3>14.6 Nginx (inside Docker)</h3>
+<pre>
+docker exec navada-proxy nginx -t              # Test config
+docker exec navada-proxy nginx -s reload       # Reload config
+docker compose restart nginx                   # Full restart
+</pre>
+
+<h3>14.7 Telegram Bot Key Commands</h3>
+<pre>
+/status           # Server status overview
+/pm2              # PM2 process list
+/logs             # ELK log search
+/failover         # Manual failover trigger
+/failback         # Manual failback
+/cost             # API cost tracking (/cost day, /cost week, /cost month)
+/cache            # Response cache stats
+/shell &lt;cmd&gt;      # Run shell command on server
+/email            # Send email (Zoho SMTP)
+/emailme          # Email yourself
+/inbox            # Read inbox
+/image &lt;prompt&gt;   # Generate image (DALL-E 3)
+/flux &lt;prompt&gt;    # Free image gen (Cloudflare Workers AI)
+/sms &lt;num&gt; &lt;msg&gt;  # Send SMS (Twilio)
+/call &lt;num&gt; &lt;msg&gt;  # Make phone call (Twilio)
+/r2               # R2 storage management
+/stream           # Cloudflare Stream video management
+/trace &lt;url&gt;      # Cloudflare request trace
+/linkedin &lt;text&gt;  # Post to LinkedIn
+/inspire          # Inspire distribution list
+/grant &lt;id&gt; [d]   # Grant guest access
+/revoke &lt;id&gt;      # Revoke guest access
+/users            # List registered users
+/sonnet           # Lock Sonnet model
+/opus             # Lock Opus model
+/auto             # Re-enable smart model routing
+</pre>
+
+<div class="page-break"></div>
+
+<h2 id="scripts">15. KEY SCRIPTS REFERENCE</h2>
+
+<p>Base path: <code>C:\Users\leeak\CLAUDE_NAVADA_AGENT\</code></p>
+
+<h3>15.1 Core Services</h3>
+<table>
+  <tr><th>Script</th><th>Location</th><th>Purpose</th></tr>
+  <tr><td>telegram-bot.js</td><td>Automation/</td><td>Claude Chief of Staff (49+ commands, multi-user)</td></tr>
+  <tr><td>inbox-auto-responder.js</td><td>Automation/</td><td>Email auto-reply with approval gate</td></tr>
+  <tr><td>network-scanner.js</td><td>Automation/</td><td>Network device scanner + dashboard</td></tr>
+  <tr><td>oracle-elk-tunnel.js</td><td>infrastructure/</td><td>SSH tunnels to Oracle ELK</td></tr>
+  <tr><td>failover-sync.js</td><td>Automation/</td><td>SCP state to Oracle (every 5 min)</td></tr>
+  <tr><td>ec2-health-monitor.js</td><td>Automation/</td><td>HP health check (triggers failover)</td></tr>
+  <tr><td>notebooklm-r2-watcher.js</td><td>Automation/</td><td>Auto-upload to R2</td></tr>
+</table>
+
+<h3>15.2 Scheduled Automations</h3>
+<table>
+  <tr><th>Script</th><th>Location</th><th>Purpose</th></tr>
+  <tr><td>morning-briefing.js</td><td>Automation/</td><td>Daily briefing email</td></tr>
+  <tr><td>ai-news-mailer.js</td><td>Automation/</td><td>AI news digest email</td></tr>
+  <tr><td>weekly-report.js</td><td>Automation/</td><td>Weekly ops summary</td></tr>
+  <tr><td>self-improve.js</td><td>Automation/</td><td>Weekly system improvement research</td></tr>
+  <tr><td>job-hunter-apify.js</td><td>Automation/</td><td>Job listing scraper</td></tr>
+  <tr><td>inbox-monitor.js</td><td>Automation/</td><td>Inbox scanning (every 2hrs)</td></tr>
+  <tr><td>uk-us-economy-report.py</td><td>Automation/</td><td>Economy analysis (Python)</td></tr>
+  <tr><td>node-checkin.js</td><td>Automation/</td><td>Node heartbeat (PG + Telegram)</td></tr>
+  <tr><td>hp-performance-report.js</td><td>Automation/</td><td>HP metrics email (Crow theme)</td></tr>
+</table>
+
+<h3>15.3 Lead and Prospect Pipeline</h3>
+<table>
+  <tr><th>Script</th><th>Location</th><th>Purpose</th></tr>
+  <tr><td>pipeline.js</td><td>LeadPipeline/</td><td>Lead CRM pipeline</td></tr>
+  <tr><td>prospect-pipeline.js</td><td>LeadPipeline/</td><td>Prospect outreach pipeline</td></tr>
+  <tr><td>lead-scraper.js</td><td>LeadPipeline/</td><td>Google/LinkedIn scraping</td></tr>
+  <tr><td>email-finder.js</td><td>LeadPipeline/</td><td>Hunter.io email finder</td></tr>
+  <tr><td>outreach.js</td><td>LeadPipeline/</td><td>Outreach email sender (Zoho SMTP)</td></tr>
+</table>
+
+<h3>15.4 Creative and Publishing</h3>
+<table>
+  <tr><th>Script</th><th>Location</th><th>Purpose</th></tr>
+  <tr><td>linkedin-post.js</td><td>Automation/</td><td>LinkedIn text posts</td></tr>
+  <tr><td>linkedin-video.js</td><td>Automation/</td><td>LinkedIn video posts (TTS + DALL-E)</td></tr>
+  <tr><td>cloudflare-r2.js</td><td>Automation/</td><td>R2 bucket operations</td></tr>
+  <tr><td>cloudflare-flux.js</td><td>Automation/</td><td>Free AI image generation</td></tr>
+  <tr><td>deliver-app.js</td><td>Automation/</td><td>Deploy to Vercel + email client</td></tr>
+  <tr><td>cost-tracker.js</td><td>Manager/</td><td>API cost tracking (GBP)</td></tr>
+</table>
+
+<h3>15.5 Infrastructure</h3>
+<table>
+  <tr><th>Script</th><th>Location</th><th>Purpose</th></tr>
+  <tr><td>setup.sh</td><td>infrastructure/</td><td>Docker + Nginx setup checker (HP)</td></tr>
+  <tr><td>setup.sh</td><td>infrastructure/aws/</td><td>EC2 bootstrap script</td></tr>
+  <tr><td>navada-ec2.bat</td><td>C:\Users\leeak\ (ASUS)</td><td>SSM quick-access script</td></tr>
+  <tr><td>startup.ps1</td><td>infrastructure/</td><td>Windows startup automation</td></tr>
+  <tr><td>harden-firewall.ps1</td><td>infrastructure/</td><td>Windows firewall hardening</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2 id="ssh">16. SSH ACCESS GUIDE</h2>
+
+<h3>16.1 SSH Config (~/.ssh/config)</h3>
+<pre>
+# Oracle VM
+Host oracle-navada
+    HostName 100.77.206.9
+    User ubuntu
+    IdentityFile ~/.ssh/oracle-navada
+
+# AWS EC2
+Host navada-ec2
+    HostName 100.98.118.33
+    User ubuntu
+    IdentityFile ~/.ssh/aws-navada.pem
+
+# ASUS (from HP)
+Host navada-asus
+    HostName 100.88.118.128
+    User leeak
+</pre>
+
+<h3>16.2 Connecting</h3>
+<pre>
+# EC2 (RECOMMENDED: SSH via Tailscale for Claude Code)
+ssh -i ~/.ssh/aws-navada.pem ubuntu@100.98.118.33
+
+# EC2 (alternative: SSM -- garbled TUI, OK for simple commands)
+aws ssm start-session --target i-0055e7ace24db38b0
+
+# Oracle VM
+ssh oracle-navada
+
+# ASUS from HP
+ssh navada-asus
+</pre>
+
+<div class="warning">
+  NOTE: SSM sessions do NOT support Claude Code TUI properly (garbled Unicode).
+  Always use SSH via Tailscale for interactive Claude Code sessions on EC2.
+</div>
+
+<div class="page-break"></div>
+
+<h2 id="remaining">17. REMAINING SETUP TASKS</h2>
+
+<h3>Phase 4 (In Progress)</h3>
+<table>
+  <tr><th>Task</th><th>Status</th><th>Details</th></tr>
+  <tr><td>SSM plugin on ASUS</td><td>DONE</td><td>Installed and working (7 March 2026)</td></tr>
+  <tr><td>Telegram /dashboard, /yolo, /ssm commands</td><td>PENDING</td><td>Code ready, needs adding to telegram-bot.js</td></tr>
+</table>
+
+<h3>Phase 5: EC2 Full Failover</h3>
+<table>
+  <tr><th>Task</th><th>Status</th><th>Details</th></tr>
+  <tr><td>Clone NAVADA repo to EC2</td><td>PENDING</td><td>Full bot + automation scripts</td></tr>
+  <tr><td>Bedrock bot on EC2</td><td>PENDING</td><td>telegram-bot.js using Bedrock Claude (IAM auth)</td></tr>
+  <tr><td>MCP servers on EC2</td><td>PENDING</td><td>Distributed MCP across HP, EC2, Oracle</td></tr>
+  <tr><td>EC2 health monitor setup</td><td>PENDING</td><td>ec2-health-monitor.js deployed on EC2</td></tr>
+</table>
+
+<h3>Phase 6: ChromaDB Expansion</h3>
+<table>
+  <tr><th>Task</th><th>Status</th><th>Details</th></tr>
+  <tr><td>navada-faces collection</td><td>PENDING</td><td>Face embeddings for recognition</td></tr>
+  <tr><td>navada-scenes collection</td><td>PENDING</td><td>Scene description storage</td></tr>
+  <tr><td>navada-objects collection</td><td>PENDING</td><td>YOLO detection history</td></tr>
+  <tr><td>navada-logs collection</td><td>PENDING</td><td>Cross-node activity logs</td></tr>
+</table>
+
+<h3>Phase 7: X-Ray Tracing</h3>
+<table>
+  <tr><th>Task</th><th>Status</th><th>Details</th></tr>
+  <tr><td>Enable X-Ray on Lambda functions</td><td>PENDING</td><td>End-to-end vision pipeline tracing</td></tr>
+</table>
+
+<h3>Phase 8: Cloudflare Worker Router + New Commands</h3>
+<table>
+  <tr><th>Task</th><th>Status</th><th>Details</th></tr>
+  <tr><td>Intelligent Cloudflare Worker router</td><td>PENDING</td><td>Replace ALB (saves 16 GBP/mo)</td></tr>
+  <tr><td>New Telegram commands</td><td>PENDING</td><td>/vision, /face, /yolo, /jenkins, /dashboard, /nodes, /traffic, /mcp</td></tr>
+</table>
+
+<h3>General Infrastructure</h3>
+<table>
+  <tr><th>Task</th><th>Status</th><th>Details</th></tr>
+  <tr><td>Jenkins EC2 agent</td><td>PENDING</td><td>Connect EC2 as remote build agent via Tailscale SSH</td></tr>
+  <tr><td>Jenkins pipelines</td><td>PENDING</td><td>Create Jenkinsfiles for key services</td></tr>
+  <tr><td>MLflow server</td><td>PENDING</td><td>ML experiment tracking (:5000)</td></tr>
+  <tr><td>Jupyter persistent server</td><td>PENDING</td><td>Always-on Jupyter Lab (:8888)</td></tr>
+  <tr><td>HP disk cleanup</td><td>CRITICAL</td><td>0 bytes free, runtime only until resolved</td></tr>
+  <tr><td>ASUS SSH server</td><td>PENDING</td><td>Win 11 Home needs manual OpenSSH install</td></tr>
+  <tr><td>Clerk auth for NAVADA Flix</td><td>PENDING</td><td>Google OAuth protection</td></tr>
+</table>
+
+<hr>
+
+<h2>DOCUMENT CONTROL</h2>
+<table>
+  <tr><th>Version</th><th>Date</th><th>Author</th><th>Changes</th></tr>
+  <tr><td>1.0</td><td>7 March 2026</td><td>Claude (Chief of Staff)</td><td>Initial creation. Full network documentation.</td></tr>
+</table>
+
+<p style="text-align: center; margin-top: 40px; font-size: 10px;">
+  NAVADA EDGE INFRASTRUCTURE | INTERNAL DOCUMENT | navada-edge-server.uk<br>
+  Owner: Lee Akpareva | Generated: 7 March 2026
+</p>
+
+</body>
+</html>

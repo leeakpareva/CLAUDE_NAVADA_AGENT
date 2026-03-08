@@ -1,20 +1,11 @@
 /**
- * NAVADA Unified PM2 Ecosystem Config
- * Manages all non-Docker services from a single file.
+ * NAVADA HP PM2 Ecosystem Config (Post-Migration v3)
+ * HP only runs: telegram-bot + network-scanner
+ * All other services migrated to Oracle VM.
  *
  * Usage:
  *   pm2 start ecosystem.config.js
  *   pm2 save
- *
- * Services managed here:
- *   1. worldmonitor      — Frontend + proxy (serve-local.mjs :4173)
- *   2. worldmonitor-api  — Local API server (local-api-server.mjs :46123)
- *   3. trading-api       — NAVADA Trading FastAPI/Uvicorn (:5678)
- *   4. inbox-responder   — Email auto-reply + improvement approval gate
- *   5. auto-deploy       — Git poll every 2 min + rebuild on change
- *   6. trading-scheduler — Triggers pre-market, execution, report at scheduled times
- *   7. telegram-bot      — Claude Chief of Staff Telegram interface
- *   8. voice-command     — S8 Bluetooth voice control system
  */
 
 module.exports = {
@@ -98,15 +89,16 @@ module.exports = {
       windowsHide: true,
     },
 
-    // --- NAVADA Edge Telegram Bot ---
+    // --- NAVADA Edge Telegram Bot (Claude Chief of Staff) ---
     {
       name: 'telegram-bot',
       script: 'telegram-bot.js',
       cwd: 'C:/Users/leeak/CLAUDE_NAVADA_AGENT/Automation',
       interpreter: 'node',
       autorestart: true,
-      max_restarts: 20,
-      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: 10000,
+      restart_delay: 5000,
       watch: false,
       windowsHide: true,
     },

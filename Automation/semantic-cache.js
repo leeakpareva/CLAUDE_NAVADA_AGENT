@@ -47,6 +47,7 @@ const NOCACHE_PATTERNS = [
 let client = null;
 let collection = null;
 let rag = null;
+let chromaDisabled = false;  // set true on first auth failure to avoid repeated slow calls
 
 function getRag() {
   if (!rag) rag = require('./chroma-rag');
@@ -130,7 +131,8 @@ async function lookup(query) {
     return { response: memHit.response, distance: 0, source: 'memory', cached_at: new Date(memHit.ts).toISOString() };
   }
 
-  // Check ChromaDB
+  // Check ChromaDB (skip if previously failed auth)
+  if (chromaDisabled) return null;
   try {
     const col = await getCollection();
     if (!col) return null;
@@ -169,7 +171,12 @@ async function lookup(query) {
       cached_at: metadata.cached_at,
     };
   } catch (err) {
-    console.warn(`[CACHE] Lookup error: ${err.message}`);
+    if (err.message.includes('Authentication')) {
+      chromaDisabled = true;
+      console.warn(`[CACHE] ChromaDB/embedding auth failed, disabling ChromaDB cache (memory cache still active)`);
+    } else {
+      console.warn(`[CACHE] Lookup error: ${err.message}`);
+    }
     return null;
   }
 }
@@ -191,7 +198,8 @@ async function store(query, response, metadata = {}) {
   const queryLower = query.toLowerCase().trim();
   memStore(queryLower, trimmedResponse, metadata);
 
-  // Store in ChromaDB
+  // Store in ChromaDB (skip if previously failed auth)
+  if (chromaDisabled) return;
   try {
     const col = await getCollection();
     if (!col) return;
@@ -218,7 +226,12 @@ async function store(query, response, metadata = {}) {
 
     console.log(`[CACHE] Stored response for: "${query.slice(0, 50)}..." (${trimmedResponse.length} chars)`);
   } catch (err) {
-    console.warn(`[CACHE] Store error: ${err.message}`);
+    if (err.message.includes('Authentication')) {
+      chromaDisabled = true;
+      console.warn(`[CACHE] ChromaDB/embedding auth failed, disabling ChromaDB cache`);
+    } else {
+      console.warn(`[CACHE] Store error: ${err.message}`);
+    }
   }
 }
 

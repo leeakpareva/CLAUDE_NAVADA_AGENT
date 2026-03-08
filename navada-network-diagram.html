@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAVADA Architecture — Full Infrastructure</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #07070d;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #e0e0e0;
+    min-height: 100vh;
+    overflow-x: auto;
+  }
+  h1 {
+    text-align: center;
+    padding: 30px 0 6px;
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: 6px;
+    color: #fff;
+  }
+  h1 span { color: #00d4ff; font-weight: 600; }
+  .subtitle {
+    text-align: center;
+    color: #555;
+    font-size: 12px;
+    letter-spacing: 3px;
+    margin-bottom: 10px;
+  }
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: #666;
+    letter-spacing: 1px;
+  }
+  .legend-swatch {
+    width: 14px; height: 14px;
+    border-radius: 4px;
+    border: 1px solid #333;
+  }
+
+  /* ===== MAIN CANVAS ===== */
+  .canvas {
+    position: relative;
+    width: 1400px;
+    height: 1050px;
+    margin: 0 auto 20px;
+  }
+
+  /* Connection SVG */
+  svg.wires {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+    pointer-events: none;
+  }
+  svg.wires line, svg.wires path {
+    fill: none;
+    stroke-width: 1.5;
+    stroke-dasharray: 5 4;
+    animation: dash 2s linear infinite;
+  }
+  @keyframes dash { to { stroke-dashoffset: -9; } }
+
+  .wire-tailscale { stroke: #00d4ff22; stroke-width: 2; }
+  .wire-data { stroke: #f59e0b33; stroke-width: 1.5; stroke-dasharray: 3 6; }
+  .wire-cache { stroke: #a855f744; stroke-width: 2; stroke-dasharray: 8 4; }
+  .wire-cloud { stroke: #ff663322; stroke-width: 1.5; stroke-dasharray: 4 8; }
+  .wire-api { stroke: #10b98133; stroke-width: 2; }
+  .wire-thick { stroke-width: 3; }
+
+  /* ===== ZONE BACKGROUNDS ===== */
+  .zone {
+    position: absolute;
+    border-radius: 20px;
+    z-index: 0;
+  }
+  .zone-label {
+    position: absolute;
+    font-size: 9px;
+    letter-spacing: 3px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 10px;
+  }
+  .zone-home {
+    top: 40px; left: 20px;
+    width: 880px; height: 670px;
+    background: #0d1117;
+    border: 1px solid #1a1a2e;
+  }
+  .zone-home .zone-label {
+    top: -10px; left: 20px;
+    color: #00d4ff66;
+    background: #07070d;
+    border: 1px solid #1a1a2e;
+  }
+  .zone-cloud {
+    top: 40px; right: 20px;
+    width: 460px; height: 670px;
+    background: #0f0d17;
+    border: 1px solid #1a1a2e;
+  }
+  .zone-cloud .zone-label {
+    top: -10px; right: 20px;
+    color: #a855f766;
+    background: #07070d;
+    border: 1px solid #1a1a2e;
+  }
+  .zone-external {
+    bottom: 20px; left: 20px;
+    width: 1360px; height: 290px;
+    background: #110d0d;
+    border: 1px solid #1a1a2e;
+  }
+  .zone-external .zone-label {
+    top: -10px; left: 20px;
+    color: #ff663366;
+    background: #07070d;
+    border: 1px solid #1a1a2e;
+  }
+
+  /* ===== NODE CARDS ===== */
+  .node {
+    position: absolute;
+    z-index: 5;
+  }
+  .node-card {
+    background: #111118;
+    border: 1.5px solid #1a1a2e;
+    border-radius: 14px;
+    padding: 14px 16px;
+    min-width: 180px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .node-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(0,0,0,0.5);
+  }
+  .node-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 14px 14px 0 0;
+  }
+
+  /* Color themes */
+  .t-cyan .node-card { border-color: #00d4ff25; }
+  .t-cyan .node-card::before { background: linear-gradient(90deg, #00d4ff, #0088ff); }
+  .t-cyan .node-name { color: #00d4ff; }
+
+  .t-purple .node-card { border-color: #a855f725; }
+  .t-purple .node-card::before { background: linear-gradient(90deg, #a855f7, #7c3aed); }
+  .t-purple .node-name { color: #a855f7; }
+
+  .t-amber .node-card { border-color: #f59e0b25; }
+  .t-amber .node-card::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
+  .t-amber .node-name { color: #f59e0b; }
+
+  .t-green .node-card { border-color: #10b98125; }
+  .t-green .node-card::before { background: linear-gradient(90deg, #10b981, #059669); }
+  .t-green .node-name { color: #10b981; }
+
+  .t-orange .node-card { border-color: #ff663325; }
+  .t-orange .node-card::before { background: linear-gradient(90deg, #ff6633, #cc4400); }
+  .t-orange .node-name { color: #ff6633; }
+
+  .t-pink .node-card { border-color: #ec489925; }
+  .t-pink .node-card::before { background: linear-gradient(90deg, #ec4899, #be185d); }
+  .t-pink .node-name { color: #ec4899; }
+
+  .t-slate .node-card { border-color: #64748b25; }
+  .t-slate .node-card::before { background: linear-gradient(90deg, #64748b, #475569); }
+  .t-slate .node-name { color: #94a3b8; }
+
+  .node-icon { font-size: 26px; margin-bottom: 6px; }
+  .node-name {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 2px;
+  }
+  .node-role {
+    font-size: 10px;
+    color: #666;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .node-ip {
+    font-size: 9px;
+    color: #3a3a4a;
+    font-family: 'Consolas', 'Fira Code', monospace;
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    margin-right: 3px;
+    vertical-align: middle;
+  }
+  .dot-on { background: #10b981; box-shadow: 0 0 6px #10b98155; animation: blink 2.5s infinite; }
+  .dot-dev { background: #a855f7; box-shadow: 0 0 6px #a855f755; animation: blink 3s infinite; }
+  .dot-ext { background: #ff6633; box-shadow: 0 0 6px #ff663355; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+  /* Service tags inside node cards */
+  .svc-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .svc {
+    background: #1a1a2e;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 8.5px;
+    color: #888;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  .svc.highlight { background: #1a2a3e; color: #00d4ff; }
+  .svc.new { background: #2a1a3e; color: #c084fc; border: 1px dashed #a855f744; }
+
+  /* ===== FLOATING LABELS ===== */
+  .float-label {
+    position: absolute;
+    z-index: 10;
+    font-size: 8px;
+    letter-spacing: 2px;
+    padding: 3px 10px;
+    border-radius: 10px;
+    background: #0a0a12;
+    border: 1px solid #1a1a2e;
+    color: #555;
+    white-space: nowrap;
+  }
+
+  /* ===== MODEL ROUTING BOX ===== */
+  .model-box {
+    position: absolute;
+    z-index: 6;
+    background: #111118;
+    border: 1.5px solid #a855f730;
+    border-radius: 14px;
+    padding: 14px 18px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .model-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 14px 14px 0 0;
+    background: linear-gradient(90deg, #00d4ff, #a855f7);
+  }
+  .model-box h4 {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #888;
+    margin-bottom: 8px;
+  }
+  .model-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+  .model-pill {
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+  .pill-sonnet {
+    background: #0d2a3a;
+    color: #00d4ff;
+    border: 1px solid #00d4ff44;
+  }
+  .pill-opus {
+    background: #1a0d2a;
+    color: #a855f7;
+    border: 1px solid #a855f744;
+  }
+  .model-triggers {
+    margin-top: 8px;
+    font-size: 8px;
+    color: #555;
+    line-height: 1.6;
+  }
+
+  /* ===== CACHE STACK ===== */
+  .cache-stack {
+    position: absolute;
+    z-index: 6;
+  }
+  .cache-tier {
+    background: #111118;
+    border: 1px solid #1a1a2e;
+    border-radius: 10px;
+    padding: 8px 14px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 9px;
+    min-width: 200px;
+  }
+  .cache-tier .num {
+    background: #1a1a2e;
+    color: #666;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 8px;
+    flex-shrink: 0;
+  }
+  .cache-tier .clabel { color: #999; flex: 1; }
+  .cache-tier .cttl { color: #444; font-family: monospace; font-size: 8px; }
+  .cache-tier:nth-child(1) { border-color: #00d4ff22; }
+  .cache-tier:nth-child(1) .num { background: #0d2a3a; color: #00d4ff; }
+  .cache-tier:nth-child(2) { border-color: #f59e0b22; }
+  .cache-tier:nth-child(2) .num { background: #2a1a0d; color: #f59e0b; }
+  .cache-tier:nth-child(3) { border-color: #a855f722; }
+  .cache-tier:nth-child(3) .num { background: #1a0d2a; color: #a855f7; }
+  .cache-tier:nth-child(4) { border-color: #10b98122; }
+  .cache-tier:nth-child(4) .num { background: #0d2a1a; color: #10b981; }
+  .cache-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #555;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+
+  /* ===== BOTTOM DETAIL GRID ===== */
+  .detail-grid {
+    max-width: 1400px;
+    margin: 0 auto 60px;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .dcard {
+    background: #111118;
+    border: 1px solid #1a1a2e;
+    border-radius: 14px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .dcard::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .dcard.hp::before { background: linear-gradient(90deg, #00d4ff, transparent); }
+  .dcard.asus::before { background: linear-gradient(90deg, #a855f7, transparent); }
+  .dcard.oracle::before { background: linear-gradient(90deg, #f59e0b, transparent); }
+  .dcard.ec2::before { background: linear-gradient(90deg, #10b981, transparent); }
+  .dcard h3 { font-size: 12px; font-weight: 600; letter-spacing: 2px; margin-bottom: 3px; }
+  .dcard.hp h3 { color: #00d4ff; }
+  .dcard.asus h3 { color: #a855f7; }
+  .dcard.oracle h3 { color: #f59e0b; }
+  .dcard.ec2 h3 { color: #10b981; }
+  .dcard .role { font-size: 10px; color: #666; font-style: italic; margin-bottom: 8px; }
+  .dcard .slist { display: flex; flex-wrap: wrap; gap: 4px; }
+  .dcard .slist span {
+    background: #1a1a2e;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 9px;
+    color: #777;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    color: #333;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 20px 0 40px;
+  }
+</style>
+</head>
+<body>
+
+<h1><span>NAVADA</span> INFRASTRUCTURE</h1>
+<p class="subtitle">5 NODES &middot; TAILSCALE MESH &middot; SMART MODEL ROUTING &middot; 3-TIER CACHE</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch" style="background:#00d4ff22;border-color:#00d4ff44"></div>HP (Production)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#a855f722;border-color:#a855f744"></div>ASUS (Dev)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#f59e0b22;border-color:#f59e0b44"></div>Oracle VM</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#10b98122;border-color:#10b98144"></div>AWS EC2</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#ff663322;border-color:#ff663344"></div>External / Cloud</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#c084fc22;border-color:#c084fc44"></div>New (March 2026)</div>
+</div>
+
+<div class="canvas">
+
+  <!-- ZONE BACKGROUNDS -->
+  <div class="zone zone-home"><div class="zone-label">LEE'S HOME NETWORK (192.168.0.x)</div></div>
+  <div class="zone zone-cloud"><div class="zone-label">CLOUD INFRASTRUCTURE</div></div>
+  <div class="zone zone-external"><div class="zone-label">EXTERNAL SERVICES &amp; CLIENTS</div></div>
+
+  <!-- ===== WIRES ===== -->
+  <svg class="wires" viewBox="0 0 1400 1050">
+    <!-- Tailscale mesh: HP <-> all -->
+    <line x1="430" y1="200" x2="200" y2="420" class="wire-tailscale wire-thick"/>
+    <line x1="530" y1="160" x2="1000" y2="180" class="wire-tailscale"/>
+    <line x1="530" y1="200" x2="1000" y2="380" class="wire-tailscale"/>
+    <!-- ASUS <-> Oracle -->
+    <line x1="300" y1="470" x2="950" y2="380" class="wire-tailscale"/>
+    <!-- ASUS <-> EC2 -->
+    <line x1="300" y1="430" x2="950" y2="200" class="wire-tailscale"/>
+    <!-- Oracle <-> EC2 -->
+    <line x1="1100" y1="280" x2="1100" y2="340" class="wire-tailscale"/>
+
+    <!-- HP -> Cloudflare tunnel -->
+    <line x1="530" y1="270" x2="700" y2="830" class="wire-cloud"/>
+    <!-- HP -> Anthropic API -->
+    <line x1="470" y1="280" x2="310" y2="810" class="wire-api"/>
+
+    <!-- HP internal: bot -> model routing -->
+    <line x1="200" y1="230" x2="200" y2="300" class="wire-cache" style="stroke-dasharray:2 3"/>
+    <!-- HP internal: model -> cache -->
+    <line x1="500" y1="370" x2="500" y2="440" class="wire-cache" style="stroke-dasharray:2 3"/>
+
+    <!-- iPhone -> HP (Telegram) -->
+    <line x1="1250" y1="820" x2="470" y2="280" class="wire-cloud" style="stroke:#ec489922"/>
+
+    <!-- EC2 failover arrow to Oracle -->
+    <line x1="1070" y1="240" x2="1070" y2="340" class="wire-data"/>
+  </svg>
+
+  <!-- ===== HP (NAVADA) — PRIMARY SERVER ===== -->
+  <div class="node t-cyan" style="top:80px; left:300px;">
+    <div class="node-card" style="min-width:260px;">
+      <div class="node-icon">&#9881;</div>
+      <div class="node-name">HP (NAVADA)</div>
+      <div class="node-role"><span class="status-dot dot-on"></span>PRODUCTION SERVER &middot; ALWAYS ON</div>
+      <div class="node-ip">TS 100.121.187.67 &middot; LAN 192.168.0.58</div>
+      <div class="svc-list">
+        <span class="svc highlight">telegram-bot</span>
+        <span class="svc">worldmonitor</span>
+        <span class="svc">worldmonitor-api</span>
+        <span class="svc">trading-api</span>
+        <span class="svc">inbox-responder</span>
+        <span class="svc">auto-deploy</span>
+        <span class="svc">trading-scheduler</span>
+        <span class="svc">network-scanner</span>
+        <span class="svc">navada-flix</span>
+        <span class="svc">navada-logo</span>
+        <span class="svc">notebooklm-watcher</span>
+        <span class="svc">oracle-elk-tunnel</span>
+        <span class="svc">failover-sync</span>
+      </div>
+      <div class="svc-list" style="margin-top:6px;">
+        <span class="svc">Docker + Nginx</span>
+        <span class="svc">Cloudflare Tunnel</span>
+        <span class="svc">PostgreSQL :5433</span>
+        <span class="svc">18 Scheduled Tasks</span>
+        <span class="svc">Email (Zoho+SES)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SMART MODEL ROUTING (inside HP) ===== -->
+  <div class="model-box" style="top:310px; left:60px; width:280px;">
+    <h4>SMART MODEL ROUTING</h4>
+    <div class="model-row">
+      <div class="model-pill pill-sonnet">SONNET 4.6<br><span style="font-size:7px;font-weight:400;opacity:0.7">DEFAULT &middot; FAST</span></div>
+      <div class="model-pill pill-opus">OPUS 4.6<br><span style="font-size:7px;font-weight:400;opacity:0.7">AUTO-ESCALATE</span></div>
+    </div>
+    <div class="model-triggers">
+      TRIGGERS: /email, /present, /report, /research,<br>
+      /draft, /linkedin, PDF, proposals, creative, deep analysis
+    </div>
+  </div>
+
+  <!-- ===== 3-TIER CACHE STACK (inside HP) ===== -->
+  <div class="cache-stack" style="top:460px; left:60px; width:240px;">
+    <div class="cache-label">3-TIER RESPONSE CACHE</div>
+    <div class="cache-tier">
+      <div class="num">1</div>
+      <div class="clabel">Memory LRU</div>
+      <div class="cttl">30min</div>
+    </div>
+    <div class="cache-tier">
+      <div class="num">2</div>
+      <div class="clabel">SQLite Exact-Match</div>
+      <div class="cttl">24hr</div>
+    </div>
+    <div class="cache-tier">
+      <div class="num">3</div>
+      <div class="clabel">ChromaDB Semantic</div>
+      <div class="cttl">24hr</div>
+    </div>
+    <div class="cache-tier">
+      <div class="num">4</div>
+      <div class="clabel">Anthropic API (fallback)</div>
+      <div class="cttl">$$</div>
+    </div>
+  </div>
+
+  <!-- HP Docker services sub-card -->
+  <div class="node t-cyan" style="top:460px; left:380px;">
+    <div class="node-card" style="min-width:200px;">
+      <div class="node-name" style="font-size:10px;">DOCKER CONTAINERS</div>
+      <div class="node-role">ON HP</div>
+      <div class="svc-list">
+        <span class="svc">navada-proxy (Nginx)</span>
+        <span class="svc">navada-tunnel (Cloudflared)</span>
+        <span class="svc">navada-elasticsearch</span>
+        <span class="svc">navada-kibana</span>
+        <span class="svc">Filebeat</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ASUS (NAVADA2025) — DEV WORKSTATION ===== -->
+  <div class="node t-purple" style="top:370px; left:60px; z-index:4;">
+    <div class="node-card" style="min-width:200px; opacity:0;">
+      <!-- Invisible spacer so it doesn't overlap cache stack -->
+    </div>
+  </div>
+  <div class="node t-purple" style="top:610px; left:40px;">
+    <div class="node-card" style="min-width:220px;">
+      <div class="node-icon">&#9998;</div>
+      <div class="node-name">ASUS (NAVADA2025)</div>
+      <div class="node-role"><span class="status-dot dot-dev"></span>DEV WORKSTATION &middot; WiFi</div>
+      <div class="node-ip">TS 100.88.118.128 &middot; LAN 192.168.0.18</div>
+      <div class="svc-list">
+        <span class="svc">Claude Code</span>
+        <span class="svc">VS Code</span>
+        <span class="svc">LM Studio</span>
+        <span class="svc">Ollama :11434</span>
+        <span class="svc">PostgreSQL 17</span>
+        <span class="svc">Docker Desktop</span>
+        <span class="svc">WSL (Ubuntu)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ORACLE VM ===== -->
+  <div class="node t-amber" style="top:340px; left:930px;">
+    <div class="node-card" style="min-width:230px;">
+      <div class="node-icon">&#9888;</div>
+      <div class="node-name">ORACLE VM</div>
+      <div class="node-role"><span class="status-dot dot-on"></span>BACKUP + LOGS + CACHE</div>
+      <div class="node-ip">TS 100.77.206.9 &middot; PUB 132.145.46.184</div>
+      <div class="svc-list">
+        <span class="svc">Elasticsearch :9200</span>
+        <span class="svc">Kibana :5601</span>
+        <span class="svc">CloudBeaver :8978</span>
+        <span class="svc">Oracle XE :1521</span>
+        <span class="svc">Cloudflare Tunnel</span>
+        <span class="svc">Failover Target</span>
+        <span class="svc new">Response Cache DB</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== AWS EC2 ===== -->
+  <div class="node t-green" style="top:110px; left:930px;">
+    <div class="node-card" style="min-width:220px;">
+      <div class="node-icon">&#9737;</div>
+      <div class="node-name">AWS EC2</div>
+      <div class="node-role"><span class="status-dot dot-on"></span>WATCHDOG &middot; LONDON</div>
+      <div class="node-ip">TS 100.98.118.33 &middot; PUB 18.130.39.222</div>
+      <div class="svc-list">
+        <span class="svc">Health Monitor</span>
+        <span class="svc">Failover Trigger</span>
+        <span class="svc">Lambda API</span>
+        <span class="svc">SES Email</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CLOUDFLARE ===== -->
+  <div class="node t-orange" style="top:780px; left:550px;">
+    <div class="node-card" style="min-width:300px;">
+      <div class="node-icon">&#9729;</div>
+      <div class="node-name">CLOUDFLARE</div>
+      <div class="node-role"><span class="status-dot dot-ext"></span>CDN + DNS + TUNNEL + AI</div>
+      <div class="node-ip">navada-edge-server.uk</div>
+      <div class="svc-list">
+        <span class="svc">Tunnel (api.navada-edge-server.uk)</span>
+        <span class="svc">DNS (10 subdomains)</span>
+        <span class="svc">R2 Storage (navada-assets)</span>
+        <span class="svc">Stream (video CDN)</span>
+        <span class="svc">Workers AI (Flux)</span>
+        <span class="svc">WAF + DDoS</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ANTHROPIC API ===== -->
+  <div class="node t-purple" style="top:780px; left:180px;">
+    <div class="node-card" style="min-width:180px;">
+      <div class="node-icon">&#129504;</div>
+      <div class="node-name">ANTHROPIC API</div>
+      <div class="node-role">CLAUDE SONNET / OPUS</div>
+      <div class="svc-list">
+        <span class="svc new">Sonnet 4.6 (default)</span>
+        <span class="svc new">Opus 4.6 (auto-escalate)</span>
+        <span class="svc">3-retry + backoff</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== iPHONE ===== -->
+  <div class="node t-pink" style="top:780px; left:1050px;">
+    <div class="node-card" style="min-width:180px;">
+      <div class="node-icon">&#128241;</div>
+      <div class="node-name">iPHONE 15 PRO MAX</div>
+      <div class="node-role">LEE'S MOBILE CLIENT</div>
+      <div class="node-ip">TS 100.68.251.111</div>
+      <div class="svc-list">
+        <span class="svc">Telegram</span>
+        <span class="svc">SMS</span>
+        <span class="svc">WhatsApp</span>
+        <span class="svc">Tailscale</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CHROMADB CLOUD ===== -->
+  <div class="node t-purple" style="top:580px; left:930px;">
+    <div class="node-card" style="min-width:180px;">
+      <div class="node-icon">&#128202;</div>
+      <div class="node-name">CHROMADB CLOUD</div>
+      <div class="node-role">RAG + SEMANTIC CACHE</div>
+      <div class="svc-list">
+        <span class="svc">navada-edge (462 chunks)</span>
+        <span class="svc">response-cache</span>
+        <span class="svc">BGE embeddings</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FLOATING LABELS ===== -->
+  <div class="float-label" style="top:50px; left:600px; color:#00d4ff55;">TAILSCALE ENCRYPTED MESH</div>
+  <div class="float-label" style="top:300px; left:680px;">FAILOVER: EC2 TRIGGERS ORACLE AFTER 15min</div>
+  <div class="float-label" style="top:750px; left:370px; color:#a855f755;">API CALLS (RETRY x3)</div>
+  <div class="float-label" style="top:750px; left:720px; color:#ff663355;">HTTPS TUNNEL</div>
+  <div class="float-label" style="top:750px; left:1080px; color:#ec489955;">TELEGRAM / SMS / WHATSAPP</div>
+
+  <!-- Routing sub-labels -->
+  <div class="float-label" style="top:440px; left:180px; color:#c084fc55; border-color:#a855f722;">
+    MISS &#8594; MISS &#8594; MISS &#8594; API CALL
+  </div>
+
+</div><!-- /canvas -->
+
+<!-- ===== DETAIL GRID ===== -->
+<div class="detail-grid">
+  <div class="dcard hp">
+    <h3>HP (NAVADA)</h3>
+    <div class="role">The Engine Room. Everything runs here.</div>
+    <div class="slist">
+      <span>Win 11 Pro</span>
+      <span>Ethernet</span>
+      <span>14 PM2 services</span>
+      <span>5 Docker containers</span>
+      <span>18 scheduled tasks</span>
+      <span>PostgreSQL :5433</span>
+      <span>Nginx reverse proxy</span>
+      <span>Cloudflare tunnel</span>
+      <span>Telegram bot (Claude CoS)</span>
+      <span>Smart model routing</span>
+      <span>3-tier response cache</span>
+      <span>Trading API :5678</span>
+      <span>WorldMonitor :4173</span>
+      <span>NAVADA Flix :4000</span>
+      <span>Email (Zoho+SES)</span>
+      <span>ELK log pipeline</span>
+    </div>
+  </div>
+  <div class="dcard asus">
+    <h3>ASUS (NAVADA2025)</h3>
+    <div class="role">The Workshop. Lee develops here.</div>
+    <div class="slist">
+      <span>Win 11 Home</span>
+      <span>WiFi</span>
+      <span>Claude Code CLI</span>
+      <span>VS Code</span>
+      <span>LM Studio</span>
+      <span>Ollama (free LLM)</span>
+      <span>PostgreSQL 17</span>
+      <span>Docker Desktop</span>
+      <span>WSL Ubuntu</span>
+      <span>Git</span>
+    </div>
+  </div>
+  <div class="dcard oracle">
+    <h3>ORACLE VM</h3>
+    <div class="role">Backup Generator. Failover + Logs.</div>
+    <div class="slist">
+      <span>E5.Flex 1 OCPU 12GB</span>
+      <span>Free tier</span>
+      <span>Elasticsearch :9200</span>
+      <span>Kibana :5601</span>
+      <span>CloudBeaver :8978</span>
+      <span>Oracle XE 21c :1521</span>
+      <span>Cloudflare tunnel (failover)</span>
+      <span>Response cache DB (new)</span>
+    </div>
+  </div>
+  <div class="dcard ec2">
+    <h3>AWS EC2</h3>
+    <div class="role">The Watchdog. Monitors + triggers failover.</div>
+    <div class="slist">
+      <span>eu-west-2 (London)</span>
+      <span>Health pings every 5min</span>
+      <span>Failover after 15min</span>
+      <span>Lambda API</span>
+      <span>SES email service</span>
+      <span>S3 storage</span>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  NAVADA EDGE INFRASTRUCTURE &middot; MARCH 2026 &middot; GENERATED BY CLAUDE CHIEF OF STAFF
+</div>
+
+</body>
+</html>

@@ -1,0 +1,52 @@
+filebeat.inputs:
+  # Structured Telegram interactions (JSON Lines)
+  - type: log
+    paths:
+      - C:/Users/leeak/CLAUDE_NAVADA_AGENT/Automation/logs/telegram-interactions.jsonl
+    json.keys_under_root: true
+    json.add_error_key: true
+    fields:
+      log_type: telegram
+    fields_under_root: true
+
+  # Automation task logs (text)
+  - type: log
+    paths:
+      - C:/Users/leeak/CLAUDE_NAVADA_AGENT/Automation/logs/*.log
+    exclude_files: ['telegram-interactions\.jsonl$']
+    multiline.pattern: '^\[|^\d{4}-|^\d{2}:\d{2}'
+    multiline.negate: true
+    multiline.match: after
+    fields:
+      log_type: automation
+    fields_under_root: true
+
+  # PM2 logs
+  - type: log
+    paths:
+      - C:/Users/leeak/.pm2/logs/*.log
+    fields:
+      log_type: pm2
+    fields_under_root: true
+
+output.elasticsearch:
+  hosts: ["http://localhost:9200"]
+  indices:
+    - index: "navada-telegram-%{+yyyy.MM}"
+      when.equals:
+        log_type: telegram
+    - index: "navada-automation-%{+yyyy.MM}"
+      when.equals:
+        log_type: automation
+    - index: "navada-pm2-%{+yyyy.MM}"
+      when.equals:
+        log_type: pm2
+
+setup.kibana:
+  host: "http://localhost:5601/kibana"
+
+logging.level: warning
+logging.to_files: true
+logging.files:
+  path: C:/Users/leeak/CLAUDE_NAVADA_AGENT/Automation/logs
+  name: filebeat.log

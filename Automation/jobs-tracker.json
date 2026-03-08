@@ -9741,6 +9741,4345 @@
       "dateFound": "2026-03-03",
       "dateApplied": null,
       "notes": ""
+    },
+    {
+      "id": "pll1m",
+      "title": "Lead AI Engineer",
+      "company": "causaLens",
+      "salary": "Not listed",
+      "location": "London W14 0QL",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=d2bac94552966738",
+      "type": [
+        "Full-time"
+      ],
+      "score": 6,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "18yey1",
+      "title": "Agentic AI Ops Lead",
+      "company": "JPMorganChase",
+      "salary": "Not listed",
+      "location": "London E14 5JP",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=85743a9d06ac0cc3",
+      "type": [
+        "Full-time"
+      ],
+      "score": 6,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "oeoksu",
+      "title": "Head of Digital Learning (Education & AI)",
+      "company": "BPP Holdings",
+      "salary": "£65,000 - £75,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=fa25df361a10ee18",
+      "type": [],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "lupiua",
+      "title": "Principal Software Engineer - GenAI",
+      "company": "BBC",
+      "salary": "£80,000 - £90,000 a year",
+      "location": "London W1A 1AA",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ee7ceda4974cfb6c",
+      "type": [
+        "Permanent",
+        "Part-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "uhcuif",
+      "title": "Principal Consultant – Process Excellence, Data & AI",
+      "company": "Transform Together",
+      "salary": "Not listed",
+      "location": "London SE1 7ND",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=07f4e685dc3e9445",
+      "type": [],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "4yr8pd",
+      "title": "Principal Consultant - Programme and Project Delivery (Data &AI)",
+      "company": "Transform Together",
+      "salary": "Not listed",
+      "location": "London SE1 7ND",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=e46f28f829c76635",
+      "type": [],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "jyhhgw",
+      "title": "Global Head of Artificial Intelligence, ERM",
+      "company": "HSBC Global Services Limited",
+      "salary": "Not listed",
+      "location": "London E14 5HQ",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=8ed3d41d17c3a2fb",
+      "type": [
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "fjfa3s",
+      "title": "Senior ML Engineer / ML Lead",
+      "company": "Titan Academy",
+      "salary": "£95,000 - £160,000 a year",
+      "location": "London SW1P 3AY",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=fc6bf75662f8156a",
+      "type": [],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "yc34en",
+      "title": "Senior AI/ML Engineer - Remote",
+      "company": "Optum",
+      "salary": "$91,700 - $163,700 a year",
+      "location": "Irvine, CA 92602",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=20c5470850f9dbc8",
+      "type": [
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "80ih3m",
+      "title": "Senior Portfolio Manager - AI, Automation and Data",
+      "company": "Arm",
+      "salary": "Not listed",
+      "location": "Cambridge",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=add842d14039dccf",
+      "type": [],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "epu21i",
+      "title": "Senior Frontend Engineer",
+      "company": "Citi",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=9d1c33153d5ba748",
+      "type": [
+        "Full-time"
+      ],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "63u1oj",
+      "title": "Associate Director, SAP S4 HANA Master Data Governance Solution Architect",
+      "company": "Deloitte",
+      "salary": "Not listed",
+      "location": "Bristol",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=5e4cb550e95c2f7d",
+      "type": "Contract",
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "28q9q0",
+      "title": "Director - Transfer Pricing",
+      "company": "Unity Advisory",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=db29d7328a19d763",
+      "type": [
+        "Full-time"
+      ],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "sd7u7w",
+      "title": "AI Deployment Engineer",
+      "company": "OpenAI",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=bc156763f16a05e5",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "n2tcnx",
+      "title": "Senior Software Engineer – Client Engineering",
+      "company": "Kraken",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=75068998eda3d4b4",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "zdd278",
+      "title": "Senior Agentic Platform Engineer",
+      "company": "Wipro Limited",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=b102ca79d550c14b",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ulyah9",
+      "title": "Software Team Lead",
+      "company": "Roke",
+      "salary": "Not listed",
+      "location": "Woking GU21 5BJ",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=925aa3ff64fd4375",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "eb9xdx",
+      "title": "Key Account Director - Remote (Europe)",
+      "company": "Rancho BioSciences LLC",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=8633ce42372b7e1a",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "joujlr",
+      "title": "AIOps Lead",
+      "company": "M-KOPA",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=5865359686eb02b8",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "19auwh",
+      "title": "Senior Revenue Operations Specialist (fixed-term contract)",
+      "company": "Genio",
+      "salary": "£55,000 - £60,000 a year",
+      "location": "Leeds",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=65cbeec960088c72",
+      "type": "Contract",
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ylxypm",
+      "title": "Senior Technical Lead",
+      "company": "University College London",
+      "salary": "£68,284 - £76,244 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=c6051d79e487a641",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "nem9m8",
+      "title": "Senior Client Manager - National Security",
+      "company": "Roke",
+      "salary": "Not listed",
+      "location": "Woking GU21 5BJ",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=d702d48532411e75",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "eb5smo",
+      "title": "Senior Native DevOps Engineer",
+      "company": "Expedia Group",
+      "salary": "Not listed",
+      "location": "London EC1V 4EX",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=933ea02195fc706b",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "8rs38b",
+      "title": "Senior Java Full Stack Engineer, Vice President",
+      "company": "BlackRock Investments",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=36abaa187d638494",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "98q4l4",
+      "title": "Senior Technical Consultant",
+      "company": "CDW",
+      "salary": "Not listed",
+      "location": "London EC4M 9AF",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=de5a16cba98d8f0e",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "5lh1v8",
+      "title": "Senior Digital ASIC Design Engineer",
+      "company": "K2 Space",
+      "salary": "$170,000 - $250,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=65d3ff4faf8e99a5",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "n32dz8",
+      "title": "Conference Director – Technical Programming",
+      "company": "ISMG Careers",
+      "salary": "Not listed",
+      "location": "Windsor SL4 3EZ",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=19261905104aad55",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "8ce9oj",
+      "title": "Head of Data Ingestion",
+      "company": "Marsh & McLennan Companies",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=1c1f611e6c0b581c",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "diy3er",
+      "title": "Asset & Wealth Management - Relationship Partner Transformation - Executive Director",
+      "company": "JPMorganChase",
+      "salary": "Not listed",
+      "location": "London EC4Y 0JP",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=aecc3650b4a40dbc",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "sohd1f",
+      "title": "Head of Financial Solutions",
+      "company": "Standard Life",
+      "salary": "Not listed",
+      "location": "Birmingham",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=5e1c71f04a97d2c7",
+      "type": [
+        "Permanent"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "9tru9",
+      "title": "Senior Technical Program Manager",
+      "company": "Graphcore",
+      "salary": "Not listed",
+      "location": "Bristol",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=423a090402b0cf05",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "6f0hok",
+      "title": "Technical Product Manager — AI Native Onboarding Platform",
+      "company": "JPMorganChase",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=bd7b140a13cee14f",
+      "type": [
+        "Full-time"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "49f9p",
+      "title": "Research Engineer, Evaluations, Applied AI",
+      "company": "LILT",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=b36372b8084fa529",
+      "type": "Contract",
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "dsomr6",
+      "title": "Digital Course Affiliate Partner – Tech & AI",
+      "company": "ProsperaCore",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=585fa851aacb6f49",
+      "type": [
+        "Freelance"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "e7h0te",
+      "title": "AI Software Architect",
+      "company": "Plentific",
+      "salary": "Not listed",
+      "location": "London EC4N 5AT",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=d385bdb743a4f485",
+      "type": [],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ookir8",
+      "title": "Internal Applicants Only - Lecturer in AI or Data Science",
+      "company": "Cardiff University",
+      "salary": "£41,064 - £56,535 a year",
+      "location": "Cardiff",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=b12218bb63e8b940",
+      "type": [],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "w0jp4d",
+      "title": "AI Skills Coach",
+      "company": "SR Apprenticeships",
+      "salary": "Up to £40,000 a year",
+      "location": "Nottingham",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=90aaf0b83ca91f67",
+      "type": [
+        "Full-time"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "38fj9v",
+      "title": "AI Services Consultant German Speaker - London OR Lisbon",
+      "company": "Zendesk",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=0456dd50c60ccb80",
+      "type": [
+        "Full-time"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "xy2ts1",
+      "title": "AI Services Consultant French Speaker - London OR Lisbon",
+      "company": "Zendesk",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=c62b7beb049f187c",
+      "type": [
+        "Full-time"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "wjfqu6",
+      "title": "AI/ML Data Scientist with advanced analytics experience",
+      "company": "innoVet Health, LLC",
+      "salary": "From $140,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=4bd4c9a0d78347f9",
+      "type": [
+        "Full-time"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ynd2gr",
+      "title": "Azure Developer (Full Stack)",
+      "company": "IXICO",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=1ab51b2ae64468b3",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 1,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "4yc7gm",
+      "title": "Language Research Scientist",
+      "company": "Meta",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=a713da528aebfa64",
+      "type": [],
+      "score": 1,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "8h39qo",
+      "title": "Technical Product Manager (100% Remote)",
+      "company": "Tether Operations Limited",
+      "salary": "Not listed",
+      "location": "London W2",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ed1641a6bd01770a",
+      "type": [
+        "Full-time"
+      ],
+      "score": 1,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "flaut4",
+      "title": "Substation Designer",
+      "company": "NV5",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=e83dda7260c351b1",
+      "type": [
+        "Full-time"
+      ],
+      "score": 1,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "gaatnn",
+      "title": "Sr. Structural Engineer (Substation)",
+      "company": "NV5",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=b010a4aa9fe06dc7",
+      "type": [
+        "Full-time"
+      ],
+      "score": 1,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ulw462",
+      "title": "Data Scientist II, RufusX Science UK",
+      "company": "Amazon Development Centre (London) Limited",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=1ae4c89057a0b1de",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "j5piz6",
+      "title": "Security Assurance Engineer",
+      "company": "TrustFlight",
+      "salary": "£60,000 - £150,000 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=44b341460d310cf9",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "n9h1tf",
+      "title": "QA Engineer",
+      "company": "Royal London Group",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ebddb07754842e7e",
+      "type": [
+        "Permanent"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "g4dr4j",
+      "title": "Software Engineer – Client Engineering",
+      "company": "Kraken",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=aa8fe4aa18413639",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "x1zpf0",
+      "title": "Full Stack Software Engineer",
+      "company": "Roke",
+      "salary": "Not listed",
+      "location": "Woking GU21 5BJ",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=279b09583079c183",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "nxng6v",
+      "title": "Cloud Architect",
+      "company": "Roke",
+      "salary": "Not listed",
+      "location": "Woking",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=81a1de115250c220",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "yczlf9",
+      "title": "Scrum Master",
+      "company": "Roke",
+      "salary": "Not listed",
+      "location": "Woking",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=d5b79e15fe78dfa0",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "nttz4f",
+      "title": "Business Analyst",
+      "company": "Roke",
+      "salary": "Not listed",
+      "location": "Woking",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=7175aa45991d9b11",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "v3czu4",
+      "title": "Evaluation & Insights Engineer",
+      "company": "Apple",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=9ee1b9c85c5b365c",
+      "type": [],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "m5f0rh",
+      "title": "Data Architect",
+      "company": "NTT Data UK",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=e141740040250615",
+      "type": [],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ho4ym4",
+      "title": "Software Development Engineer",
+      "company": "Expedia Group",
+      "salary": "Not listed",
+      "location": "London EC1V 4EX",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=1efb80bd5c195626",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "h0n9v4",
+      "title": "Microsoft Copilot + Power Platform Build Specialist",
+      "company": "Nasstar",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=10113ebce232929d",
+      "type": [
+        "Permanent"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "r7xaw3",
+      "title": "Mechanical Engineer",
+      "company": "Sean E. Merryman Placements",
+      "salary": "$150,000 - $190,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=b4869883cfa6a469",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "dhvx76",
+      "title": "Professional Engineer Civil",
+      "company": "GreenWorks Service Company",
+      "salary": "$75,000 - $90,000 a year",
+      "location": "Plano, TX",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=55f9c3639c5ffd79",
+      "type": [],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "d5x892",
+      "title": "Analytics Engineer",
+      "company": "Ncontracts",
+      "salary": "$120,000 - $160,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=da52963e4860aaaa",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "q7yz5h",
+      "title": "Civil Engineer",
+      "company": "Atlas",
+      "salary": "$95,000 - $145,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=81ffed9cef833aaf",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "kujq3p",
+      "title": "Engineering Technical Leader, Advanced Reactor Nuclear Systems Engineering",
+      "company": "GE Vernova",
+      "salary": "$111,200 - $213,200 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=60603c648fd7e9da",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-04",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "4urtex",
+      "title": "Senior/Lead Machine Learning Scientist (Hands On)- International Consumer Bank",
+      "company": "JPMorganChase",
+      "salary": "Not listed",
+      "location": "London E14",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=4f38e7c27e62dc22",
+      "type": [
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "2pip69",
+      "title": "Applied AI Co-Founder / Head of Sales (100 % remote) (m/f/d)",
+      "company": "EWOR GmbH",
+      "salary": "Not listed",
+      "location": "Coventry",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=5eef83618ecbc82d",
+      "type": [],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "8zshft",
+      "title": "Artificial Intelligence Co-Founder / Head of Sales (100 % remote) (m/f/d)",
+      "company": "EWOR GmbH",
+      "salary": "Not listed",
+      "location": "Coventry",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=c7c5852924f2bbff",
+      "type": [],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "onsxzw",
+      "title": "AI Research Scientist - SLM and Voice Advanced (Senior)",
+      "company": "Zebra Technologies",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=f9a397c1c37675bd",
+      "type": [],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "keu45",
+      "title": "Lead AI Data Scientist - Servicing",
+      "company": "Wise",
+      "salary": "£85,000 - £115,000 a year",
+      "location": "London EC2A 4JE",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=473ab4fc0b09a33d",
+      "type": [
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "m1mvu2",
+      "title": "Agentic AI Co-Founder / Head of Product (100 % remote) (m/f/d)",
+      "company": "EWOR GmbH",
+      "salary": "Not listed",
+      "location": "Leeds",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=d212fa57fda985c9",
+      "type": [],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "gwiwmu",
+      "title": "T4 Senior Manager, AI & Emerging Tech Learning Lead, Enabling Functions",
+      "company": "Deloitte",
+      "salary": "Not listed",
+      "location": "Aberdeen",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=9025f0636e3d2f8c",
+      "type": "Contract",
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ze2jdq",
+      "title": "Senior AI Developer",
+      "company": "Pentest People",
+      "salary": "Not listed",
+      "location": "Leeds LS2 7EH",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=b1165fa252960157",
+      "type": [],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "fdn4jb",
+      "title": "Senior Manager Future Design Machine Learning and AI Standards Lead",
+      "company": "HSBC Global Services Limited",
+      "salary": "Not listed",
+      "location": "Edinburgh EH12 9DT",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=629c5bded665bb6a",
+      "type": [
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "r94pf",
+      "title": "Cluster Product Lead (LSEG Messenger), Workspace",
+      "company": "LSEG (London Stock Exchange Group)",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=b808f64e09741897",
+      "type": [
+        "Full-time"
+      ],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "fwpjo2",
+      "title": "Computer Vision Co-Founder / Head of Product (100 % remote) (m/f/d)",
+      "company": "EWOR GmbH",
+      "salary": "Not listed",
+      "location": "Leeds",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=a4d4a7331db0cc2f",
+      "type": [],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "2ntn8x",
+      "title": "Computer Vision Co-Founder / Head of Sales (100 % remote) (m/f/d)",
+      "company": "EWOR GmbH",
+      "salary": "Not listed",
+      "location": "Nottingham",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=7fdea15a6d63e4af",
+      "type": [],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "285iow",
+      "title": "Senior Programme Manager",
+      "company": "Qlik",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=5a3379f8d60ab682",
+      "type": [],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "u9uv55",
+      "title": "Lead Data Scientist",
+      "company": "Zego",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=32c8a91d09484aaa",
+      "type": [
+        "Full-time"
+      ],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "psefqv",
+      "title": "Senior Solutions Engineer - 789",
+      "company": "Protegrity",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=0fa91edf0e3113fa",
+      "type": [
+        "Full-time"
+      ],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "5fkiuy",
+      "title": "Head of Advisory (Healthcare)",
+      "company": "Ipsos",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=fb57da661bd821bc",
+      "type": [],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "2zo58p",
+      "title": "Principal Data Architect",
+      "company": "Royal Bank of Canada",
+      "salary": "Not listed",
+      "location": "London EC2M",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=06ed848dde78534c",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "adkcna",
+      "title": "Staff Software Engineer - AI/ML - MLOps/DevOps",
+      "company": "Axomic",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=a8382f7cc808a27e",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "agks0x",
+      "title": "Senior DevOps Engineer",
+      "company": "Quorum Business Solutions",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=456714369484c8cb",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "xlhgc4",
+      "title": "Senior Node / React Engineer",
+      "company": "Standard Chartered",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=bb4f058ddbabf5b3",
+      "type": "Contract",
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "9gpjm6",
+      "title": "Senior DevOps Engineer",
+      "company": "Quorum Software",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=56deb4c36e6ef186",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "hnkajb",
+      "title": "Lead IT Systems Engineer",
+      "company": "Klaviyo",
+      "salary": "£72,000 - £108,000 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=8ec6f52cd85b9a15",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "f2lhbi",
+      "title": "Senior Director of Product Management",
+      "company": "Nerdio",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=246ca4086ca1bfae",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "hh6gds",
+      "title": "Technical Account Director",
+      "company": "Quvia",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=799efcec4ecf0b11",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "20rpeh",
+      "title": "Senior Associate, Domain Expert - Eastern Europe",
+      "company": "Dataminr",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=c54e9fe4a3e7442d",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "8dsofz",
+      "title": "Solution Architect Director",
+      "company": "Graitec",
+      "salary": "Not listed",
+      "location": "Totton SO40 9LR",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=71c9ea208c35691b",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "an1x7q",
+      "title": "DeepTech Co-Founder / Head of Sales (100 % remote) (m/f/d)",
+      "company": "EWOR GmbH",
+      "salary": "Not listed",
+      "location": "Coventry",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=46fe2bd816860395",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "3hcw7r",
+      "title": "Principal, Investment Team (Product & Engineering Experience)",
+      "company": "Antler",
+      "salary": "Not listed",
+      "location": "London EC1V 7DY",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=85bfe8db41c00185",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "r55n1d",
+      "title": "Globalization Platform Lead",
+      "company": "Expedia Group",
+      "salary": "Not listed",
+      "location": "London EC1V 4EX",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ef0a6d6201fb1b23",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "7848g2",
+      "title": "Data Scientist Lead",
+      "company": "JPMorganChase",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=b57ab70d5ed467fa",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "u3wtf8",
+      "title": "Senior Enterprise Architect",
+      "company": "Lloyds Banking Group",
+      "salary": "£104,686 - £123,100 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=710360b35a64b699",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "71wwlj",
+      "title": "Senior Product Manager, Security Services",
+      "company": "CommandLink",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=b387fdb47b8be69d",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "27giyw",
+      "title": "Lead Enterprise Data Architect",
+      "company": "NTT Data UK",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=a6a680f505fcaad0",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "54zj3k",
+      "title": "Senior CX Manager",
+      "company": "VML Enterprise Solutions",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=6bfcd935abdc10fb",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "yreegd",
+      "title": "Senior Power System Engineer",
+      "company": "Equistaff Solutions",
+      "salary": "$160,000 - $190,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=ea6249e576d37fa6",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ghtbi0",
+      "title": "Senior Project Engineer - Substation Relay",
+      "company": "Ampirical",
+      "salary": "$121,602 a year",
+      "location": "Covington, LA 70433",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=73e3dc48c5835294",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "w5ix98",
+      "title": "Senior SCADA Integration Engineer",
+      "company": "Trimark Associates",
+      "salary": "$115,000 - $139,500 a year",
+      "location": "Sacramento, CA",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=5c6a3277c47f1244",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "r5ogyu",
+      "title": "Director, Pharmaceutical Technologies and Manufacturing",
+      "company": "Crinetics Pharmaceuticals",
+      "salary": "$186,000 - $232,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=3bd1bebf68fa3022",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "9m934z",
+      "title": "Associate Director, Financial Crimes Advisory (Data & Analytics) - Remote, UK",
+      "company": "AML RightSource, LLC",
+      "salary": "Not listed",
+      "location": "London WC2N 5DU",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=6c9b0f8834b04efd",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "mzzmvq",
+      "title": "Head of VRO Portfolio and Programme Management",
+      "company": "Aon Corporation",
+      "salary": "Not listed",
+      "location": "London EC3V",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ef6fa86e72c72709",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "lx4fit",
+      "title": "Gen AI Engineer, Assistant Vice President",
+      "company": "Citi",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=c9baf1318ec156af",
+      "type": [
+        "Full-time"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "nbojno",
+      "title": "Business Engineer, Business AI",
+      "company": "Meta",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=10d1b7d7a4991cf8",
+      "type": [],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "jxxg2j",
+      "title": "Software Engineer III, Android, AI Fitness Coaching",
+      "company": "Google",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=83acb9a3d9195313",
+      "type": [],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "sm0m8c",
+      "title": "Consumer AI Co-Founder / CMO (100 % remote) (m/f/d)",
+      "company": "EWOR GmbH",
+      "salary": "Not listed",
+      "location": "Southampton",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=eea9eeb6b41601d0",
+      "type": [],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "pnlsld",
+      "title": "Artificial Intelligence Co-Founder / CEO (100 % remote) (m/f/d)",
+      "company": "EWOR GmbH",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=86a250e4888f9aa2",
+      "type": [],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "n1f3n5",
+      "title": "Applied AI Co-Founder / COO (100 % remote) (m/f/d)",
+      "company": "EWOR GmbH",
+      "salary": "Not listed",
+      "location": "Oxford",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=8ab5e57a888df3e3",
+      "type": [],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "6qlegu",
+      "title": "AI Co-Founder / CEO (100 % remote) (m/f/d)",
+      "company": "EWOR GmbH",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=23ba2c9e837878b7",
+      "type": [],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "tph4vy",
+      "title": "Applied AI Engineer / Forward Deployed Engineer (FDE)",
+      "company": "Arena Entertainment",
+      "salary": "Not listed",
+      "location": "London EC2N",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=41880d603b7ecb41",
+      "type": [],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "tajgo7",
+      "title": "AI Consultant (Business Analyst)",
+      "company": "ICS.AI Limited",
+      "salary": "£45,000 - £55,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ab25298ab4cfd284",
+      "type": [
+        "Full-time"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "x885qr",
+      "title": "AI Architect – English Speaker – Office Based",
+      "company": "SpotOn TA",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=82e4b8deeb5eee46",
+      "type": [
+        "Full-time"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "iupf6d",
+      "title": "Mechanical Engineer - AI Trainer",
+      "company": "Handshake",
+      "salary": "$125 an hour",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=d1204527c4a128ff",
+      "type": "Contract",
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "6kl3e8",
+      "title": "RF Engineer - AI Trainer",
+      "company": "Handshake",
+      "salary": "$125 an hour",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=d027fb18fd769ccd",
+      "type": "Contract",
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "qn95uc",
+      "title": "Analog Engineer - AI Trainer",
+      "company": "Handshake",
+      "salary": "$125 an hour",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=e277aafecad7fb3c",
+      "type": "Contract",
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "oa1bjv",
+      "title": "Applied AI Co-Founder / CEO (100 % remote) (m/f/d)",
+      "company": "EWOR GmbH",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=1f11f90ff58d6b07",
+      "type": [],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "jldk2l",
+      "title": "Consultant - Azure Data Factory - Peterborough, UK",
+      "company": "Infosys",
+      "salary": "Not listed",
+      "location": "Peterborough",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=310330bf4bf404c1",
+      "type": [],
+      "score": 1,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "x8b6pa",
+      "title": "Manager of Technical Success",
+      "company": "Lansweeper",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=2b6469a7dda89695",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "h8tozj",
+      "title": "Software Engineer II – PE&R (Front End JavaScript + Angular) - Hybrid Work Schedule",
+      "company": "Quorum Business Solutions",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=2181509e05e3cd17",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "mu8l5e",
+      "title": "Data Architect - Central Government",
+      "company": "NTT Data UK",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=de9398c21c0e84d7",
+      "type": [],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "vnrak1",
+      "title": "Program Manager III",
+      "company": "Expedia Group",
+      "salary": "Not listed",
+      "location": "London EC1V 4EX",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=f472aaf53aa4829c",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "tbwh27",
+      "title": "Staff Software Engineer, Android AICore",
+      "company": "Google",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=51b8d870f875de8f",
+      "type": [],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "y2dhzv",
+      "title": "Software Engineer",
+      "company": "Ankar",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=995590885c39fde3",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "2w4py",
+      "title": "DeepTech Co-Founder / COO (100 % remote) (m/f/d)",
+      "company": "EWOR GmbH",
+      "salary": "Not listed",
+      "location": "Oxford",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=77b2c4afacf7c73a",
+      "type": [],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "kpojjc",
+      "title": "Integration Engineer, Google Cloud",
+      "company": "Google",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=63cd8ebc72a59360",
+      "type": [],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "4zxslx",
+      "title": "GTM Engineer",
+      "company": "Lokalise",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ff631ad87ce7e779",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "i6w68c",
+      "title": "Manager, SAP S/4HANA Data Migration Consultant",
+      "company": "Deloitte",
+      "salary": "Not listed",
+      "location": "Bristol",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=0ccaaed68171d8e6",
+      "type": "Contract",
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "x2vova",
+      "title": "Systems Engineers - LEVEL 02 - FULLY CLEARED with POLYGRAPH REQUIRED",
+      "company": "Constellation Technologies, Inc",
+      "salary": "$175,000 - $275,000 a year",
+      "location": "Fort Meade, MD",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=9f19a04399a356e9",
+      "type": [],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "z23rw",
+      "title": "Civil or Environmental Engineer",
+      "company": "SC&A Inc",
+      "salary": "$90,000 - $150,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=3747e4d8ef796c48",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "k2bdkt",
+      "title": "Founding Energy & Infrastructure Engineering Team",
+      "company": "RLD",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=3eaa39f625632174",
+      "type": "Contract",
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-05",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "3lxucs",
+      "title": "Senior Software Engineer - Build AI Tools (Python, GoLang)",
+      "company": "Citi",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=62065ba6fb63a2c3",
+      "type": [
+        "Full-time"
+      ],
+      "score": 6,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "troy0k",
+      "title": "Lead AI Engineer",
+      "company": "Reward Gateway",
+      "salary": "£110,000 - £120,000 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=b4ebb6dc38039837",
+      "type": [
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "cmre6u",
+      "title": "SENIOR AI ARCHITECT",
+      "company": "Skillfinder International",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=e236a5da0fe57f41",
+      "type": "Contract",
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "c0zh8w",
+      "title": "Senior AI Engineer / Data Scientist - AI RegTech, SC Ventures",
+      "company": "Standard Chartered",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=c98bac4d4a1baeff",
+      "type": "Contract",
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "tqunaa",
+      "title": "AI Augmented Engineering Lead",
+      "company": "TP ICAP",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=30f908ccb9d8bec6",
+      "type": [
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "7ih92y",
+      "title": "Associate Director, Lead AI Architect, Security & Justice, Engineering, AI & Data, Technology & Transformation",
+      "company": "Deloitte",
+      "salary": "Not listed",
+      "location": "Edinburgh",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=12c270a86855d2a8",
+      "type": "Contract",
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "zxrzj",
+      "title": "Head of Business Operations - AI Security Institute",
+      "company": "Department for Science, Innovation & Technology",
+      "salary": "£67,250 - £79,440 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=8d37226499196526",
+      "type": "Contract",
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "lf9d4s",
+      "title": "Quality Analyst Engineer (AI)",
+      "company": "Vimo Inc",
+      "salary": "$80,000 - $100,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=1caddbb64d27d01f",
+      "type": [
+        "Full-time"
+      ],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "90obmj",
+      "title": "AI Product Manager (100% Remote)",
+      "company": "Tether Operations Limited",
+      "salary": "Not listed",
+      "location": "London W2",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=057a5b547ed5578c",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "78fwpa",
+      "title": "Senior iOS Engineer",
+      "company": "Octopus Energy Group",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=2231d22d4adb69db",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "dimq46",
+      "title": "Lead - Technology Product Manager",
+      "company": "On AG",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=99f90f701f68751c",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "2yn69z",
+      "title": "Senior Backend Software Engineer",
+      "company": "Motorola Solutions",
+      "salary": "Not listed",
+      "location": "Uxbridge UB8 1JG",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=5ad8359ee3e66ea7",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "mgc6el",
+      "title": "Senior Backend Engineer",
+      "company": "Deducta",
+      "salary": "From £150,000 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=81dafdb5b982eb6d",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "xq1oad",
+      "title": "Associate Director, Engineering (Education)",
+      "company": "IRIS",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=0c15ce0e1e13738a",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "a9g1w8",
+      "title": "Chief Technology Officer (CTO) / Lead Architect",
+      "company": "LYON INCORPORATED LIMITED",
+      "salary": "£60,342.94 - £158,284.94 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=6bfe596ef7c31806",
+      "type": [
+        "Permanent",
+        "Part-time",
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "h42yx1",
+      "title": "Senior Director, Strategy",
+      "company": "Saviynt",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=d81f0895461682d8",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "iwxmg8",
+      "title": "Remote B2B Head of Sales – Build & Close R&D Tax Practice to £10M – £150K–£250K OTE",
+      "company": "BidX.ai",
+      "salary": "£150,000 - £250,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ece84886b202106b",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "g6e1nu",
+      "title": "Senior Algorithm Engineer",
+      "company": "Ki",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=cd9d71826dd185c1",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "v2my3h",
+      "title": "Principal Customer Success Manager",
+      "company": "PagerDuty",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=3ae255b93118005f",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "84g6vj",
+      "title": "Senior Software Engineer",
+      "company": "Expedia Group",
+      "salary": "Not listed",
+      "location": "London EC1V 4EX",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=23b03c9fb5b16283",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "a4e5c0",
+      "title": "Product Design Lead, Core Experiences",
+      "company": "Expedia Group",
+      "salary": "£173,000 - £277,000 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=1132187cbe408f4f",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "9vkgko",
+      "title": "Principal Consultant, PAM",
+      "company": "Cyderes",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=e3b7234d45f687f7",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "1rux3c",
+      "title": "Workday Extend Senior Developer",
+      "company": "VirtualResource",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=c0865a6b003717dc",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "b4z6pd",
+      "title": "Principal Consultant, IGA",
+      "company": "Cyderes",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=4bf6977e0f73e4bd",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "c5qobo",
+      "title": "Principal Consultant - Data Center Infra Service Delivery Lead - London",
+      "company": "Infosys",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=9c9105a60a73b322",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "7w6fg0",
+      "title": "Senior Castings Engineer",
+      "company": "GE Aerospace",
+      "salary": "$116,000 - $155,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=a29310fcb880ff8a",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "wexj0j",
+      "title": "Lead Engineer - I&C Systems Design (Remote Eligible, U.S.)",
+      "company": "GE Vernova",
+      "salary": "$85,600 - $164,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=6d5ed256fcb36a14",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "646dw8",
+      "title": "Senior Engineer – Materials Engineering",
+      "company": "GE Vernova",
+      "salary": "$113,200 - $188,800 a year",
+      "location": "Wilmington, NC",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=4892243994fd4bc0",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "kj592i",
+      "title": "Head of Digital Portfolio",
+      "company": "International Baccalaureate",
+      "salary": "£117,000 - £147,000 a year",
+      "location": "Cardiff",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=0b7749efcce12273",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "onxbw0",
+      "title": "Assistant/Associate Director - Workflow Specialist",
+      "company": "Moody's",
+      "salary": "Not listed",
+      "location": "London E14",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=93803e7dc27a407f",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "n0mg0",
+      "title": "Director - Workflow Specialist - Strategic Accounts",
+      "company": "Moody's",
+      "salary": "Not listed",
+      "location": "London E14",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=77f1d492758733ab",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "sy69rx",
+      "title": "Director, Industry Value Engineering",
+      "company": "Equinix",
+      "salary": "£155,000 - £257,000 a year",
+      "location": "London E14 9GE",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=9da115e7b564fcc0",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "hcxvwf",
+      "title": "Senior Programme Learning Designer",
+      "company": "Multiverse",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=5a2cd66efa205ea5",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "l65yco",
+      "title": "Platform and Data Operations Director",
+      "company": "JPMorganChase",
+      "salary": "Not listed",
+      "location": "London E14 5JP",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=340999c329f0f67e",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "b240f3",
+      "title": "Cybersecurity and Machine Learning Engineer (KTP Associate) (111387-0326)",
+      "company": "University of Warwick",
+      "salary": "£42,254 a year",
+      "location": "London WC2N",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=8a68c7ca4ef9746c",
+      "type": "Contract",
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "poeuqz",
+      "title": "Machine Learning Engineer",
+      "company": "Whatnot",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=8a181d6557d6f499",
+      "type": [
+        "Full-time"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "yvlo7r",
+      "title": "AI Product Manager - Equities Technology",
+      "company": "Millennium Management",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=a725bae5a345d085",
+      "type": [],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "z7ol1f",
+      "title": "Design Engineer",
+      "company": "Artificial Labs Ltd",
+      "salary": "Not listed",
+      "location": "London EC2R 8AE",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=695b7caeaaf666ec",
+      "type": [],
+      "score": 1,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "5iu07s",
+      "title": "Product Designer",
+      "company": "Artificial Labs Ltd",
+      "salary": "Not listed",
+      "location": "London EC2R 8AE",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=86d3cb68688a41ef",
+      "type": [],
+      "score": 1,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "go2auk",
+      "title": "Python Developer",
+      "company": "Nordcloud",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=c27070cc94824821",
+      "type": [
+        "Full-time"
+      ],
+      "score": 1,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "k5v86o",
+      "title": "Engineering Manager",
+      "company": "SmartAssets",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=8e42c6d3b5047370",
+      "type": [
+        "Full-time"
+      ],
+      "score": 1,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "biskqe",
+      "title": "238645 - Highly Specialist Clinical Pharmacist - Hospital at Home",
+      "company": "NHS Scotland",
+      "salary": "£62,681 - £67,665 a year",
+      "location": "Airdrie ML6 0JS",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=984ecb9f98eb9c0d",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 1,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "79purm",
+      "title": "Data Architect - Central Government",
+      "company": "NTT Ltd",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ce656279e8b41358",
+      "type": [],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "z4pd7i",
+      "title": "Cloud Platform Engineer",
+      "company": "Isomorphic Labs",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=a2464924dd78c7f4",
+      "type": [],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "7nr2yu",
+      "title": "Cloud Solutions Architect - EMEA",
+      "company": "Darktrace",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=cae4e3fd6dd2b03a",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "njr8ir",
+      "title": "People Programs",
+      "company": "ElevenLabs",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ae70aa8c2830ff6e",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "vj8mqj",
+      "title": "Sr. Forward Deployed Engineer",
+      "company": "Databricks",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=d19c75494070659c",
+      "type": [],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "rnqvcx",
+      "title": "Product Marketing Manager",
+      "company": "Tessl",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=312c939b123db08e",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "jeh8fl",
+      "title": "Solution Architect",
+      "company": "Acuity Analytics",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=dd1951af03ddfacc",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "2ng3ze",
+      "title": "Solutions Architect (Google Cloud)",
+      "company": "Qodea",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=c7451bdd217e62ed",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "axbx4s",
+      "title": "SAP Data Architect",
+      "company": "JAMY INTERACTIVE",
+      "salary": "£120,110.43 - £140,582.10 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=980bb30cd6e3c255",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "1h1yqp",
+      "title": "Workday Extend Architect",
+      "company": "VirtualResource",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=22f5a840cc2fe883",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "icv3ca",
+      "title": "Associate Electrical Engineer (Department of Utilities)",
+      "company": "City of Sacramento",
+      "salary": "$96,894.55 - $136,340.37 a year",
+      "location": "Sacramento, CA",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=cafa9667569cbd70",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "taqopi",
+      "title": "Assistant Electrical Engineer (Department of Utilities)",
+      "company": "City of Sacramento",
+      "salary": "$79,832.27 - $112,332.02 a year",
+      "location": "Sacramento, CA",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=02c09d6dfa66961c",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ow66s6",
+      "title": "Sr ASIC Packaging Engineer ( Remote )",
+      "company": "Encore Semi, Inc.",
+      "salary": "$135,000 - $150,000 a year",
+      "location": "Burlington, VT 05401",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=08a5d3c2b904ab08",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "w8ibwd",
+      "title": "Fire Protection Engineer",
+      "company": "Miracorp Inc",
+      "salary": "$95,000 - $117,000 a year",
+      "location": "Washington, DC",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=c6014aca28279254",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "g4oq4a",
+      "title": "Searching for an Opportunistic Medical Device Manufacturing Leader + Doer",
+      "company": "Sempulse",
+      "salary": "$10,000 a month",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=742e848f1d60f11f",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "l03vn9",
+      "title": "SYSTEMS DESIGN PROFESSIONAL",
+      "company": "Day Wireless Systems",
+      "salary": "$90,000 - $120,000 a year",
+      "location": "Portland, OR 97202",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=386cbeef97609ccb",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-06",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "rbxo47",
+      "title": "Senior Applied AI Engineer",
+      "company": "GSK",
+      "salary": "£160,050 - £266,750 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=3418e17ca48c1465",
+      "type": [],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "vpwrq5",
+      "title": "Senior AI Product Manager | UK",
+      "company": "Supermodular AI",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=cea6fb0d3a18216a",
+      "type": [
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "5gy9kb",
+      "title": "AI / ML Engineer (Lead)",
+      "company": "Software Works for You Ltd",
+      "salary": "£90,000 - £120,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=94ad681403546610",
+      "type": [
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "1juy4p",
+      "title": "AI Engineering Lead",
+      "company": "Experienced Consultants",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=288305cd58d9b170",
+      "type": [],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "q5ofv5",
+      "title": "AI Senior Research Innovation Fellow",
+      "company": "University of Hertfordshire",
+      "salary": "£46,049 - £58,225 a year",
+      "location": "Hatfield",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=8830307d18c04315",
+      "type": "Contract",
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "yz8yz0",
+      "title": "Generative AI Director",
+      "company": "JPMorganChase",
+      "salary": "Not listed",
+      "location": "London E14 5JP",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=a8201369ef1de6a3",
+      "type": [
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "157urb",
+      "title": "Principal AI Services Consultant",
+      "company": "Zendesk",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=94f72dc10a2ed572",
+      "type": [
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "tp8gk7",
+      "title": "AI GTM Lead UK&I (Public Sector)",
+      "company": "NTT Data UK",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=a8ab8abe76526895",
+      "type": [],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "hk1q32",
+      "title": "AI Strategy & Adoption Lead",
+      "company": "Gallagher",
+      "salary": "Not listed",
+      "location": "London EC3V 9LJ",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=dca76ddfd3d8d477",
+      "type": [],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "xepc4h",
+      "title": "AI or ML Lead - IT Operations - Hybrid in MN or DC or Remote elsewhere",
+      "company": "Optum",
+      "salary": "$112,700 - $193,200 a year",
+      "location": "Minnetonka, MN 55305",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=1e8a5aea8d13c908",
+      "type": [
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "53be5x",
+      "title": "Senior Python Engineer",
+      "company": "Just Eat Takeaway.com",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=8ef2b60ec3fb4b31",
+      "type": [
+        "Full-time"
+      ],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "n9ruz6",
+      "title": "Head of Product, Bloom",
+      "company": "Sword Health",
+      "salary": "£129,500 - £203,500 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=8d2528946cbc52b5",
+      "type": [],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "mvcpuc",
+      "title": "Senior Data Scientist",
+      "company": "Hastings Direct",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=b9b59b4272315844",
+      "type": [
+        "Full-time"
+      ],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "gbjz29",
+      "title": "Real Time Vision ML Software Engineer",
+      "company": "Michigan Dairy Tech, Inc",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=020a8f846cf46e93",
+      "type": [
+        "Full-time"
+      ],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "st31jn",
+      "title": "AI Engineer (Contract)",
+      "company": "Collinson",
+      "salary": "Not listed",
+      "location": "London SE1 2AQ",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=11b3f71329d8484f",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "qh7swp",
+      "title": "Head of Engineering, DiSSCo UK",
+      "company": "The Natural History Museum",
+      "salary": "£80,000 - £85,000 a year",
+      "location": "South Kensington",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=23d267603435394d",
+      "type": "Contract",
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "x5livv",
+      "title": "Senior Frontend Engineer",
+      "company": "Flagstone Group LTD",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=5b5a48d5b3e73f2a",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "glynhn",
+      "title": "Senior Software Engineer",
+      "company": "Ankar",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=d3824c88b7a1de42",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "otb3bs",
+      "title": "Senior Software Engineer",
+      "company": "PolyAI",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=5382477bfe83d73e",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "oprdp4",
+      "title": "Senior Director, Product Management & Market Activation",
+      "company": "Unit4",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ff395827c2a65b19",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ah4j1e",
+      "title": "VP Marketing",
+      "company": "Ripjar",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=437aa3a79fe0273d",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "kj4q73",
+      "title": "Senior Software Engineer",
+      "company": "Herbert Smith Freehills",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=960d837aa8694d96",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "3bmx0o",
+      "title": "Senior Deployment Strategist | UK",
+      "company": "Supermodular AI",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ec9862fa34ce5cc9",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "iefo6m",
+      "title": "CE Senior Consultant",
+      "company": "KPMG",
+      "salary": "Not listed",
+      "location": "Birmingham",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=1a9a577c26d01ed2",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "qk0kqz",
+      "title": "Principal Engineer - Facades / External Walls",
+      "company": "Jensen Hughes",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=9af9f29d672c0857",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "sdajg9",
+      "title": "Senior Lecturer in Computer Science",
+      "company": "University of Chester",
+      "salary": "£44,746 - £50,253 a year",
+      "location": "Chester",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=e834d5238000bdcc",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ymhzri",
+      "title": "Director of Data Analytics & Data Innovation",
+      "company": "Blue Yonder Research",
+      "salary": "£65,000 - £75,000 a year",
+      "location": "Leeds LS15 8GB",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=108aadec2f6289ae",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "g4wpnq",
+      "title": "Customer Contact Transformation Lead",
+      "company": "PA Consulting",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=446f4cd8f34b1b5d",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "etw1cp",
+      "title": "Associate Director, Design Certification Engineering (REMOTE)",
+      "company": "Collins Aerospace",
+      "salary": "$157,200 - $298,800 a year",
+      "location": "Cedar Rapids, IA",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=58e943282294b51d",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "8a6xlo",
+      "title": "Senior Design Engineer - Electronic Securirty",
+      "company": "Diversified",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=e4c9fe87c6cd1840",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ogizr8",
+      "title": "Head of Digital Process Excellence",
+      "company": "Thames Water Utilites",
+      "salary": "Up to £86,000 a year",
+      "location": "Reading RG1 8DB",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=e2c40f36f6b7ba3c",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "3rd7sf",
+      "title": "Divisional QHSE Director - Data Centre Solutions, UK",
+      "company": "CBRE",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=194dbfa0bbc95ee0",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "969cnw",
+      "title": "Deputy Director, Technology and Digital Transformation",
+      "company": "Dementia UK",
+      "salary": "£83,000 - £88,000 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=8f9046d2a32d5e1a",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "849nd4",
+      "title": "Director- Data Partnerships",
+      "company": "Moody's",
+      "salary": "Not listed",
+      "location": "London E14",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=8d2ae66fabe53d4f",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ckkvgb",
+      "title": "Program Manager - Data for AI",
+      "company": "JPMorganChase",
+      "salary": "Not listed",
+      "location": "London E14 5JP",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=2b025e7e79f476e4",
+      "type": [
+        "Full-time"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "niub6y",
+      "title": "AI Agentic Developer",
+      "company": "Wipro Limited",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=0416fce1dc4f3150",
+      "type": [],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "q8rjcp",
+      "title": "Applied AI Engineer",
+      "company": "GSK",
+      "salary": "£136,125 - £226,875 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=d0efaca7caa7b16b",
+      "type": [],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "oj7n1k",
+      "title": "Machine Learning Engineer",
+      "company": "Trainline",
+      "salary": "£70,000 - £75,000 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=daa5333486638066",
+      "type": [
+        "Full-time"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "rxmhrs",
+      "title": "AI Engineer",
+      "company": "Reward Gateway",
+      "salary": "£85,000 - £90,000 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=b77942821cdf4a75",
+      "type": [
+        "Full-time"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "l77yi",
+      "title": "AI Trainer (Lecturer)",
+      "company": "QA Limited",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=400e413889eea4c8",
+      "type": [
+        "Permanent"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "b7spop",
+      "title": "Staff Quality Engineer",
+      "company": "Proximie",
+      "salary": "Not listed",
+      "location": "London W1G 0PW",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=64da8d94527906bf",
+      "type": [],
+      "score": 1,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "wgk9cp",
+      "title": "Staff Solutions Architect - EMEA [REMOTE]",
+      "company": "Upbound - Job Posting",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=9705e3cb2bd404cb",
+      "type": [],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "z79vk6",
+      "title": "Platform and Infrastructure Manager",
+      "company": "The Crown Estate",
+      "salary": "Not listed",
+      "location": "London SW1Y 4AH",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=db5bb96c54d72f87",
+      "type": [],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "84p4zx",
+      "title": "Embedded Systems Engineer",
+      "company": "J&T Business Consulting",
+      "salary": "£45,000 - £65,000 a year",
+      "location": "Lambeth",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=9ae73cdfce7b2b0f",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "15qla7",
+      "title": "Copy of Software Engineer Enablement",
+      "company": "Carbon Re",
+      "salary": "£70,000 - £90,000 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=e9f06a80910202e8",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "u3o60z",
+      "title": "Software Engineer",
+      "company": "Motorola Solutions",
+      "salary": "Not listed",
+      "location": "Uxbridge UB8 1JG",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=f1acd48fdef61b1f",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "4w2jyc",
+      "title": "GSI Client Manager",
+      "company": "NVIDIA",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=aee6c56927b7ba84",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "6a9c98",
+      "title": "Copilot Consultant",
+      "company": "KPMG",
+      "salary": "Not listed",
+      "location": "Birmingham",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=21417e6c282229c7",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "5vimuq",
+      "title": "Electrical Engineer",
+      "company": "US Bonneville Power Administration",
+      "salary": "$99,954 - $140,188 a year",
+      "location": "Spokane, WA",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=bdc86b44384d44f7",
+      "type": [
+        "Part-time",
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "uivntr",
+      "title": "Engineering Manager, Dredging",
+      "company": "Curtin Maritime",
+      "salary": "Not listed",
+      "location": "Long Beach, CA",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=93382598e7df1a5b",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "jexz45",
+      "title": "Commercial Electrical Engineering Designer",
+      "company": "EE LLC",
+      "salary": "$25 - $35 an hour",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=68895f9fda2e42c0",
+      "type": [
+        "Part-time",
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "2m47af",
+      "title": "Remote Aerospace Reliability Engineer",
+      "company": "ARES Corporation",
+      "salary": "$90,000 - $180,000 a year",
+      "location": "Centennial, CO 80112",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=80d088efa099af63",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "haju3u",
+      "title": "Professional Engineer - Structural Forensics- Kansas/Missouri",
+      "company": "U S Forensic Llc",
+      "salary": "$100,000 - $135,000 a year",
+      "location": "Lees Summit, MO 64082",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=d6acfea4ec2c5f0f",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-07",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "bcdho2",
+      "title": "Senior Machine Learning Engineer, Ranking",
+      "company": "Depop",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=feb2ec9a92a8d863",
+      "type": [
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "k0lmoe",
+      "title": "Senior Machine Learning Engineer, Recommendations",
+      "company": "Depop",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=7b463f3f3ba40467",
+      "type": [
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "csutqw",
+      "title": "Director Analyst, R&D AI and digital transformation (Remote Europe)",
+      "company": "Gartner",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=074b36479c45dbaf",
+      "type": [
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "2x1tj5",
+      "title": "Senior Machine Learning Scientist, Borrowing",
+      "company": "Monzo",
+      "salary": "£86,000 - £105,000 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=b89b359f4236fb81",
+      "type": [],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "l70phv",
+      "title": "Senior Software Engineer in Test",
+      "company": "Nscale",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=0211d7352cf50be3",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "tdlbpv",
+      "title": "Senior Software Engineer",
+      "company": "Motorola Solutions",
+      "salary": "Not listed",
+      "location": "Uxbridge UB8 1JG",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=e5730ceeb9bc76d0",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "hp7bn4",
+      "title": "Data Privacy Senior Manager",
+      "company": "Barclays",
+      "salary": "Not listed",
+      "location": "London E14",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=61fdaf70806285dc",
+      "type": [
+        "Permanent"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ots21n",
+      "title": "Senior Product Manager",
+      "company": "nCino",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=16453736d0ad0d07",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ev4luf",
+      "title": "Senior Grid Interconnection Consultant",
+      "company": "Sargent & Lundy",
+      "salary": "$95,840 - $147,870 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=f568fe550b1846b2",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "i3eiwz",
+      "title": "Senior Forensic Structural Engineer, P.E.",
+      "company": "EFI Global, Inc.",
+      "salary": "Not listed",
+      "location": "Indianapolis, IN",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=f8e4d801ff7ebb7d",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "89jeis",
+      "title": "Senior Principal Engineer - Air Algorithm Integrator JPALS (Remote)",
+      "company": "Collins Aerospace",
+      "salary": "$132,400 - $251,600 a year",
+      "location": "Des Moines, IA",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=17e52ce105421ded",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "4vjkg7",
+      "title": "Senior IT Telephony Engineer Outbound Specialist Five9 Platform",
+      "company": "Wesley Group",
+      "salary": "Not listed",
+      "location": "Franklin, TN 37067",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=2574eb40bc18ef3c",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "n4rdgz",
+      "title": "Director of Digital Strategy & Innovation",
+      "company": "DigitalSur Technology & Digital Solutions Ltd.",
+      "salary": "£85,000 - £110,000 a year",
+      "location": "Leeds LS1 4AP",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=3db3ba223e718eda",
+      "type": [
+        "Permanent",
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "xnszte",
+      "title": "REMOTE AI & INNOVATION ASSOCIATE (12-Month Rotational Role)",
+      "company": "egg",
+      "salary": "Not listed",
+      "location": "London SW1A 2DD",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=d1ff2fb0940ccb96",
+      "type": "Contract",
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "esr6d0",
+      "title": "Go-To-Market Strategist - AI Trainer - Freelance - 8-20 hrs/week - Remote",
+      "company": "10x Team",
+      "salary": "£80 - £140 an hour",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=63a93b233bd73d5d",
+      "type": "Contract",
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "bwjz66",
+      "title": "Architect - AI Trainer - Freelance - 8-20 hrs/week - Remote",
+      "company": "10x Team",
+      "salary": "£100 - £220 an hour",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=bb3043173196e35d",
+      "type": "Contract",
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "hhps55",
+      "title": "IT Systems Administrator",
+      "company": "ProAmpac",
+      "salary": "Not listed",
+      "location": "Cincinnati, OH 45202",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=2ef5f7778e9accb1",
+      "type": [
+        "Full-time"
+      ],
+      "score": 1,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "9pium1",
+      "title": "Implementation & Client Success Leader - Evinova",
+      "company": "AstraZeneca",
+      "salary": "Not listed",
+      "location": "Field Based",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=77f1d0c595b09733",
+      "type": [
+        "Full-time"
+      ],
+      "score": 1,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "okwo0t",
+      "title": "Rust Software Engineer",
+      "company": "Photoroom",
+      "salary": "£90,000 - £130,000 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=f432035a3395102c",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "jq0bip",
+      "title": "GTM Systems Architect",
+      "company": "Fyxer",
+      "salary": "£120,000 - £160,000 a year",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=5912263cb5e2fba4",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "gxeoap",
+      "title": "Service Designer",
+      "company": "PA Consulting",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=59fd2c6dec20dcb0",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ks6b43",
+      "title": "Digital Controls Applied Mechanics Analysis",
+      "company": "Collins Aerospace",
+      "salary": "$132,400 - $251,600 a year",
+      "location": "Windsor Locks, CT",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=03d1c3acfb29b721",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "r49js7",
+      "title": "Supervisor, Thermal Hydraulics and Safety Analysis",
+      "company": "Framatome North America",
+      "salary": "$99,000 - $134,000 a year",
+      "location": "Lynchburg, VA 24501",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=78b6e0f7b70b69be",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "zcn8pe",
+      "title": "Systems Engineer (Hybrid- Aberdeen, Maryland)",
+      "company": "Fairwinds Technologies, L",
+      "salary": "$135,000 - $165,000 a year",
+      "location": "Bel Air, MD 21014",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=3b876e0cd85615e8",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-08",
+      "dateApplied": null,
+      "notes": ""
     }
   ]
 }

@@ -7,7 +7,7 @@ Exposes useful tools to Claude Code via MCP protocol:
 - Data: fetch stock data, compute statistics
 
 Launch: py server.py
-MCP endpoint: http://192.168.0.36:7860/gradio_api/mcp/sse
+MCP endpoint: http://192.168.0.58:7860/gradio_api/mcp/sse
 """
 
 import gradio as gr
@@ -551,8 +551,8 @@ if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
     print("Starting NAVADA Gradio MCP Server...")
-    print("UI: http://192.168.0.36:7860")
-    print("MCP: http://192.168.0.36:7860/gradio_api/mcp/sse")
+    print("UI: http://192.168.0.58:7860")
+    print("MCP: http://192.168.0.58:7860/gradio_api/mcp/sse")
     demo.launch(
         mcp_server=True,
         server_name="0.0.0.0",

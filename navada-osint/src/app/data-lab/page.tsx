@@ -9,7 +9,7 @@ export default function DataLabPage() {
       <TopBar />
       <main className="flex-1 pt-12">
         <EmbedFrame
-          url="http://192.168.0.36:8888"
+          url="http://192.168.0.58:8888"
           title="Data Lab - JupyterLab"
         />
       </main>

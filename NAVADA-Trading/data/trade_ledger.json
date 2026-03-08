@@ -1,0 +1,38 @@
+[
+  {
+    "timestamp": "2026-03-03T15:45:12.837444",
+    "action": "SELL",
+    "symbol": "KO",
+    "qty": 3.0,
+    "order_id": "9aeecfdc-1699-4ffb-aa3c-dc814bf4095c",
+    "status": "OrderStatus.PENDING_NEW",
+    "reasoning": "TAKE-PROFIT triggered: 16.29% gain (threshold: +5%)"
+  },
+  {
+    "timestamp": "2026-03-03T15:45:12.934569",
+    "action": "SELL",
+    "symbol": "MSFT",
+    "qty": 2.0,
+    "order_id": "247de061-c427-4f0f-b826-b307a6ef93e4",
+    "status": "OrderStatus.PENDING_NEW",
+    "reasoning": "STOP-LOSS triggered: -23.40% loss (threshold: -3%)"
+  },
+  {
+    "timestamp": "2026-03-05T15:45:08.420333",
+    "action": "SELL",
+    "symbol": "AAPL",
+    "qty": 2.0,
+    "order_id": "ecb96e6b-fc43-4bdb-bbd0-f6a94bcf231e",
+    "status": "OrderStatus.PENDING_NEW",
+    "reasoning": "STOP-LOSS triggered: -3.84% loss (threshold: -3%)"
+  },
+  {
+    "timestamp": "2026-03-06T20:30:03.547604",
+    "action": "SELL",
+    "symbol": "META",
+    "qty": 2.0,
+    "order_id": "b06de26a-93ed-4419-8d6f-98306073afce",
+    "status": "OrderStatus.PENDING_NEW",
+    "reasoning": "End-of-period: closing all positions"
+  }
+]

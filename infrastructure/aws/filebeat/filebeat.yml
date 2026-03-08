@@ -1,0 +1,32 @@
+filebeat.inputs:
+  - type: container
+    paths:
+      - /var/lib/docker/containers/*/*.log
+    processors:
+      - add_docker_metadata: ~
+
+  - type: log
+    paths:
+      - /var/log/nginx/access.log
+    fields:
+      service: nginx-access
+    fields_under_root: true
+
+  - type: log
+    paths:
+      - /var/log/nginx/error.log
+    fields:
+      service: nginx-error
+    fields_under_root: true
+
+output.elasticsearch:
+  hosts: ["100.121.187.67:9200"]
+  index: "navada-aws-%{[fields.service]:docker}-%{+yyyy.MM.dd}"
+
+setup.template.name: "navada-aws"
+setup.template.pattern: "navada-aws-*"
+setup.ilm.enabled: false
+
+processors:
+  - add_host_metadata: ~
+  - add_cloud_metadata: ~

@@ -4,12 +4,18 @@
  */
 
 const { Pool } = require('pg');
+require('dotenv').config({ path: require('path').join(__dirname, '..', 'Automation', '.env') });
+
+if (!process.env.PG_PASSWORD) {
+  console.error('[SECURITY] PG_PASSWORD environment variable is required');
+  process.exit(1);
+}
 
 const pool = new Pool({
   host: '127.0.0.1',
   port: 5433,
   user: 'postgres',
-  password: 'postgres',
+  password: process.env.PG_PASSWORD,
   database: 'navada_pipeline',
 });
 

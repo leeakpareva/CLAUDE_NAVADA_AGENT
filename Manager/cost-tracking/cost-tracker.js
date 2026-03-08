@@ -43,6 +43,7 @@ const PRICING = {
   // OpenAI Images
   'dall-e-3':      { per_image: 0.040, human_mins_per_call: 30 },     // 1024x1024
   'dall-e-3-hd':   { per_image: 0.080, human_mins_per_call: 30 },
+  'gemini-flash-image': { per_image: 0.040, human_mins_per_call: 25 },
 
   // External APIs
   'apify':         { per_run: 0.01, human_mins_per_call: 60 },

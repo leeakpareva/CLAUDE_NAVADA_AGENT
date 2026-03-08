@@ -1,0 +1,22 @@
+Cloud account:
+Your Account Details:
+
+Tenancy: leeakpareva
+Tenancy OCID: ocid1.tenancy.oc1..aaaaaaaaepw4v5qq5dcl5omunesemuld5istzg2noda5sug5ynntvi5cpkja
+User OCID: ocid1.user.oc1..aaaaaaaa4q3a4rsnll36b2fdc252o2j7vzj3j5dbpjddtf4gn3e2ysx4s7va
+Region: uk-london-1
+Username: leeakpareva@gmail.com
+Important finding: You currently have no running compute instances. You'll need to create one before you can SSH into it.
+The "Add API key" dialog is currently open. Before I proceed, I need your input on two things:
+1. API Key (for OCI CLI):
+The recommended approach is to generate the key locally on your machine first, then paste the public key. Run these commands in your terminal:
+
+bashmkdir -p ~/.oci
+openssl genrsa -out ~/.oci/oci_api_key.pem 2048
+chmod 600 ~/.oci/oci_api_key.pem
+openssl rsa -pubout -in ~/.oci/oci_api_key.pem -out ~/.oci/oci_api_key_public.pem
+cat ~/.oci/oci_api_key_public.pem
+Then paste the output here and I'll add it to your Oracle account. Alternatively, I can click "Add" to let Oracle generate and download one (but you'd need to save it manually).
+2. Compute Instance:
+You'll need a Free Tier instance. Oracle gives you 2x ARM-based Ampere A1 VMs (4 OCPUs, 24GB RAM total) and 2x AMD micro VMs for free. Should I go ahead and create a free instance for you?
+Once both are done, I'll give you the exact OCI CLI config file (~/.oci/config) and Claude Code SSH setup commands.

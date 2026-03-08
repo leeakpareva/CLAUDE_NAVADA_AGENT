@@ -9,7 +9,7 @@ export default function StrategicMapPage() {
       <TopBar />
       <main className="flex-1 pt-12">
         <EmbedFrame
-          url="http://192.168.0.36:3001"
+          url="http://192.168.0.58:3001"
           title="Strategic Map - Excalidraw"
         />
       </main>

@@ -4,76 +4,76 @@
     {
       "id": 1,
       "category": "BUG",
-      "title": "IMAP Connection Instability Crashing Email Services",
-      "description": "inbox-responder.log and vc-monitor.log show repeated ECONNRESET and timeout errors on IMAP connections (Feb 28 - Mar 2). This is causing email monitoring to fail intermittently and accumulating unhandled connection resets. Multiple services depend on stable IMAP connectivity (inbox-responder, vc-monitor, inbox-monitor).",
-      "action": "Implement IMAP connection pooling with exponential backoff retry logic in Automation/inbox-responder.js and vc-monitor.js. Add heartbeat/NOOP commands to keep connections alive. Consider upgrading node-imap to latest version and enabling connection timeout recovery.",
+      "title": "Telegram Bot 409 Conflict - Chief of Staff Won't Start",
+      "description": "telegram-bot.log shows repeated startup failure: '409: Conflict: terminated by other getUpdates request'. Bot process may be hung or multiple instances running. This breaks the primary mobile interface for NAVADA.",
+      "action": "Run 'pm2 list' and 'pm2 delete telegram-bot && pm2 start Automation/telegram-bot.js --name telegram-bot'. If still fails, check for hung Node processes: 'tasklist | grep node' and kill orphaned telegram-bot instances.",
       "priority": "high",
-      "effort": "1hr"
+      "effort": "5min"
     },
     {
       "id": 2,
-      "category": "PERFORMANCE",
-      "title": "Voice Command Service Stuck in Error Loop (3.3M Log)",
-      "description": "voice-command.log has grown to 3.3 million lines with repeated '[STANDBY] Listen error: [Errno -9999] Unanticipated host error' every ~100ms. This indicates audio device failure but service is not exiting gracefully. Massive log file is consuming disk space and degrading system performance.",
-      "action": "Fix audio device initialization in voice-command service (likely C:\\Users\\leeak\\Automation\\voice-command.js or similar). Add error threshold to exit service after N consecutive failures instead of looping. Implement log rotation with max 10MB per file. Check Windows audio device availability before starting service.",
+      "category": "BUG",
+      "title": "IMAP Connection Instability - Frequent ECONNRESET",
+      "description": "inbox-responder.log and vc-monitor.log show recurring 'read ECONNRESET' errors (9+ occurrences on 2026-03-04 alone). IMAP connections dropping unexpectedly, causing inbox monitoring and VC response monitoring to fail silently. Zoho IMAP may have connection pooling issues or timeout settings.",
+      "action": "Add connection retry logic with exponential backoff in Automation/inbox-responder.js and Automation/vc-response-monitor.js. Implement connection pooling with keep-alive. Consider adding idle timeout management (Zoho: IMAP IDLE support).",
       "priority": "high",
       "effort": "1hr"
     },
     {
       "id": 3,
       "category": "BUG",
-      "title": "PDF Generation Fails on Non-ASCII Characters",
-      "description": "weekly-report_20260301_180000.log shows FPDFUnicodeEncodingException when gen-report.py tries to include titles with non-ASCII characters (Chinese, emoji, accents). Report generation fails completely, breaking weekly email digest.",
-      "action": "Update C:\\Users\\leeak\\Alex\\Automation\\reports\\gen-report.py to use Unicode font in FPDF. Change font from 'helveticaB' to 'DejaVu' or embed TrueType font. Test with sample non-ASCII content before next scheduled run.",
+      "title": "Prospect Pipeline Script Path Error",
+      "description": "prospect-pipeline.js_20260303_093001.log shows 'LeadPipeline' is not recognized as command (exit code 9009). Scheduled task at 9:30 AM daily is failing silently because script uses relative path that doesn't resolve in Task Scheduler context.",
+      "action": "Update Automation/scheduled-tasks config or LeadPipeline/prospect-pipeline.js to use absolute path: 'C:\\\\Users\\\\leeak\\\\CLAUDE_NAVADA_AGENT\\\\LeadPipeline\\\\...' or fix cwd in PM2 config/Windows Task Scheduler.",
       "priority": "high",
       "effort": "30min"
     },
     {
       "id": 4,
       "category": "SECURITY",
-      "title": "Deprecated Node.js url.parse() in ai-news-digest",
-      "description": "ai-news-digest_20260226_070000.log contains Node.js DEP0169 deprecation warning: 'url.parse() behavior is not standardized and prone to errors that have security implications'. Service is still functional but using vulnerable URL parsing method.",
-      "action": "Replace url.parse() calls with WHATWG URL API (new URL()) in Automation/ai-news-mailer.js. Run: grep -r 'url.parse' Automation/ to find all instances and update them.",
+      "title": "Jupyter XSRF Token Validation Failures",
+      "description": "jupyter.log shows HTTP 403 errors: '_xsrf argument missing from POST'. Jupyter security middleware rejecting legitimate kernel creation requests. This may be XSRF cookie mismatch or misconfigured security settings.",
+      "action": "Run jupyter lab from command line with: 'jupyter lab --ip=0.0.0.0 --allow-root --disable-xsrf --NotebookApp.allow_remote_access=true'. Or regenerate XSRF tokens by clearing browser cookies and restarting Jupyter server on port 8888.",
       "priority": "high",
       "effort": "30min"
     },
     {
       "id": 5,
       "category": "BUG",
-      "title": "TensorBoard Won't Start - Missing pkg_resources Module",
-      "description": "tensorboard.log shows ModuleNotFoundError on startup. TensorBoard service is unavailable. This breaks ML experiment tracking if MLflow integration depends on it.",
-      "action": "Run: pip install setuptools (pkg_resources is part of setuptools). Verify: py -m tensorboard --version. If still failing, rebuild Python environment or use: pip install --upgrade tensorboard.",
+      "title": "Weekly Report PDF Unicode Encoding Error",
+      "description": "weekly-report_20260301_180000.log shows FPDFUnicodeEncodingException. Special characters in report titles (em dashes, unicode chars per CLAUDE.md content rules) break PDF generation using helveticaB font which only supports latin-1.",
+      "action": "Update Automation/reports/gen-report.py to use Unicode-compatible font: 'pdf.add_font(\"DejaVu\", \"\", \"path/to/DejaVuSans.ttf\")' before pdf.set_font(). Or sanitize input to remove unsupported characters.",
       "priority": "medium",
       "effort": "30min"
     },
     {
       "id": 6,
-      "category": "MAINTENANCE",
-      "title": "Docker Compose Version Attribute Deprecated",
-      "description": "infrastructure-startup.log shows warning: 'version attribute is obsolete, it will be ignored, please remove it' from docker-compose. While not breaking functionality, this will fail in future Docker Compose versions.",
-      "action": "Remove 'version: 3' line from C:\\Users\\leeak\\CLAUDE_NAVADA_AGENT\\infrastructure\\docker-compose.yml. Test: docker compose up -d from infrastructure/ directory.",
-      "priority": "medium",
-      "effort": "5min"
-    },
-    {
-      "id": 7,
       "category": "SECURITY",
-      "title": "Jupyter Server XSRF Token Validation Errors",
-      "description": "jupyter-error.log shows multiple '403 POST /api/kernels' errors with missing _xsrf token (Feb 27 02:32). Indicates either XSRF protection misconfiguration or client not sending tokens properly. Could indicate security bypass vulnerability.",
-      "action": "Check Jupyter config in .jupyter/jupyter_server_config.py. Verify: c.ServerApp.disable_check_xsrf = False is NOT set. Ensure clients (like VS Code, Excalidraw) are sending XSRF tokens. Test with: curl -X POST http://127.0.0.1:8888/api/kernels (should fail with XSRF error, not 500).",
+      "title": "Deprecated url.parse() Usage in ai-news-digest.js",
+      "description": "ai-news-digest_20260226_070000.log: '[DEP0169] DeprecationWarning: url.parse() behavior is not standardized...prone to security implications'. This is a known CVE vector even if not disclosed.",
+      "action": "Replace 'url.parse()' with WHATWG URL API in Automation/ai-news-digest.js: change 'new URL(urlString)' instead of 'url.parse(urlString)'. Search codebase for other url.parse() usage.",
       "priority": "medium",
       "effort": "30min"
     },
     {
+      "id": 7,
+      "category": "MAINTENANCE",
+      "title": "TensorBoard Missing pkg_resources Module",
+      "description": "tensorboard.log shows 'ModuleNotFoundError: No module named pkg_resources'. TensorBoard fails to start - likely setuptools not installed or corrupted. Affects ML model tracking infrastructure.",
+      "action": "Run: 'pip install --upgrade setuptools' and 'pip install --upgrade tensorboard'. Verify with 'py -m tensorboard --version'.",
+      "priority": "medium",
+      "effort": "5min"
+    },
+    {
       "id": 8,
-      "category": "IDEA",
-      "title": "Add Centralized Log Rotation and Monitoring",
-      "description": "Multiple services accumulating large log files (voice-command.log 3.3M, infrastructure-startup.log corrupted). No centralized log management. Diagnostic report shows 'pm2 unavailable' and 'npm audit' command failures.",
-      "action": "Implement log rotation in PM2 ecosystem.config.js: add 'max_size: 10M' and 'max_file: 5' per app. Create C:\\Users\\leeak\\Automation\\logs\\monitor.js to warn when logs exceed 50MB combined. Add to weekly-report task.",
+      "category": "MAINTENANCE",
+      "title": "Infrastructure Container Log Encoding Issues",
+      "description": "infrastructure-startup.log tail contains null bytes and control characters (\\u0000\\u0032\\u0030...) indicating binary/encoding corruption in Docker output. Makes troubleshooting container startup difficult.",
+      "action": "Update infrastructure/docker-compose.yml to ensure UTF-8 encoding. Add 'environment: LANG=C.UTF-8' to container configs. Test with 'docker logs navada-proxy | file -' to verify encoding.",
       "priority": "low",
-      "effort": "1hr"
+      "effort": "30min"
     }
   ],
-  "scannedAt": "2026-03-02T10:00:43.100Z",
-  "sentAt": "2026-03-02T10:00:44.558Z"
+  "scannedAt": "2026-03-04T03:56:14.272Z",
+  "sentAt": "2026-03-04T03:56:15.064Z"
 }

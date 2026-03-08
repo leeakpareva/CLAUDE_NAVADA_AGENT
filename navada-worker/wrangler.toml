@@ -1,0 +1,28 @@
+name = "navada-edge"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+account_id = "ff6607db333b4ff7822c52cbe0b7d1be"
+workers_dev = true
+
+routes = [
+  { pattern = "flix.navada-edge-server.uk/*", zone_name = "navada-edge-server.uk" },
+  { pattern = "api.navada-edge-server.uk/edge/*", zone_name = "navada-edge-server.uk" }
+]
+
+# Custom domains (Wrangler manages DNS automatically)
+# [[unsafe.custom_domains]]
+# hostname = "flix.navada-edge-server.uk"
+
+[vars]
+NAVADA_HOME_IP = "100.121.187.67"
+FLIX_PORT = "4000"
+
+# R2 bucket binding for media storage
+# [[r2_buckets]]
+# binding = "ASSETS"
+# bucket_name = "navada-assets"
+
+# KV namespace for caching and sessions
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = ""

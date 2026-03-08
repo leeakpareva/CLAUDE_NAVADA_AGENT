@@ -1,0 +1,688 @@
+{
+  "widgets": [
+    {
+      "type": "text",
+      "x": 0,
+      "y": 0,
+      "width": 24,
+      "height": 9,
+      "properties": {
+        "markdown": "# NAVADA EDGE - SERVER NETWORK - COMMAND CENTER\n**Director**: Lee Akpareva (Principal AI Consultant, 17+ years digital transformation) | **Chief of Staff**: Claude AI (Opus 4.6) | **Updated**: 7 March 2026\n\n**NAVADA Edge** is a personal AI-powered home server deployment. It turns consumer hardware (laptops, mini PCs) into a fully autonomous AI operations platform. A single founder runs an entire technology stack: real-time OSINT dashboards, algorithmic trading, computer vision, automated email outreach, content generation, video streaming, and 24/7 infrastructure monitoring, all orchestrated by Claude AI as Chief of Staff via Telegram. The network spans 5 physical nodes across home, cloud (AWS, Oracle OCI), and mobile, connected by Tailscale mesh VPN. Every service is self-hosted, self-healing, and controllable from an iPhone. This dashboard is the executive view into that operation.\n\n### Network Nodes (Tailscale Mesh VPN, 5 nodes)\n| Node | Hostname | Tailscale IP | LAN/Public IP | Role | Key Services |\n|---|---|---|---|---|---|\n| HP (NAVADA) | navada | 100.121.187.67 | 192.168.0.58 (Ethernet) | Primary Always-On Server | PM2 (11 processes): Telegram Bot, Trading API (Alpaca/FastAPI :5678), WorldMonitor (:4173 + API :46123), NAVADA Flix (:4000), Network Scanner (:7777), Auto-Deploy, Inbox Responder, Trading Scheduler, NotebookLM Watcher, Failover Sync |\n| Oracle VM | navada-oracle | 100.77.206.9 | 132.145.46.184 | Infrastructure Host (OCI) | Docker (11 containers): Nginx reverse proxy, Cloudflared Tunnel, Elasticsearch :9200, Kibana :5601, Prometheus, Grafana :3000, Uptime Kuma :3001, Jenkins :8080, Portainer :9000, CloudBeaver :8978, Oracle XE :1521 |\n| EC2 (AWS) | navada-ec2 | 100.98.118.33 | 18.130.242.13 | Failover + AI/ML (t3.medium) | Health Monitor (16 endpoints, 5-min cycle), Bot Standby (auto-activates if HP down 15min), YOLOv8n SageMaker Serverless, Vision Lambda, Claude CLI, CloudWatch Agent |\n| ASUS (Dev) | navada-asus-control | 100.88.118.128 | 192.168.0.18 (WiFi) | Dev Workstation (Zenbook Duo) | Claude Code, LM Studio, Ollama (local AI inference), PostgreSQL 17, Docker Desktop, VS Code |\n| iPhone 15 Pro Max | iphone-15-pro-max | 100.68.251.111 | Mobile | Command & Control | Telegram (49+ slash commands), AWS Mobile App, Safari WorldMonitor Dashboard |\n\n### AI/ML Stack\n| Service | Provider | Details |\n|---|---|---|\n| Claude Opus/Sonnet 4.6 | AWS Bedrock | Primary LLM: Telegram bot brain, analysis, code generation, email drafting, report writing |\n| YOLOv8n | SageMaker Serverless | Real-time object detection (3GB RAM, scales to zero when idle, cold start ~30s) |\n| Vision Lambda | AWS Lambda | navada-vision-router: unified API for detect, faces, yolo, analyse endpoints |\n| Rekognition v7 | AWS | Face indexing (navada-faces collection), label/scene detection, content moderation |\n| ChromaDB Cloud | Managed | RAG knowledge base (462+ chunks on NAVADA Edge) + semantic response cache for bot |\n| Flux Klein 4B | Cloudflare Workers AI | FREE AI image generation via /flux command, no API cost |\n| Ollama/LM Studio | ASUS Local | Local model inference on Intel Core Ultra 7, zero API cost for dev/testing |\n\n### Domain and Public Access: navada-edge-server.uk\nAll public traffic routes through Cloudflare DNS to a Cloudflared tunnel running on Oracle VM. The tunnel terminates at an Nginx reverse proxy container which routes requests to the correct backend, either locally on Oracle (ELK, Grafana, Jenkins) or across Tailscale to HP PM2 services. This gives every service a public HTTPS URL with Cloudflare DDoS protection, SSL termination, and caching, all without exposing any home IP addresses or opening router ports.\n\n| Subdomain | Backend | Purpose |\n|---|---|---|\n| api.navada-edge-server.uk | HP :3456 (Telegram Bot) | Telegram + Twilio webhooks, bot API |\n| flix.navada-edge-server.uk | HP :4000 (NAVADA Flix) | Video streaming platform (Remotion + HLS) |\n| trading.navada-edge-server.uk | HP :5678 (FastAPI) | Alpaca paper trading API, portfolio, signals |\n| network.navada-edge-server.uk | HP :7777 (Network Scanner) | LAN device scanner + router dashboard |\n| kibana.navada-edge-server.uk | Oracle :5601 (Kibana) | ELK log search and analytics |\n| grafana.navada-edge-server.uk | Oracle :3000 (Grafana) | Infrastructure metrics dashboards |\n| monitor.navada-edge-server.uk | Oracle :3001 (Uptime Kuma) | Service uptime monitoring |\n| cloudbeaver.navada-edge-server.uk | Oracle :8978 (CloudBeaver) | Web-based database management |\n| logo.navada-edge-server.uk | HP :3000 (Logo Service) | NAVADA branding assets |\n| dashboard.navada-edge-server.uk | EC2 Public IP | CloudWatch dashboard redirect |\n\n### Infrastructure\n**Storage**: Cloudflare R2 bucket (navada-assets, S3-compatible, zero egress fees) | **Logs**: ELK Stack (Elasticsearch + Kibana + Filebeat, indices: telegram, automation, pm2)\n**Alerting**: EC2 Health Monitor checks 16 endpoints every 5 min -> Telegram (immediate) + SMS via Twilio to +447935237704 (critical) + Email via AWS SES | **Failover**: HP down 15 min -> Oracle tunnel stays live + EC2 bot standby activates\n**Databases**: PostgreSQL 17 (HP :5433, ASUS dev), DynamoDB (navada-vision-log, navada-faces), SQLite (response cache, lead pipeline), Oracle XE :1521\n**CI/CD**: Jenkins (Oracle Docker :8080), Auto-Deploy (Git poll every 2 min, auto-rebuild on change), PM2 auto-restart with ecosystem.config.js\n**Monitoring**: Uptime Kuma (Oracle), Grafana + Prometheus (Oracle), CloudWatch (AWS), EC2 Health Monitor (custom 16-endpoint checks)\n**Comms**: NAVADA Phone +447446994961 (Twilio UK, SMS + Voice), Telegram Bot (49+ commands), Zoho SMTP (outreach emails), LinkedIn API (direct posting)"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 9,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/EC2",
+            "CPUUtilization",
+            "InstanceId",
+            "i-0055e7ace24db38b0"
+          ]
+        ],
+        "period": 60,
+        "stat": "Average",
+        "region": "eu-west-2",
+        "title": "EC2 CPU Utilization (%)",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "max": 100
+          }
+        },
+        "annotations": {
+          "horizontal": [
+            {
+              "label": "Auto-sleep threshold",
+              "value": 5,
+              "color": "#ff9900"
+            }
+          ]
+        },
+        "view": "timeSeries"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 9,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/EC2",
+            "NetworkIn",
+            "InstanceId",
+            "i-0055e7ace24db38b0",
+            {
+              "label": "Inbound"
+            }
+          ],
+          [
+            "AWS/EC2",
+            "NetworkOut",
+            "InstanceId",
+            "i-0055e7ace24db38b0",
+            {
+              "label": "Outbound"
+            }
+          ]
+        ],
+        "period": 300,
+        "stat": "Sum",
+        "region": "eu-west-2",
+        "title": "EC2 Network Traffic",
+        "view": "timeSeries"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 9,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/EC2",
+            "CPUCreditBalance",
+            "InstanceId",
+            "i-0055e7ace24db38b0",
+            {
+              "label": "Credits"
+            }
+          ],
+          [
+            "AWS/EC2",
+            "CPUCreditUsage",
+            "InstanceId",
+            "i-0055e7ace24db38b0",
+            {
+              "label": "Usage"
+            }
+          ]
+        ],
+        "period": 300,
+        "stat": "Average",
+        "region": "eu-west-2",
+        "title": "EC2 CPU Credits (Burst Capacity)"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 15,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/EC2",
+            "StatusCheckFailed",
+            "InstanceId",
+            "i-0055e7ace24db38b0"
+          ]
+        ],
+        "period": 60,
+        "stat": "Maximum",
+        "region": "eu-west-2",
+        "title": "EC2 Health Check",
+        "view": "singleValue",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "max": 1
+          }
+        }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 6,
+      "y": 15,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/Lambda",
+            "Invocations",
+            "FunctionName",
+            "navada-vision-router"
+          ]
+        ],
+        "period": 3600,
+        "stat": "Sum",
+        "region": "eu-west-2",
+        "title": "Vision API Calls (hourly)",
+        "view": "singleValue"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 15,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/Lambda",
+            "Errors",
+            "FunctionName",
+            "navada-vision-router"
+          ]
+        ],
+        "period": 3600,
+        "stat": "Sum",
+        "region": "eu-west-2",
+        "title": "Vision API Errors",
+        "view": "singleValue"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 18,
+      "y": 15,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/Lambda",
+            "Duration",
+            "FunctionName",
+            "navada-vision-router"
+          ]
+        ],
+        "period": 300,
+        "stat": "Average",
+        "region": "eu-west-2",
+        "title": "Vision Avg Latency (ms)",
+        "view": "singleValue"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 21,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/Lambda",
+            "Invocations",
+            "FunctionName",
+            "navada-vision-router",
+            {
+              "label": "Invocations"
+            }
+          ],
+          [
+            "AWS/Lambda",
+            "Errors",
+            "FunctionName",
+            "navada-vision-router",
+            {
+              "label": "Errors",
+              "color": "#d13212"
+            }
+          ],
+          [
+            "AWS/Lambda",
+            "Throttles",
+            "FunctionName",
+            "navada-vision-router",
+            {
+              "label": "Throttles",
+              "color": "#ff9900"
+            }
+          ]
+        ],
+        "period": 300,
+        "stat": "Sum",
+        "region": "eu-west-2",
+        "title": "Vision Lambda \u00e2\u20ac\u201d Invocations, Errors & Throttles",
+        "view": "timeSeries"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 21,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/Lambda",
+            "Duration",
+            "FunctionName",
+            "navada-vision-router",
+            {
+              "stat": "Average",
+              "label": "Avg"
+            }
+          ],
+          [
+            "AWS/Lambda",
+            "Duration",
+            "FunctionName",
+            "navada-vision-router",
+            {
+              "stat": "Maximum",
+              "label": "Max",
+              "color": "#d13212"
+            }
+          ],
+          [
+            "AWS/Lambda",
+            "Duration",
+            "FunctionName",
+            "navada-vision-router",
+            {
+              "stat": "p99",
+              "label": "p99",
+              "color": "#ff9900"
+            }
+          ]
+        ],
+        "period": 300,
+        "region": "eu-west-2",
+        "title": "Vision Lambda \u00e2\u20ac\u201d Latency Distribution (ms)",
+        "view": "timeSeries"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 27,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/SageMaker",
+            "Invocations",
+            "EndpointName",
+            "navada-yolov8n",
+            "VariantName",
+            "default",
+            {
+              "label": "YOLO Invocations"
+            }
+          ],
+          [
+            "AWS/SageMaker",
+            "Invocation4XXErrors",
+            "EndpointName",
+            "navada-yolov8n",
+            "VariantName",
+            "default",
+            {
+              "label": "4XX Errors",
+              "color": "#ff9900"
+            }
+          ],
+          [
+            "AWS/SageMaker",
+            "Invocation5XXErrors",
+            "EndpointName",
+            "navada-yolov8n",
+            "VariantName",
+            "default",
+            {
+              "label": "5XX Errors",
+              "color": "#d13212"
+            }
+          ]
+        ],
+        "period": 300,
+        "stat": "Sum",
+        "region": "eu-west-2",
+        "title": "YOLOv8n SageMaker \u00e2\u20ac\u201d Invocations & Errors",
+        "view": "timeSeries"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 27,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/SageMaker",
+            "ModelLatency",
+            "EndpointName",
+            "navada-yolov8n",
+            "VariantName",
+            "default",
+            {
+              "label": "Model Latency",
+              "stat": "Average"
+            }
+          ],
+          [
+            "AWS/SageMaker",
+            "OverheadLatency",
+            "EndpointName",
+            "navada-yolov8n",
+            "VariantName",
+            "default",
+            {
+              "label": "Overhead (cold start)",
+              "color": "#ff9900",
+              "stat": "Average"
+            }
+          ]
+        ],
+        "period": 300,
+        "region": "eu-west-2",
+        "title": "YOLOv8n SageMaker \u00e2\u20ac\u201d Latency (microseconds)",
+        "view": "timeSeries"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 33,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/DynamoDB",
+            "ConsumedReadCapacityUnits",
+            "TableName",
+            "navada-vision-log",
+            {
+              "label": "Vision Log Reads"
+            }
+          ],
+          [
+            "AWS/DynamoDB",
+            "ConsumedWriteCapacityUnits",
+            "TableName",
+            "navada-vision-log",
+            {
+              "label": "Vision Log Writes"
+            }
+          ],
+          [
+            "AWS/DynamoDB",
+            "ConsumedReadCapacityUnits",
+            "TableName",
+            "navada-faces",
+            {
+              "label": "Faces Reads"
+            }
+          ],
+          [
+            "AWS/DynamoDB",
+            "ConsumedWriteCapacityUnits",
+            "TableName",
+            "navada-faces",
+            {
+              "label": "Faces Writes"
+            }
+          ]
+        ],
+        "period": 300,
+        "stat": "Sum",
+        "region": "eu-west-2",
+        "title": "DynamoDB \u00e2\u20ac\u201d Read/Write Capacity"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 33,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/ApiGateway",
+            "Count",
+            "ApiId",
+            "xxqtcilmzi",
+            {
+              "label": "Total Requests"
+            }
+          ],
+          [
+            "AWS/ApiGateway",
+            "4xx",
+            "ApiId",
+            "xxqtcilmzi",
+            {
+              "label": "4xx Errors",
+              "color": "#ff9900"
+            }
+          ],
+          [
+            "AWS/ApiGateway",
+            "5xx",
+            "ApiId",
+            "xxqtcilmzi",
+            {
+              "label": "5xx Errors",
+              "color": "#d13212"
+            }
+          ]
+        ],
+        "period": 300,
+        "stat": "Sum",
+        "region": "eu-west-2",
+        "title": "API Gateway \u00e2\u20ac\u201d Traffic & Errors"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 39,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/EC2",
+            "EBSReadBytes",
+            "InstanceId",
+            "i-0055e7ace24db38b0",
+            {
+              "label": "Read"
+            }
+          ],
+          [
+            "AWS/EC2",
+            "EBSWriteBytes",
+            "InstanceId",
+            "i-0055e7ace24db38b0",
+            {
+              "label": "Write"
+            }
+          ]
+        ],
+        "period": 300,
+        "stat": "Sum",
+        "region": "eu-west-2",
+        "title": "EC2 Disk I/O (bytes)"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 39,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/ApiGateway",
+            "Latency",
+            "ApiId",
+            "xxqtcilmzi"
+          ]
+        ],
+        "period": 300,
+        "stat": "Average",
+        "region": "eu-west-2",
+        "title": "API Gateway \u00e2\u20ac\u201d Latency (ms)"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 39,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/SageMaker",
+            "ServerlessConcurrentExecutionsUtilization",
+            "EndpointName",
+            "navada-yolov8n",
+            "VariantName",
+            "default",
+            {
+              "label": "Concurrency %"
+            }
+          ]
+        ],
+        "period": 300,
+        "stat": "Maximum",
+        "region": "eu-west-2",
+        "title": "YOLO Serverless Concurrency",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "max": 100
+          }
+        },
+        "view": "timeSeries"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 45,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "NAVADA",
+            "TotalFailures",
+            {
+              "label": "Total Service Failures",
+              "color": "#d13212"
+            }
+          ]
+        ],
+        "period": 300,
+        "stat": "Maximum",
+        "region": "eu-west-2",
+        "title": "NAVADA Edge \u00e2\u20ac\u201d Service Failures (EC2 Health Monitor)",
+        "view": "timeSeries",
+        "yAxis": {
+          "left": {
+            "min": 0
+          }
+        }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 45,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "CWAgent",
+            "mem_used_percent",
+            "InstanceId",
+            "i-0055e7ace24db38b0",
+            {
+              "label": "Memory Used %",
+              "color": "#1f77b4"
+            }
+          ],
+          [
+            "CWAgent",
+            "disk_used_percent",
+            "InstanceId",
+            "i-0055e7ace24db38b0",
+            "path",
+            "/",
+            "device",
+            "nvme0n1p1",
+            "fstype",
+            "ext4",
+            {
+              "label": "Disk Used %",
+              "color": "#ff7f0e"
+            }
+          ]
+        ],
+        "period": 300,
+        "stat": "Average",
+        "region": "eu-west-2",
+        "title": "EC2 Memory & Disk Usage (%)",
+        "view": "timeSeries",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "max": 100
+          }
+        },
+        "annotations": {
+          "horizontal": [
+            {
+              "label": "Warning",
+              "value": 80,
+              "color": "#ff9900"
+            },
+            {
+              "label": "Critical",
+              "value": 95,
+              "color": "#d13212"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "text",
+      "x": 0,
+      "y": 51,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "markdown": "## Network Architecture\n| Node | IP | Services | Status |\n|---|---|---|---|\n| HP (NAVADA) | 100.121.187.67 / 192.168.0.58 | PM2 (11 svcs): Bot, Trading, WorldMonitor, Flix, Scanner | Primary |\n| Oracle VM | 100.77.206.9 / 132.145.46.184 | Docker (11 containers): Nginx, Tunnel, ELK, Grafana, Jenkins | Infra |\n| EC2 (AWS) | 100.98.118.33 / 18.130.242.13 | Health Monitor, Bot Standby, YOLO, Claude CLI | Failover |\n| ASUS | 100.88.118.128 | Claude Code, Ollama, LM Studio, PG17 | Dev |\n| iPhone | 100.68.251.111 | Telegram + AWS Mobile | C2 |\n\n**Cloudflare**: 10 subdomains on navada-edge-server.uk\n**Tunnel**: Oracle -> Nginx -> HP PM2 services via Tailscale\n**Failover**: HP down 15min -> EC2 bot activates + Oracle tunnel"
+      }
+    },
+    {
+      "type": "text",
+      "x": 12,
+      "y": 51,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "markdown": "## Public Endpoints & Alerting\n| Service | Endpoint |\n|---|---|\n| Vision API | xxqtcilmzi...amazonaws.com/vision/* |\n| Telegram Bot | api.navada-edge-server.uk/telegram/ |\n| NAVADA Flix | flix.navada-edge-server.uk |\n| Kibana | kibana.navada-edge-server.uk |\n| Trading API | trading.navada-edge-server.uk |\n| Grafana | grafana.navada-edge-server.uk |\n| Network | network.navada-edge-server.uk |\n| CloudBeaver | cloudbeaver.navada-edge-server.uk |\n| Uptime Kuma | monitor.navada-edge-server.uk |\n\n**Monitor**: EC2 checks 16 endpoints every 5 min\n**Alerts**: Telegram (immediate) + SMS (critical) + Email\n**Cooldown**: 5 min first, 30 min repeats"
+      }
+    }
+  ]
+}

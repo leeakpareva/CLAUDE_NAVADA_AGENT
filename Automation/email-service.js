@@ -1,47 +1,79 @@
 /**
  * NAVADA Email Service
- * Unified email sending with NAVADA-branded B&W template
+ * Unified email sending with NAVADA-branded template
+ * Transport chain: Gmail (primary, best deliverability) → SES (when production approved) → Zoho (fallback)
+ * BCC to Zoho on every send for sent-items record keeping
  * Signed by Claude — AI Chief of Staff
  */
 
 require('dotenv').config({ path: __dirname + '/.env' });
 const nodemailer = require('nodemailer');
+const fs = require('fs');
+const path = require('path');
 
-// Primary: Claude's own Zoho email
-const transporter = nodemailer.createTransport({
-  host: 'smtp.zoho.eu',
-  port: 465,
+const SENT_LOG = path.join(__dirname, 'logs', 'sent-emails.jsonl');
+const SIGNATURE_IMG = path.join(__dirname, '..', 'assets', 'claude-signature.png');
+
+// Ensure logs directory exists
+if (!fs.existsSync(path.dirname(SENT_LOG))) {
+  fs.mkdirSync(path.dirname(SENT_LOG), { recursive: true });
+}
+
+// Copy signature image to assets if not already there
+const assetsDir = path.join(__dirname, '..', 'assets');
+if (!fs.existsSync(assetsDir)) fs.mkdirSync(assetsDir, { recursive: true });
+const sigSrc = path.join(process.env.USERPROFILE || 'C:\\Users\\leeak', 'Downloads', 'Claude signature.png');
+if (!fs.existsSync(SIGNATURE_IMG) && fs.existsSync(sigSrc)) {
+  fs.copyFileSync(sigSrc, SIGNATURE_IMG);
+}
+
+// Primary: Gmail SMTP (best deliverability, Gmail-to-Gmail trusted)
+const gmailTransporter = (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD)
+  ? nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+    })
+  : null;
+
+// Secondary: AWS SES (use when production access approved — sends from claude@navada-edge-server.uk)
+const sesTransporter = nodemailer.createTransport({
+  host: process.env.AWS_SES_SMTP_HOST || 'email-smtp.eu-west-2.amazonaws.com',
+  port: parseInt(process.env.AWS_SES_SMTP_PORT || '465'),
   secure: true,
   auth: {
-    user: process.env.ZOHO_USER,
-    pass: process.env.ZOHO_APP_PASSWORD,
+    user: process.env.AWS_SES_SMTP_USER,
+    pass: process.env.AWS_SES_SMTP_PASS,
   },
 });
 
-// Fallback: Gmail (for legacy scripts)
-const gmailTransporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
+// Fallback: Zoho
+const zohoTransporter = (process.env.ZOHO_USER && process.env.ZOHO_APP_PASSWORD)
+  ? nodemailer.createTransport({
+      host: 'smtp.zoho.eu',
+      port: 465,
+      secure: true,
+      auth: { user: process.env.ZOHO_USER, pass: process.env.ZOHO_APP_PASSWORD },
+    })
+  : null;
+
+// Default from address
+const DEFAULT_FROM_EMAIL = process.env.AWS_SES_FROM || 'claude@navada-edge-server.uk';
+
+// Zoho address for BCC record keeping
+const ZOHO_EMAIL = process.env.ZOHO_USER || 'claude.navada@zohomail.eu';
+
+// Check if SES has production access (set to true once approved)
+const SES_PRODUCTION = process.env.SES_PRODUCTION_ACCESS === 'true';
 
 /**
  * Build NAVADA-branded HTML email
- * @param {Object} opts
- * @param {string} opts.subject - Email subject line
- * @param {string} opts.heading - Main heading inside email (optional, defaults to subject)
- * @param {string} opts.body - HTML body content (main section)
- * @param {string} opts.preheader - Preview text in inbox (optional)
- * @param {string} opts.type - Email type tag: 'report' | 'digest' | 'alert' | 'update' | 'general'
- * @param {string} opts.footerNote - Extra footer line (optional)
  */
 function buildTemplate({ subject, heading, body, preheader, type = 'general', footerNote }) {
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -109,32 +141,35 @@ ${heading || subject ? `
   </tr>
 </table>
 
-<!-- Signature -->
+<!-- Signature Image -->
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
   <tr>
-    <td style="padding: 20px 40px 8px 40px;">
+    <td style="padding: 24px 40px 0 40px;">
+      <img src="cid:claude-signature" alt="Claude | NAVADA" style="width:280px; height:auto; display:block;" />
+    </td>
+  </tr>
+</table>
+
+<!-- Signature Details -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+  <tr>
+    <td style="padding: 16px 40px 8px 40px;">
       <table role="presentation" cellspacing="0" cellpadding="0">
         <tr>
-          <td style="padding-right:14px; vertical-align:top; width:36px;">
-            <!--[if mso]>
-            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" style="width:36px;height:36px;" arcsize="11%" fillcolor="#000000" stroke="f">
-              <v:textbox style="mso-fit-shape-to-text:true" inset="0,0,0,0"><center style="color:#ffffff;font-size:16px;font-weight:800;">C</center></v:textbox>
-            </v:roundrect>
-            <![endif]-->
-            <!--[if !mso]><!-->
-            <table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr>
-              <td style="width:36px; height:36px; background:#000000; border-radius:4px; text-align:center; vertical-align:middle; color:#ffffff; font-size:16px; font-weight:800; font-family:'Helvetica Neue', Arial, sans-serif;">
-                C
-              </td>
-            </tr></table>
-            <!--<![endif]-->
-          </td>
           <td style="vertical-align:top;">
-            <div style="font-size:13px; font-weight:700; color:#111111;">Claude</div>
-            <div style="font-size:11px; color:#888888; line-height:1.4;">
-              Chief of Staff &middot; NAVADA AI Engineering &amp; Consulting<br>
-              On behalf of Lee Akpareva, Founder<br>
-              +447446994961
+            <div style="font-size:16px; font-weight:800; color:#000000; letter-spacing:0.03em; font-family:'Helvetica Neue', Arial, sans-serif;">
+              CLAUDE
+            </div>
+            <div style="font-size:10px; font-weight:600; color:#666666; letter-spacing:0.12em; text-transform:uppercase; margin-top:2px;">
+              Chief of Staff
+            </div>
+            <div style="width:40px; height:2px; background:#000000; margin:8px 0;"></div>
+            <div style="font-size:12px; color:#555555; line-height:1.6;">
+              NAVADA AI Engineering &amp; Consulting<br>
+              On behalf of <strong>Lee Akpareva</strong>, Founder<br>
+              <a href="tel:+447446994961" style="color:#555555; text-decoration:none;">+44 7446 994961</a>
+              &nbsp;|&nbsp;
+              <a href="mailto:claude@navada-edge-server.uk" style="color:#555555; text-decoration:none;">claude@navada-edge-server.uk</a>
             </div>
           </td>
         </tr>
@@ -144,12 +179,12 @@ ${heading || subject ? `
 </table>
 
 <!-- Footer -->
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#fafafa; border-top:1px solid #eaeaea;">
   <tr>
-    <td style="padding: 16px 40px 32px 40px;">
-      <div style="font-size:10px; color:#aaaaaa; line-height:1.5;">
-        ${footerNote ? `${footerNote}<br>` : ''}
-        NAVADA AI Engineering &amp; Consulting &middot; +447446994961
+    <td style="padding: 16px 40px 20px 40px;">
+      <div style="font-size:10px; color:#aaaaaa; line-height:1.6;">
+        ${footerNote ? `${footerNote}<br><br>` : ''}
+        NAVADA AI Engineering &amp; Consulting
         <br>
         <a href="https://www.navada-lab.space" style="color:#888888; text-decoration:none;">navada-lab.space</a>
         &middot;
@@ -172,19 +207,7 @@ ${heading || subject ? `
 }
 
 /**
- * Send an email using the NAVADA template
- * @param {Object} opts
- * @param {string} opts.to - Recipient email (or comma-separated)
- * @param {string} opts.subject - Subject line
- * @param {string} opts.heading - Optional heading override
- * @param {string} opts.body - HTML body content
- * @param {string} opts.type - 'report' | 'digest' | 'alert' | 'update' | 'general'
- * @param {string} opts.preheader - Inbox preview text
- * @param {string} opts.footerNote - Extra footer text
- * @param {string} opts.fromName - Sender display name (default: "Claude | NAVADA")
- * @param {Array}  opts.attachments - Nodemailer attachments array (optional)
- * @param {string} opts.cc - CC recipient(s) (optional)
- * @param {string} opts.bcc - BCC recipient(s) (optional)
+ * Send an email using the NAVADA template via AWS SES
  */
 async function sendEmail({
   to,
@@ -202,37 +225,108 @@ async function sendEmail({
 }) {
   const html = rawHtml || buildTemplate({ subject, heading, body, preheader, type, footerNote });
 
+  // Build attachments array with signature image (skip for rawHtml which has its own footer)
+  const allAttachments = [];
+  if (!rawHtml && fs.existsSync(SIGNATURE_IMG)) {
+    allAttachments.push({
+      filename: 'claude-signature.png',
+      path: SIGNATURE_IMG,
+      cid: 'claude-signature',
+      contentDisposition: 'inline',
+    });
+  }
+  if (attachments && attachments.length) {
+    allAttachments.push(...attachments);
+  }
+
   const mailOpts = {
-    from: `"${fromName}" <${process.env.ZOHO_USER}>`,
     to,
     subject,
     html,
+    attachments: allAttachments.length ? allAttachments : undefined,
   };
 
   if (cc) mailOpts.cc = cc;
-  if (bcc) mailOpts.bcc = bcc;
 
-  if (attachments && attachments.length) {
-    mailOpts.attachments = attachments;
+  // BCC Zoho on every send for record keeping (Claude's sent items)
+  const bccList = [ZOHO_EMAIL];
+  if (bcc) bccList.push(...(Array.isArray(bcc) ? bcc : [bcc]));
+  mailOpts.bcc = bccList.join(', ');
+
+  // Transport chain: SES (if production) → Gmail → Zoho
+  let info;
+  let transportUsed = '';
+
+  // 1. Try SES if production access is enabled (sends from claude@navada-edge-server.uk)
+  if (SES_PRODUCTION) {
+    try {
+      mailOpts.from = `"${fromName}" <${DEFAULT_FROM_EMAIL}>`;
+      info = await sesTransporter.sendMail(mailOpts);
+      transportUsed = 'SES';
+    } catch (err) {
+      console.log(`SES failed (${err.message}), trying Gmail...`);
+    }
   }
 
-  const info = await transporter.sendMail(mailOpts);
-  console.log(`Email sent to ${to} — MessageID: ${info.messageId}`);
+  // 2. Try Gmail (best deliverability, especially Gmail-to-Gmail)
+  if (!info && gmailTransporter) {
+    try {
+      mailOpts.from = `"${fromName}" <${process.env.GMAIL_USER}>`;
+      mailOpts.replyTo = `"${fromName}" <${DEFAULT_FROM_EMAIL}>`;
+      info = await gmailTransporter.sendMail(mailOpts);
+      transportUsed = 'Gmail';
+    } catch (err) {
+      console.log(`Gmail failed (${err.message}), trying Zoho...`);
+    }
+  }
+
+  // 3. Fallback to Zoho
+  if (!info && zohoTransporter) {
+    mailOpts.from = `"${fromName}" <${process.env.ZOHO_USER}>`;
+    mailOpts.replyTo = `"${fromName}" <${DEFAULT_FROM_EMAIL}>`;
+    info = await zohoTransporter.sendMail(mailOpts);
+    transportUsed = 'Zoho';
+  }
+
+  if (!info) {
+    throw new Error('All email transports failed');
+  }
+
+  // Log to sent-emails.jsonl
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    messageId: info.messageId,
+    transport: transportUsed,
+    from: mailOpts.from,
+    to,
+    cc: cc || null,
+    bcc: bcc || null,
+    subject,
+    preview: (body || '').replace(/<[^>]*>/g, '').substring(0, 200),
+  };
+  try {
+    fs.appendFileSync(SENT_LOG, JSON.stringify(logEntry) + '\n');
+  } catch (e) { /* logging should not break email sending */ }
+
+  console.log(`Email sent to ${to} via ${transportUsed} — MessageID: ${info.messageId}`);
   return info;
 }
 
 /**
- * Helper: wrap text content in styled paragraphs
+ * Read sent email log
  */
+function getSentLog(limit = 20) {
+  if (!fs.existsSync(SENT_LOG)) return [];
+  const lines = fs.readFileSync(SENT_LOG, 'utf8').trim().split('\n').filter(Boolean);
+  return lines.slice(-limit).map(l => JSON.parse(l)).reverse();
+}
+
+/** Helper: wrap text content in styled paragraphs */
 function p(text) {
   return `<p style="margin:0 0 12px 0;">${text}</p>`;
 }
 
-/**
- * Helper: create a styled data table
- * @param {string[]} headers - Column headers
- * @param {string[][]} rows - Row data
- */
+/** Helper: create a styled data table */
 function table(headers, rows) {
   const thStyle = 'padding:8px 12px; font-size:11px; font-weight:600; color:#666666; text-transform:uppercase; letter-spacing:0.06em; border-bottom:2px solid #111111; text-align:left;';
   const tdStyle = 'padding:8px 12px; font-size:13px; color:#333333; border-bottom:1px solid #eaeaea;';
@@ -243,9 +337,7 @@ function table(headers, rows) {
   </table>`;
 }
 
-/**
- * Helper: styled key-value list
- */
+/** Helper: styled key-value list */
 function kvList(items) {
   return items.map(([k, v]) =>
     `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #f0f0f0;">
@@ -255,16 +347,14 @@ function kvList(items) {
   ).join('');
 }
 
-/**
- * Helper: callout/highlight box
- */
+/** Helper: callout/highlight box */
 function callout(text, style = 'info') {
   const bg = style === 'warning' ? '#fffbe6' : style === 'error' ? '#fff1f0' : '#fafafa';
   const border = style === 'warning' ? '#ffe58f' : style === 'error' ? '#ffa39e' : '#e0e0e0';
   return `<div style="background:${bg}; border-left:3px solid ${border}; padding:12px 16px; margin:12px 0; font-size:13px; border-radius:0 2px 2px 0;">${text}</div>`;
 }
 
-module.exports = { sendEmail, buildTemplate, p, table, kvList, callout };
+module.exports = { sendEmail, buildTemplate, getSentLog, p, table, kvList, callout, SENT_LOG };
 
 // --- CLI Usage ---
 if (require.main === module) {

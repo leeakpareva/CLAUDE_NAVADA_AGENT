@@ -44,7 +44,6 @@ async function checkForResponses() {
       host: 'imap.zoho.eu',
       port: 993,
       tls: true,
-      tlsOptions: { rejectUnauthorized: false },
     });
 
     imap.once('ready', () => {

@@ -36,7 +36,7 @@ export function WorldMonitorEmbed() {
       )}
       <iframe
         ref={iframeRef}
-        src="http://192.168.0.36:4001"
+        src="http://192.168.0.58:4001"
         title="NAVADA Global Monitor"
         className="size-full border-0 rounded-lg"
         allow="fullscreen; geolocation"

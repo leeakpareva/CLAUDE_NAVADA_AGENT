@@ -16,6 +16,7 @@ const https = require('https');
 const Anthropic = require('@anthropic-ai/sdk').default;
 const twilio = require('twilio');
 const semanticCache = require('./semantic-cache');
+const responseCache = require('./oracle-response-cache');
 
 // --- Config ---
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -25,7 +26,7 @@ const NAVADA_DIR = 'C:/Users/leeak/CLAUDE_NAVADA_AGENT';
 const LOG_DIR = path.join(NAVADA_DIR, 'Automation/logs');
 const UPLOADS_DIR = path.join(NAVADA_DIR, 'Automation/uploads');
 const MAX_MSG_LEN = 4000;
-const MAX_TOOL_LOOPS = 10;
+const MAX_TOOL_LOOPS = 20;
 
 // --- Twilio (SMS + Voice) ---
 const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
@@ -91,6 +92,35 @@ const RATE_LIMITS = {
   admin: { maxPerDay: Infinity, maxPerHour: Infinity },
 };
 const rateCounts = new Map(); // userId -> { day: 'YYYY-MM-DD', dayCount: N, hourTs: epochMs, hourCount: N }
+
+// --- Guest Budget Cap (£2/day per guest) ---
+const GUEST_DAILY_BUDGET_GBP = 2.0;
+const guestBudgets = new Map(); // userId -> { day: 'YYYY-MM-DD', spent: number }
+
+function getGuestBudget(userId) {
+  const today = new Date().toISOString().slice(0, 10);
+  let entry = guestBudgets.get(String(userId));
+  if (!entry || entry.day !== today) {
+    entry = { day: today, spent: 0 };
+    guestBudgets.set(String(userId), entry);
+  }
+  return entry;
+}
+
+function addGuestSpend(userId, costGbp) {
+  const entry = getGuestBudget(userId);
+  entry.spent += costGbp;
+  return entry;
+}
+
+function checkGuestBudget(userId) {
+  const entry = getGuestBudget(userId);
+  const remaining = GUEST_DAILY_BUDGET_GBP - entry.spent;
+  if (remaining <= 0) {
+    return { allowed: false, spent: entry.spent, remaining: 0, reason: `\u26d4 *Daily limit reached*\n\nYou've used your full £${GUEST_DAILY_BUDGET_GBP.toFixed(2)} daily allowance (spent: £${entry.spent.toFixed(4)}).\n\nYour usage resets at midnight UTC. Come back tomorrow!\n\nInterested in unlimited access? Contact Lee Akpareva: leeakpareva@gmail.com` };
+  }
+  return { allowed: true, spent: entry.spent, remaining };
+}
 
 function checkRateLimit(userId, role) {
   const limits = RATE_LIMITS[role] || RATE_LIMITS.guest;
@@ -167,22 +197,26 @@ const imapConfig = {
     host: 'imap.zoho.eu',
     port: 993,
     tls: true,
-    tlsOptions: { rejectUnauthorized: false },
     authTimeout: 10000,
   },
 };
 
 // --- Model Config ---
 const MODELS = {
-  sonnet: 'claude-sonnet-4-20250514',
-  opus: 'claude-opus-4-20250514',
+  sonnet: 'claude-sonnet-4-6',
+  opus: 'claude-opus-4-6',
 };
 let currentModel = MODELS.sonnet;
-let currentModelName = 'Sonnet 4';
+let currentModelName = 'Sonnet 4.6';
+let manualModelOverride = false; // true when user explicitly picks /sonnet or /opus
 
 // --- Init ---
 const bot = new Telegraf(BOT_TOKEN);
 const anthropic = ANTHROPIC_KEY ? new Anthropic({ apiKey: ANTHROPIC_KEY }) : null;
+
+// Dedup: prevent processing the same Telegram update_id twice
+// (webhook retries + restart replay protection)
+const _processedUpdateIds = new Set();
 
 // ============================================================
 // MULTI-USER SYSTEM
@@ -249,19 +283,19 @@ const ADMIN_ONLY_COMMANDS = new Set([
   'pm2restart', 'pm2stop', 'pm2start', 'pm2logs',
   'present', 'report', 'briefing', 'voicenote', 'linkedin',
   'clear', 'grant', 'revoke', 'users',
-  'news', 'jobs', 'pipeline', 'prospect', 'ralph',
+  'news', 'jobs', 'pipeline', 'prospect', 'ralph', 'yolo',
   'stream', 'trace', 'flux', 'gemini', 'r2', 'media', 'logs', 'elk',
 ]);
 
 // Guest-safe commands
 const GUEST_COMMANDS = new Set([
-  'start', 'help', 'about', 'status', 'uptime', 'ip', 'model', 'sonnet', 'opus',
+  'start', 'help', 'about', 'status', 'uptime', 'ip', 'model', 'sonnet',
   'pm2', 'tasks', 'costs', 'memory', 'image', 'research', 'draft', 'docker',
   'tailscale', 'nginx', 'disk', 'processes',
 ]);
 
 // Guest-safe tools (for natural language chat)
-const GUEST_TOOLS = new Set(['server_status', 'generate_image']);
+const GUEST_TOOLS = new Set(['guest_status', 'generate_image']);
 
 // ============================================================
 // INTERACTION LOGGING
@@ -284,7 +318,7 @@ function logInteraction(entry) {
 // PERSISTENT CONVERSATION MEMORY (per-user)
 // ============================================================
 const MEMORY_DIR = path.join(NAVADA_DIR, 'Automation/kb');
-const MAX_HISTORY = 30;
+const MAX_HISTORY = 15;
 
 function getMemoryFile(userId) {
   if (Number(userId) === OWNER_ID) {
@@ -338,6 +372,23 @@ console.log(`[NAVADA] Loaded ${ownerHistory.length} conversation turns from memo
 const cmdLogPath = path.join(LOG_DIR, 'telegram-commands.log');
 
 // ============================================================
+// DEDUP: Reject duplicate update_ids (webhook retries, restart replays)
+// ============================================================
+bot.use((ctx, next) => {
+  const updateId = ctx.update?.update_id;
+  if (updateId) {
+    if (_processedUpdateIds.has(updateId)) {
+      return; // silently skip duplicate
+    }
+    _processedUpdateIds.add(updateId);
+    if (_processedUpdateIds.size > 500) {
+      const first = _processedUpdateIds.values().next().value;
+      _processedUpdateIds.delete(first);
+    }
+  }
+  return next();
+});
+
 // SECURITY: Multi-user auth middleware
 // ============================================================
 bot.use((ctx, next) => {
@@ -366,6 +417,13 @@ bot.use((ctx, next) => {
     const rateCheck = checkRateLimit(userId, role);
     if (!rateCheck.allowed) {
       return ctx.reply(rateCheck.reason);
+    }
+
+    // Budget cap for guests (£2/day)
+    const budgetCheck = checkGuestBudget(userId);
+    if (!budgetCheck.allowed) {
+      logInteraction({ direction: 'system', userId, username, event: 'budget_exceeded', spent_gbp: budgetCheck.spent, limit_gbp: GUEST_DAILY_BUDGET_GBP });
+      return ctx.reply(budgetCheck.reason);
     }
   }
 
@@ -520,8 +578,17 @@ const TOOLS = [
     }
   },
   {
+    name: 'guest_status',
+    description: 'Get NAVADA Edge online status. Safe for guest users. No parameters needed.',
+    input_schema: {
+      type: 'object',
+      properties: {},
+      required: []
+    }
+  },
+  {
     name: 'send_email',
-    description: 'Send a NAVADA-branded email from Claude\'s Zoho account (claude.navada@zohomail.eu). Can send to any recipient. Use for reports, alerts, presentations, updates. Lee\'s email is leeakpareva@gmail.com.',
+    description: 'Send a NAVADA-branded email from claude.navada@navada-edge-server.uk (via AWS SES). Can send to any recipient. Use for reports, alerts, presentations, updates. Lee\'s email is leeakpareva@gmail.com.',
     input_schema: {
       type: 'object',
       properties: {
@@ -711,6 +778,38 @@ const TOOLS = [
     }
   },
   {
+    name: 'render_video',
+    description: 'Render a video using NAVADA Remotion project and optionally upload to R2 + email. Handles the full pipeline: render → upload → email/Telegram. Use this for any video generation request.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        composition: { type: 'string', description: 'Remotion composition ID to render. Available: NavadaIntro, NavadaIntroSquare, TextReveal. Or "custom" to create a new one.' },
+        filename: { type: 'string', description: 'Output filename (e.g. navada-intro.mp4)' },
+        custom_component: { type: 'string', description: 'If composition="custom", provide the full React TSX component code. It will be written to ~/navada-video/src/Custom.tsx' },
+        custom_name: { type: 'string', description: 'If composition="custom", the composition name to register (e.g. "MyVideo")' },
+        duration_frames: { type: 'number', description: 'Duration in frames (30fps). Default: 150 (5 seconds)' },
+        width: { type: 'number', description: 'Width in pixels. Default: 1920' },
+        height: { type: 'number', description: 'Height in pixels. Default: 1080' },
+        upload_r2: { type: 'boolean', description: 'Upload to R2 media library after rendering. Default: true' },
+        email_to: { type: 'string', description: 'Email the video link to this address after upload' },
+        email_subject: { type: 'string', description: 'Email subject line' }
+      },
+      required: ['composition', 'filename']
+    }
+  },
+  {
+    name: 'find_file',
+    description: 'Recursively search for files by name pattern across the NAVADA directory. Use this to quickly locate documents, scripts, configs, PDFs, proposals, or any file by name.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        pattern: { type: 'string', description: 'Filename pattern to search for (e.g. "navada edge", "*.pdf", "v2"). Case-insensitive partial match.' },
+        search_path: { type: 'string', description: 'Root path to search from (default: C:/Users/leeak/CLAUDE_NAVADA_AGENT)' }
+      },
+      required: ['pattern']
+    }
+  },
+  {
     name: 'elk_query',
     description: 'Search and query NAVADA logs via Elasticsearch (ELK stack). Full-text search across all server logs, Telegram interactions, PM2 logs, and automation outputs.',
     input_schema: {
@@ -744,6 +843,11 @@ async function executeTool(name, input, userRole) {
       const cmd = input.command;
       if (!cmd || typeof cmd !== 'string') {
         return 'Error: command must be a non-empty string. Received: ' + typeof cmd;
+      }
+      // Prevent the bot from stopping itself
+      if (/pm2\s+(stop|delete|kill).*telegram-bot/i.test(cmd) || /pm2\s+(stop|kill)\s+all/i.test(cmd)) {
+        log(`[TOOL] run_shell: BLOCKED self-destruct command: ${cmd}`);
+        return 'Error: Cannot stop the telegram-bot process from within itself. Use Claude Code or SSH to manage the bot process.';
       }
       const timeout = Math.min(input.timeout || 60000, 120000);
       log(`[TOOL] run_shell: ${cmd}`);
@@ -808,6 +912,38 @@ async function executeTool(name, input, userRole) {
         return `Error listing: ${err.message}`;
       }
     }
+    case 'find_file': {
+      log(`[TOOL] find_file: ${input.pattern}`);
+      try {
+        const searchRoot = input.search_path || NAVADA_DIR;
+        const escaped = input.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*');
+        const regex = new RegExp(escaped, 'i');
+        const results = [];
+        function walkDir(dir, depth) {
+          if (depth > 6 || results.length > 50) return;
+          try {
+            const entries = fs.readdirSync(dir, { withFileTypes: true });
+            for (const e of entries) {
+              if (e.name === 'node_modules' || e.name === '.git' || e.name === '.next') continue;
+              const full = path.join(dir, e.name);
+              if (e.isDirectory()) {
+                walkDir(full, depth + 1);
+              } else if (regex.test(e.name)) {
+                try {
+                  const stat = fs.statSync(full);
+                  results.push(`${full} (${(stat.size / 1024).toFixed(1)} KB)`);
+                } catch { results.push(full); }
+              }
+            }
+          } catch {}
+        }
+        walkDir(searchRoot, 0);
+        if (results.length === 0) return `No files matching "${input.pattern}" found under ${searchRoot}`;
+        return `Found ${results.length} file(s):\n${results.join('\n')}`;
+      } catch (err) {
+        return `Error searching: ${err.message}`;
+      }
+    }
     case 'server_status': {
       log('[TOOL] server_status');
       const uptime = os.uptime();
@@ -849,23 +985,39 @@ async function executeTool(name, input, userRole) {
         `AI Model: ${currentModelName} (${currentModel})`
       ].join('\n');
     }
+    case 'guest_status': {
+      log('[TOOL] guest_status');
+      const guestUptime = os.uptime();
+      const gDays = Math.floor(guestUptime / 86400);
+      const gHours = Math.floor((guestUptime % 86400) / 3600);
+      return `NAVADA Edge is online.\nUptime: ${gDays}d ${gHours}h\nAI Model: ${currentModelName}`;
+    }
     case 'send_email': {
       log(`[TOOL] send_email: to=${input.to} subject=${input.subject}`);
       if (!emailService) return 'Error: Email service not available. Check email-service.js.';
-      try {
-        const opts = {
-          to: input.to,
-          subject: input.subject,
-          body: input.body,
-          type: input.type || 'general',
-        };
-        if (input.raw_html) opts.rawHtml = input.raw_html;
-        const info = await emailService.sendEmail(opts);
-        costTracker.logCall('email-send', { emails: 1, script: 'telegram-bot' });
-        return `Email sent successfully to ${input.to} (MessageID: ${info.messageId})`;
-      } catch (err) {
-        return `Error sending email: ${err.message}`;
+      const emailOpts = {
+        to: input.to,
+        subject: input.subject,
+        body: input.body,
+        type: input.type || 'general',
+      };
+      if (input.raw_html) emailOpts.rawHtml = input.raw_html;
+      // 2-attempt retry with 2s delay
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const info = await emailService.sendEmail(emailOpts);
+          costTracker.logCall('email-send', { emails: 1, script: 'telegram-bot' });
+          return `Email sent successfully to ${input.to} (MessageID: ${info.messageId})`;
+        } catch (err) {
+          if (attempt < 2) {
+            log(`[EMAIL RETRY] Attempt ${attempt} failed: ${err.message}, retrying in 2s...`);
+            await new Promise(r => setTimeout(r, 2000));
+          } else {
+            return `Error sending email (after 2 attempts): ${err.message}`;
+          }
+        }
       }
+      break;
     }
     case 'read_inbox': {
       const folder = input.folder || 'INBOX';
@@ -1321,6 +1473,106 @@ async function executeTool(name, input, userRole) {
         return `Error (play_media): ${err.message}`;
       }
     }
+    case 'render_video': {
+      log(`[TOOL] render_video: ${input.composition} -> ${input.filename}`);
+      try {
+        const videoDir = 'C:/Users/leeak/navada-video';
+        const outputDir = 'C:/Users/leeak/navada-outputs/videos';
+        const outputPath = `${outputDir}/${input.filename}`;
+        const R2_PUBLIC = 'https://pub-60e73a76c6ae44e0a73e6617ada8f376.r2.dev';
+
+        // If custom component, write it to Custom.tsx with the correct export name
+        if (input.composition === 'custom' && input.custom_component) {
+          // Rewrite the component to always export as CustomVideo
+          let code = input.custom_component;
+          // Replace any export name with CustomVideo so Root.tsx can find it
+          code = code.replace(/export\s+const\s+\w+/g, 'export const CustomVideo');
+          // If no export found, wrap it
+          if (!code.includes('export const CustomVideo')) {
+            code = code + '\nexport const CustomVideo = ' + (input.custom_name || 'CustomVideo') + ';\n';
+          }
+          fs.writeFileSync(`${videoDir}/src/Custom.tsx`, code);
+          // Root.tsx always has <Composition id="CustomVideo"> pointing to Custom.tsx
+          input.composition = 'CustomVideo';
+        }
+
+        // Render
+        const { execSync } = require('child_process');
+        let renderOutput;
+        try {
+          renderOutput = execSync(
+            `npx remotion render src/index.ts ${input.composition} --output "${outputPath}"`,
+            { cwd: videoDir, timeout: 300000, encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024, shell: 'bash' }
+          );
+          // Keep only last 5 lines
+          renderOutput = renderOutput.split('\n').slice(-5).join('\n');
+        } catch (renderErr) {
+          renderOutput = renderErr.stdout || renderErr.stderr || renderErr.message;
+          renderOutput = renderOutput.split('\n').slice(-10).join('\n');
+        }
+        log(`[RENDER] ${renderOutput}`);
+
+        if (!fs.existsSync(outputPath)) {
+          return `Render failed. Output: ${renderOutput}`;
+        }
+
+        const stat = fs.statSync(outputPath);
+        const sizeMB = (stat.size / 1024 / 1024).toFixed(2);
+        let result = `Video rendered: ${input.filename} (${sizeMB} MB)`;
+
+        // Upload to R2
+        if (input.upload_r2 !== false) {
+          const r2Key = `media/${input.filename}`;
+          const uploadR2 = require('./notebooklm-r2-watcher.js').uploadToR2 || null;
+          // Use the Cloudflare API directly
+          const fileBuffer = fs.readFileSync(outputPath);
+          const cfUrl = `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/r2/buckets/navada-assets/objects/${r2Key}`;
+          await new Promise((resolve, reject) => {
+            const url = new URL(cfUrl);
+            const reqOpts = {
+              hostname: url.hostname,
+              path: url.pathname,
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
+                'Content-Type': 'video/mp4',
+                'Content-Length': fileBuffer.length,
+              },
+            };
+            const req = https.request(reqOpts, (res) => {
+              let data = '';
+              res.on('data', c => data += c);
+              res.on('end', () => {
+                try {
+                  const json = JSON.parse(data);
+                  if (json.success) resolve(json);
+                  else reject(new Error(json.errors?.[0]?.message || 'R2 upload failed'));
+                } catch (e) { reject(e); }
+              });
+            });
+            req.on('error', reject);
+            req.write(fileBuffer);
+            req.end();
+          });
+          const publicUrl = `${R2_PUBLIC}/media/${input.filename}`;
+          result += `\nUploaded to R2: ${publicUrl}`;
+
+          // Email if requested
+          if (input.email_to) {
+            const emailResult = await executeTool('send_email', {
+              to: input.email_to,
+              subject: input.email_subject || `NAVADA Video: ${input.filename}`,
+              body: `<p>Your NAVADA video has been rendered and is ready:</p><p><a href="${publicUrl}">${input.filename}</a> (${sizeMB} MB)</p><p>Watch: ${publicUrl}</p>`
+            }, 'admin');
+            result += `\nEmail sent to: ${input.email_to}`;
+          }
+        }
+
+        return result;
+      } catch (err) {
+        return `Error (render_video): ${err.message}`;
+      }
+    }
     case 'elk_query': {
       log(`[TOOL] elk_query: ${input.action} ${input.query || ''}`);
       const esHttp = require('http');
@@ -1462,134 +1714,26 @@ async function executeTool(name, input, userRole) {
 // ============================================================
 // SYSTEM PROMPTS
 // ============================================================
-const ADMIN_SYSTEM_PROMPT = `You are Claude, Chief of Staff at NAVADA. You are Lee Akpareva's AI partner, running on his HP laptop (permanent always-on home server). You are communicating via Telegram from his iPhone. You are OMNI-CHANNEL: Lee can reach you via Telegram, SMS (+447446994961), and WhatsApp. Your conversation history is SHARED across all channels. Lee's messages may be prefixed with [Telegram], [SMS], or [WhatsApp] to indicate which channel they came from. NEVER include channel tags, timestamps, or brackets in YOUR responses. Just respond naturally as Claude.
+function getAdminSystemPrompt(modelName) {
+  return `You are Claude, Chief of Staff at NAVADA. Lee Akpareva is the Founder. You run on his HP laptop (always-on server). You are OMNI-CHANNEL: Telegram, SMS (+447446994961), WhatsApp. Conversation history is SHARED across channels. NEVER include channel tags or brackets in responses.
 
-## Your Identity
-You are not just an assistant. You are the Chief of Staff. You manage the server, run automations, monitor systems, write code, deploy services, send emails, and keep everything running 24/7. Lee trusts you with full control.
+You are the operational lead with FULL SYSTEM CONTROL: shell (run_shell), files (read_file, write_file, delete_file, find_file), email (send_email, read_inbox, reply_email), images (generate_image, flux_image, gemini_image), video (render_video), SMS/calls (send_sms, make_call), R2 storage, ELK logs, ChromaDB RAG, and 23 MCP servers via run_shell.
 
-## Response Style
-- Be direct, concise, and mobile-friendly (Lee reads on iPhone)
-- Use short paragraphs and line breaks
-- Bias to action: if Lee asks you to do something, DO it using your tools
-- When running commands, show the key result, not raw output walls
-- Use emojis sparingly for status indicators only
+RULES:
+- If Lee asks you to do something, DO IT with tools. Never say "I can't".
+- ALWAYS verify system state with run_shell/read_file before answering infrastructure questions.
+- Confirm before destructive operations (deleting data, stopping production).
+- No markdown (no #, **, \`\`\`, ---). Plain conversational text only.
+- Be direct, concise, mobile-friendly. Show personality.
+- No client names in outreach. No em dashes in external content.
 
-## Server: NAVADA HP Laptop
-- OS: Windows 11 Pro, Git Bash shell
-- Local IP: 192.168.0.58 | Tailscale: 100.121.187.67
-- Python: use \`py\` (not python3)
-- Node.js + npm installed globally
-- Docker Desktop (WSL2) | PM2 process management
-- Current AI model: ${currentModelName}
-
-## Key Directories
-- Projects: C:/Users/leeak/CLAUDE_NAVADA_AGENT
-- Automation: C:/Users/leeak/CLAUDE_NAVADA_AGENT/Automation
-- LeadPipeline: C:/Users/leeak/CLAUDE_NAVADA_AGENT/LeadPipeline
-- Infrastructure: C:/Users/leeak/CLAUDE_NAVADA_AGENT/infrastructure
-- Trading: C:/Users/leeak/CLAUDE_NAVADA_AGENT/NAVADA-Trading
-- Manager: C:/Users/leeak/CLAUDE_NAVADA_AGENT/Manager
-- Logs: C:/Users/leeak/CLAUDE_NAVADA_AGENT/Automation/logs
-
-## Lee's Contact
-- Email: leeakpareva@gmail.com
-- Always send emails to leeakpareva@gmail.com unless told otherwise
-
-## PM2 Services (8)
-worldmonitor, worldmonitor-api, trading-api, inbox-responder, auto-deploy, trading-scheduler, telegram-bot, voice-command
-
-## Scheduled Automations (Windows Task Scheduler)
-- Morning-Briefing: Daily 6:30 AM (morning-briefing.js)
-- AI-News-Digest: Daily 7:00 AM (ai-news-mailer.js)
-- Economy-Report: Mon 8:00 AM (uk-us-economy-report.py)
-- NAVADA-LeadPipeline: Daily 8:30 AM (pipeline.js)
-- Job-Hunter-Daily: Daily 9:00 AM (job-hunter-apify.js)
-- NAVADA-ProspectPipeline: Daily 9:30 AM (prospect-pipeline.js)
-- Self-Improve-Weekly: Mon 10:00 AM (self-improve.js)
-- VC-Response-Monitor: At startup (vc-response-monitor.js)
-- Inbox-Monitor: Every 2hrs 8AM-10PM (inbox-monitor.js)
-- Weekly-Report: Sunday 6 PM (weekly-report.js)
-- Trading tasks: Pre-market, Execution, Close, Report
-
-## NAVADA Products
-- NAVADA Edge: Productised AI home server deployment service (core product)
-- WorldMonitor: OSINT dashboard (navada-world-view.xyz)
-- NAVADA Trading Lab: Autonomous paper trading (Alpaca + IEX)
-- NAVADA Robotics: www.navadarobotics.com
-- Navada Lab: www.navada-lab.space (GPU ML lab)
-- ALEX: Autonomous AI agent (alexnavada.xyz)
-- Raven Terminal: raventerminal.xyz (code learning)
-
-## Prospect Pipeline
-- PostgreSQL on port 5433 (navada_pipeline)
-- Flow: scrape -> verify -> outreach -> follow-ups -> escalation
-- Scripts in LeadPipeline/
-
-## Content Rules
-- No client names in outreach/external content (use descriptive references)
-- No em dashes in email copy or external content
-
-## Email Capability
-You can send NAVADA-branded emails via the send_email tool. The email comes from claude.navada@zohomail.eu with the NAVADA branded template. You can send:
-- Status reports, digests, alerts, updates
-- Beautiful HTML presentations (use raw_html for full creative control)
-- Any communication Lee asks you to send
-Lee's email: leeakpareva@gmail.com
-
-## Email Access (Full)
-You have complete access to Claude's Zoho email (claude.navada@zohomail.eu):
-- SEND emails via send_email tool (NAVADA branded template or raw HTML)
-- READ inbox via read_inbox tool (check unread, search, any folder)
-- REPLY to emails via reply_email tool (proper threading with In-Reply-To headers)
-- READ sent items via read_inbox with folder "Sent"
-- You can compose, send, read, reply, and manage all email communications
-
-## Persistent Memory
-Your conversation history persists across bot restarts in kb/telegram-memory.json.
-You remember previous conversations with Lee. Use this context.
-
-## Image Generation
-Three options:
-1. **DALL-E 3** (generate_image tool): Premium quality, costs per image. Best for client-facing visuals.
-2. **Flux** (flux_image tool): FREE via Cloudflare Workers AI. Good for quick visuals, concepts, drafts. Can save to R2.
-3. **Gemini** (gemini_image tool): Google Gemini 2.0 Flash, ~£0.03/image. Good for photorealistic and artistic images. Supports aspect ratios: 1:1, 16:9, 9:16, 4:3, 3:4.
-Available sizes: 1024x1024, 1792x1024, 1024x1792. DALL-E quality: standard or hd.
-
-## Voice Notes
-You can generate and send voice notes via the voice-service.js script:
-- Run: node Automation/voice-service.js <recipient-email> "<message>"
-- Uses OpenAI TTS HD with the "onyx" voice
-- Voice notes are saved in Automation/voice-notes/ and emailed as attachments
-
-## MCP Server Access (23 Servers)
-You have access to all MCP servers via shell commands:
-- **PostgreSQL**: \`psql -h localhost -p 5433 -U navada -d navada_pipeline -c "SELECT ..."\` or use Node pg module
-- **LinkedIn**: \`node Automation/linkedin-post.js "Post text"\` to publish to LinkedIn
-- **Twilio SMS/Call**: Use the send_sms and make_call tools to text or call any phone number. Lee's number: +447935237704. NAVADA Twilio number: ${TWILIO_FROM}
-- **Puppeteer**: Browser automation via Node scripts
-- **DuckDB**: \`node -e "const duckdb = require('duckdb'); ..."\` for analytical queries
-- **Jupyter**: Start/manage notebooks via scripts
-- **GitHub CLI**: \`gh repo list\`, \`gh pr create\`, etc.
-- **Bright Data**: Web scraping via API
-- **SQLite**: Direct file access for pipeline.db
-- **Docker**: Container management via docker CLI
-- **Cloudflare Stream**: Use stream_video tool to upload, list, serve videos. Playback at customer-ledats0yeh0th9as.cloudflarestream.com
-- **Cloudflare Trace**: Use cloudflare_trace tool to diagnose request routing through Cloudflare
-- **Cloudflare R2**: Use r2_storage tool to upload, list, serve files. Bucket: navada-assets. Zero egress cost.
-- **NAVADA Media Library**: Use play_media tool to list, play, or email media files (videos, audio) from R2. Available media includes "claude-chief-of-staff.mp4" (NotebookLM podcast). Use play_media with action "play" to get a playback URL, or "send_email" to email the media link to someone.
-- **Cloudflare Flux**: Use flux_image tool for FREE AI image generation (no OpenAI cost). Model: Flux Klein 4B.
-- **Google Gemini**: Use gemini_image tool for photorealistic/artistic image generation. ~£0.03/image. Supports aspect ratios.
-- **ChromaDB RAG**: Use chroma_search tool to search the NAVADA knowledge base. 462+ chunks of docs, code, logs indexed. Use it to recall past decisions, find code patterns, or answer questions about the system.
-- All 23 MCP servers accessible via run_shell
-
-## ELK Stack (Log Search & Analysis)
-Use elk_query tool to search all NAVADA logs. Actions: search (full-text), tail (latest entries), count, indices (list), stats (health). Indices: navada-telegram-*, navada-automation-*, navada-pm2-*. Kibana dashboard at http://192.168.0.58:8080/kibana/
-
-## File Management
-You can read, write, list, AND delete files. Use delete_file tool for cleanup.
-
-## Tools Available
-You have FULL server access: run any bash command, read/write/delete files, list directories, server status, send emails, read inbox, reply to emails, generate images (DALL-E 3 + Flux FREE + Gemini), R2 object storage, send voice notes, post to LinkedIn, access all MCP integrations. You ARE the server operator. Same level of access as Claude Code. No restrictions.`;
+Server: Windows 11 Pro, 192.168.0.58 / 100.121.187.67 (Tailscale). Python: \`py\`. Projects: C:/Users/leeak/CLAUDE_NAVADA_AGENT
+Lee's email: leeakpareva@gmail.com. Lee's phone: +447935237704. NAVADA phone: ${TWILIO_FROM}
+Email from: claude.navada@navada-edge-server.uk (AWS SES). Inbox: Zoho IMAP.
+Images: DALL-E 3 (premium), Flux (FREE), Gemini (~£0.03). Video: Remotion + R2.
+Model: ${modelName}. Reference data: read_file kb/system-reference.md if needed.
+Time: ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' })}`;
+}
 
 function buildGuestSystemPrompt(displayName) {
   const nameGreeting = displayName ? `You are speaking with ${displayName}.` : '';
@@ -1627,6 +1771,7 @@ You MUST follow these rules strictly:
 - You CAN freely discuss: NAVADA Edge capabilities, general architecture, how AI agents work, technology topics, and anything the user wants help with
 
 ## Response Style
+- Write like a human. No markdown formatting (no #, ##, **, \`\`\`, ---, bullet dashes). Use plain conversational text with proper punctuation and spacing.
 - Warm, professional, and genuinely helpful
 - Concise and mobile-friendly (users are on phones)
 - Be conversational, not robotic
@@ -1681,25 +1826,28 @@ async function askClaude(ctx, userMessage) {
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
 
-  // --- Semantic Cache Lookup (before Claude API call) ---
+  // --- 3-Tier Cache Lookup (Memory LRU -> Exact-match DB -> ChromaDB semantic) ---
   try {
+    // Tier 1 + 3: In-memory LRU + ChromaDB semantic (handled by semanticCache)
     const cached = await semanticCache.lookup(userMessage);
     if (cached) {
-      log(`[CACHE HIT] source=${cached.source} dist=${cached.distance.toFixed(4)} for: "${userMessage.slice(0, 80)}"`);
+      log(`[CACHE HIT] source=${cached.source} dist=${cached.distance?.toFixed(4) || 'n/a'} for: "${userMessage.slice(0, 80)}"`);
       await sendLong(ctx, cached.response);
       history.push({ role: 'assistant', content: cached.response });
       conversationHistories.set(userId, history);
       saveConversationHistory(userId, history);
-      logInteraction({
-        direction: 'out',
-        userId,
-        username,
-        model: 'cache',
-        input_tokens: 0,
-        output_tokens: 0,
-        cost_gbp: 0,
-        cache_hit: cached.source,
-      });
+      logInteraction({ direction: 'out', userId, username, model: 'cache', input_tokens: 0, output_tokens: 0, cost_gbp: 0, cache_hit: cached.source });
+      return;
+    }
+    // Tier 2: Exact-match DB cache
+    const exactCached = responseCache.lookup(userMessage);
+    if (exactCached) {
+      log(`[CACHE HIT] source=exact-db hits=${exactCached.hit_count} for: "${userMessage.slice(0, 80)}"`);
+      await sendLong(ctx, exactCached.response);
+      history.push({ role: 'assistant', content: exactCached.response });
+      conversationHistories.set(userId, history);
+      saveConversationHistory(userId, history);
+      logInteraction({ direction: 'out', userId, username, model: 'cache', input_tokens: 0, output_tokens: 0, cost_gbp: 0, cache_hit: 'exact-db' });
       return;
     }
   } catch (cacheErr) {
@@ -1720,19 +1868,33 @@ async function askClaude(ctx, userMessage) {
     }
   }
 
+  // Smart model selection (auto-escalate to Opus for complex tasks)
+  const selectedModel = (userRole === 'admin') ? selectModel(userMessage) : { model: MODELS.sonnet, name: 'Sonnet 4.6', reason: 'guest' };
+
   // Select system prompt and tools based on role
-  const systemPrompt = userRole === 'admin' ? ADMIN_SYSTEM_PROMPT : buildGuestSystemPrompt(resolvedDisplayName);
+  const systemPrompt = userRole === 'admin' ? getAdminSystemPrompt(selectedModel.name) : buildGuestSystemPrompt(resolvedDisplayName);
   const toolSet = userRole === 'admin' ? TOOLS : GUEST_TOOL_LIST;
 
   let usedTools = false;
+
+  // Send typing indicator so user sees "Claude is typing..."
+  try { await ctx.telegram.sendChatAction(ctx.chat.id, 'typing'); } catch {}
+
+  // Keep typing indicator alive during long operations (Telegram typing expires after 5s)
+  const typingInterval = setInterval(async () => {
+    try { await ctx.telegram.sendChatAction(ctx.chat.id, 'typing'); } catch {}
+  }, 4000);
+  if (selectedModel.reason !== 'default' && selectedModel.reason !== 'manual' && selectedModel.reason !== 'guest') {
+    log(`[MODEL] Auto-escalated to ${selectedModel.name} (trigger: ${selectedModel.reason})`);
+  }
 
   try {
     while (loopCount < MAX_TOOL_LOOPS) {
       loopCount++;
 
-      const response = await anthropic.messages.create({
-        model: currentModel,
-        max_tokens: 4096,
+      const response = await callAnthropicWithRetry({
+        model: selectedModel.model,
+        max_tokens: 8192,
         system: systemPrompt,
         tools: toolSet,
         messages,
@@ -1746,23 +1908,28 @@ async function askClaude(ctx, userMessage) {
       const textBlocks = response.content.filter(b => b.type === 'text');
       const toolBlocks = response.content.filter(b => b.type === 'tool_use');
 
-      // If there's text to send, send it
-      if (textBlocks.length > 0) {
-        const text = textBlocks.map(b => b.text).join('\n');
-        if (text.trim()) {
-          await sendLong(ctx, text);
+      // If no tool calls, send the final text and we're done
+      if (toolBlocks.length === 0) {
+        let finalText = textBlocks.map(b => b.text).join('\n');
+        // Handle max_tokens truncation gracefully
+        if (response.stop_reason === 'max_tokens' && finalText.trim()) {
+          finalText += '\n\n(Response was truncated due to length)';
         }
-      }
-
-      // If no tool calls or end_turn, we're done
-      if (toolBlocks.length === 0 || response.stop_reason === 'end_turn') {
-        const finalText = textBlocks.map(b => b.text).join('\n');
+        // Add model indicator for auto-escalated responses
+        if (selectedModel.reason !== 'default' && selectedModel.reason !== 'manual') {
+          finalText = `(${selectedModel.name})\n${finalText}`;
+        }
         if (finalText.trim()) {
-          // Save assistant response to history (no channel tag - only tag user messages)
+          await sendLong(ctx, finalText);
           history.push({ role: 'assistant', content: finalText });
         }
         break;
       }
+      // Warn on last iteration before tool loop limit
+      if (loopCount === MAX_TOOL_LOOPS - 1) {
+        log(`[WARN] Approaching tool loop limit (${loopCount}/${MAX_TOOL_LOOPS})`);
+      }
+      // Tool calls present — suppress text to avoid duplicate "Let me check..." messages on every loop iteration
 
       // Execute tools
       usedTools = true;
@@ -1820,8 +1987,8 @@ async function askClaude(ctx, userMessage) {
       messages.push({ role: 'user', content: toolResults });
     }
 
-    // Log cost
-    const modelKey = currentModel.includes('opus') ? 'claude-opus-4' : 'claude-sonnet-4';
+    // Log cost (use the model that was actually used, not the global currentModel)
+    const modelKey = selectedModel.model.includes('opus') ? 'claude-opus-4' : 'claude-sonnet-4';
     costTracker.logCall(modelKey, {
       input_tokens: totalInputTokens,
       output_tokens: totalOutputTokens,
@@ -1829,27 +1996,64 @@ async function askClaude(ctx, userMessage) {
     });
 
     // Log outbound interaction with cost data
+    const callCostGbp = estimateCost(selectedModel.model, totalInputTokens, totalOutputTokens);
     logInteraction({
       direction: 'out',
       userId,
       username,
-      model: currentModelName,
+      model: selectedModel.name,
+      model_reason: selectedModel.reason,
       input_tokens: totalInputTokens,
       output_tokens: totalOutputTokens,
-      cost_gbp: estimateCost(currentModel, totalInputTokens, totalOutputTokens),
+      cost_gbp: callCostGbp,
     });
 
-    // --- Semantic Cache Store (after successful response, no tools used) ---
+    // Track guest budget spend + warn at thresholds
+    if (userRole === 'guest' && callCostGbp > 0) {
+      const prevSpent = getGuestBudget(userId).spent;
+      const budget = addGuestSpend(userId, callCostGbp);
+      const remaining = Math.max(0, GUEST_DAILY_BUDGET_GBP - budget.spent);
+      const pctUsed = (budget.spent / GUEST_DAILY_BUDGET_GBP) * 100;
+      const prevPct = (prevSpent / GUEST_DAILY_BUDGET_GBP) * 100;
+      logInteraction({
+        direction: 'system',
+        userId,
+        username,
+        event: 'budget_spend',
+        cost_gbp: callCostGbp,
+        daily_spent_gbp: budget.spent,
+        daily_remaining_gbp: remaining,
+        budget_limit_gbp: GUEST_DAILY_BUDGET_GBP,
+      });
+
+      // Send warning messages at budget thresholds
+      if (pctUsed >= 90 && prevPct < 90) {
+        await ctx.reply(`\u26a0\ufe0f *Budget Warning*: You've used 90% of your daily £${GUEST_DAILY_BUDGET_GBP.toFixed(2)} allowance (£${remaining.toFixed(4)} remaining). After this, usage resets at midnight.`, { parse_mode: 'Markdown' });
+      } else if (pctUsed >= 75 && prevPct < 75) {
+        await ctx.reply(`\ud83d\udca1 *Heads up*: You've used 75% of your daily £${GUEST_DAILY_BUDGET_GBP.toFixed(2)} allowance. £${remaining.toFixed(4)} remaining.`, { parse_mode: 'Markdown' });
+      } else if (pctUsed >= 50 && prevPct < 50) {
+        await ctx.reply(`\u2139\ufe0f You've used half your daily £${GUEST_DAILY_BUDGET_GBP.toFixed(2)} allowance. £${remaining.toFixed(4)} remaining.`);
+      }
+    }
+
+    // --- Cache Store (after successful response, no tools used) ---
     try {
       const lastAssistant = history[history.length - 1];
       const lastText = typeof lastAssistant?.content === 'string' ? lastAssistant.content : '';
       if (lastText && !usedTools) {
+        // Semantic cache (ChromaDB + in-memory LRU)
         await semanticCache.store(userMessage, lastText, {
           userId,
-          model: currentModelName,
+          model: selectedModel.name,
           inputTokens: totalInputTokens,
           outputTokens: totalOutputTokens,
           usedTools: false,
+        });
+        // Exact-match DB cache
+        responseCache.store(userMessage, lastText, {
+          model: selectedModel.name,
+          tokens: totalInputTokens + totalOutputTokens,
+          cost: callCostGbp,
         });
       }
     } catch (cacheStoreErr) {
@@ -1866,6 +2070,8 @@ async function askClaude(ctx, userMessage) {
   } catch (err) {
     log(`[ERROR] Claude: ${err.message}`);
     await ctx.reply(`Error: ${err.message}`);
+  } finally {
+    clearInterval(typingInterval);
   }
 }
 
@@ -1875,10 +2081,54 @@ function estimateCost(model, inputTokens, outputTokens) {
   const rates = {
     'claude-sonnet-4-20250514': { input: 3, output: 15 },
     'claude-opus-4-20250514': { input: 15, output: 75 },
+    'claude-sonnet-4-6': { input: 3, output: 15 },
+    'claude-opus-4-6': { input: 15, output: 75 },
   };
-  const r = rates[model] || rates['claude-sonnet-4-20250514'];
+  const r = rates[model] || rates['claude-sonnet-4-6'];
   const usd = (inputTokens * r.input + outputTokens * r.output) / 1_000_000;
   return Math.round(usd * 0.79 * 10000) / 10000; // GBP with 4 decimal places
+}
+
+// ============================================================
+// SMART MODEL AUTO-ESCALATION
+// ============================================================
+const OPUS_TRIGGERS = [
+  /\/(email|present|report|draft|linkedin|research)/i,
+  /\b(email|send\s*email|compose|write\s*to|forward\s*to)\b/i,
+  /\b(pdf|document|proposal|contract|report|slides|presentation)\b/i,
+  /\b(deep\s*research|thorough|comprehensive|analyse|analyze|in[- ]depth)\b/i,
+  /\b(design|creative|brand|visual|infographic)\b/i,
+  /\b(linkedin\s*post|publish\s*to\s*linkedin)\b/i,
+];
+
+function selectModel(userMessage, command) {
+  // If user manually set /opus or /sonnet, respect that (sticky override)
+  if (manualModelOverride) return { model: currentModel, name: currentModelName, reason: 'manual' };
+
+  const text = `${command || ''} ${userMessage}`;
+  for (const trigger of OPUS_TRIGGERS) {
+    if (trigger.test(text)) {
+      return { model: MODELS.opus, name: 'Opus 4.6', reason: trigger.source.slice(0, 40) };
+    }
+  }
+  return { model: MODELS.sonnet, name: 'Sonnet 4.6', reason: 'default' };
+}
+
+// ============================================================
+// API RETRY WRAPPER (3 attempts, exponential backoff)
+// ============================================================
+async function callAnthropicWithRetry(params, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await anthropic.messages.create(params);
+    } catch (err) {
+      const isRetryable = err.status === 429 || err.status === 500 || err.status === 502 || err.status === 503 || err.status === 529 || err.message?.includes('ECONNRESET') || err.message?.includes('ETIMEDOUT');
+      if (!isRetryable || attempt === maxRetries) throw err;
+      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
+      log(`[API RETRY] Attempt ${attempt}/${maxRetries} failed (${err.status || err.message}), retrying in ${delay}ms...`);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
 }
 
 // ============================================================
@@ -2005,6 +2255,7 @@ bot.help((ctx) => {
       `OTHER\n` +
       `/shell <cmd> - Run shell command\n` +
       `/costs - Today's API costs\n` +
+      `/usage - Token usage & spend\n` +
       `/cache - Semantic cache stats\n` +
       `/memory - Check memory status\n` +
       `/clear - Reset conversation + memory\n` +
@@ -2024,7 +2275,8 @@ bot.help((ctx) => {
       `/disk - Disk usage\n` +
       `/processes - All processes\n` +
       `/tasks - Scheduled automations\n` +
-      `/costs - API usage today\n\n` +
+      `/costs - API usage today\n` +
+      `/usage - Token usage & spend\n\n` +
       `AI & CREATIVE\n` +
       `/image <description> - Generate AI image\n` +
       `/research <topic> - Deep research\n` +
@@ -2054,23 +2306,41 @@ bot.command('clear', (ctx) => {
 // /model
 bot.command('model', (ctx) => {
   log('/model');
-  ctx.reply(`Current model: ${currentModelName}\n(${currentModel})\n\nUse /sonnet or /opus to switch.`);
+  const modeLabel = manualModelOverride ? 'Manual (fixed)' : 'Smart routing (auto-escalation)';
+  ctx.reply(`Current model: ${currentModelName}\n(${currentModel})\nMode: ${modeLabel}\n\nUse /sonnet or /opus to lock a model.\nUse /auto to enable smart routing.`);
 });
 
 // /sonnet
 bot.command('sonnet', (ctx) => {
   currentModel = MODELS.sonnet;
-  currentModelName = 'Sonnet 4';
-  log('/sonnet');
-  ctx.reply(`Switched to Sonnet 4 (fast, efficient)\n${MODELS.sonnet}`);
+  currentModelName = 'Sonnet 4.6';
+  manualModelOverride = true;
+  log('/sonnet (manual override ON)');
+  ctx.reply(`Switched to Sonnet 4.6 (fast, efficient). Auto-escalation disabled.\nUse /auto to re-enable smart model routing.\n${MODELS.sonnet}`);
 });
 
-// /opus
+// /opus (admin only)
 bot.command('opus', (ctx) => {
+  if (ctx.state.userRole !== 'admin') {
+    log(`/opus BLOCKED for guest ${ctx.state.userId}`);
+    logInteraction({ direction: 'in', userId: ctx.state.userId, username: ctx.state.username, command: '/opus', blocked: true, reason: 'guest_not_allowed' });
+    return ctx.reply('Opus is only available for admin users. You are using Sonnet 4.6 (fast & efficient).');
+  }
   currentModel = MODELS.opus;
-  currentModelName = 'Opus 4';
-  log('/opus');
-  ctx.reply(`Switched to Opus 4 (maximum intelligence)\n${MODELS.opus}`);
+  currentModelName = 'Opus 4.6';
+  manualModelOverride = true;
+  log('/opus (manual override ON)');
+  ctx.reply(`Switched to Opus 4.6 (maximum intelligence). Auto-escalation disabled.\nUse /auto to re-enable smart model routing.\n${MODELS.opus}`);
+});
+
+// /auto — re-enable smart model routing
+bot.command('auto', (ctx) => {
+  if (ctx.state.userRole !== 'admin') return;
+  manualModelOverride = false;
+  currentModel = MODELS.sonnet;
+  currentModelName = 'Sonnet 4.6';
+  log('/auto (smart model routing ON)');
+  ctx.reply('Smart model routing enabled.\nSonnet 4.6 (default) with auto-escalation to Opus 4.6 for complex tasks (email, research, reports, creative).');
 });
 
 // /ip
@@ -2484,6 +2754,85 @@ bot.command('nginx', async (ctx) => {
   await askClaude(ctx, 'Check Nginx status in Docker. Run: docker ps | grep nginx. Also show the current routing config from infrastructure/nginx/conf.d/default.conf if available.');
 });
 
+// /failover — Manually trigger failover to Oracle
+guardCommand('failover', async (ctx) => {
+  log('/failover');
+  const arg = ctx.message.text.replace('/failover', '').trim();
+  if (arg === 'status' || arg === '-status') {
+    // Redirect to /failover-status
+    return handleFailoverStatus(ctx);
+  }
+  await ctx.reply('Triggering failover to Oracle VM...');
+  try {
+    const { exec } = require('child_process');
+    exec('ssh -o ConnectTimeout=15 oracle-navada "bash /home/ubuntu/navada-failover/failover-activate.sh"', { timeout: 120000 }, async (err, stdout, stderr) => {
+      if (err) {
+        await ctx.reply(`Failover activation failed:\n${stderr || err.message}`);
+      } else {
+        await ctx.reply('Failover activated. Oracle VM is now handling critical services.\n\nUse /failover-status to check.\nUse /failback when HP is back.');
+      }
+    });
+  } catch (e) {
+    await ctx.reply(`Error: ${e.message}`);
+  }
+});
+
+// /failback — Manually trigger failback to HP
+guardCommand('failback', async (ctx) => {
+  log('/failback');
+  await ctx.reply('Triggering failback to HP laptop...');
+  try {
+    const { exec } = require('child_process');
+    exec('ssh -o ConnectTimeout=15 oracle-navada "bash /home/ubuntu/navada-failover/failover-deactivate.sh"', { timeout: 120000 }, async (err, stdout, stderr) => {
+      if (err) {
+        await ctx.reply(`Failback failed:\n${stderr || err.message}`);
+      } else {
+        await ctx.reply('Failback complete. All services restored to HP.\n\nState synced back from Oracle.');
+      }
+    });
+  } catch (e) {
+    await ctx.reply(`Error: ${e.message}`);
+  }
+});
+
+// /failover-status — Check failover state
+async function handleFailoverStatus(ctx) {
+  try {
+    const { exec } = require('child_process');
+    exec('ssh -o ConnectTimeout=10 oracle-navada "cat /home/ubuntu/navada-failover/.failover-active 2>/dev/null || echo INACTIVE; pm2 jlist 2>/dev/null | head -1; docker ps --filter name=navada-failover --format \\"{{.Names}}: {{.Status}}\\" 2>/dev/null"', { timeout: 30000 }, async (err, stdout) => {
+      if (err) {
+        await ctx.reply('Could not reach Oracle VM to check failover status.');
+        return;
+      }
+      const lines = stdout.trim().split('\n');
+      const stateRaw = lines[0];
+      const isActive = stateRaw !== 'INACTIVE';
+      let msg = `<b>Failover Status</b>\n\n`;
+      msg += `State: ${isActive ? 'ACTIVE' : 'INACTIVE'}\n`;
+      if (isActive) {
+        try {
+          const state = JSON.parse(stateRaw);
+          msg += `Activated: ${state.activated}\n`;
+          msg += `Reason: ${state.reason}\n`;
+        } catch (e) {
+          msg += `Details: ${stateRaw}\n`;
+        }
+        msg += `\nOracle PM2/Docker:\n${lines.slice(1).join('\n') || 'No services detected'}`;
+      } else {
+        msg += 'HP laptop is primary. Oracle on standby.';
+      }
+      await ctx.reply(msg, { parse_mode: 'HTML' });
+    });
+  } catch (e) {
+    await ctx.reply(`Error: ${e.message}`);
+  }
+}
+
+guardCommand('failover-status', async (ctx) => {
+  log('/failover-status');
+  await handleFailoverStatus(ctx);
+});
+
 // /shell
 guardCommand('shell', async (ctx) => {
   const cmd = ctx.message.text.replace('/shell', '').trim();
@@ -2649,6 +2998,81 @@ function formatNum(n) {
   return String(n);
 }
 
+// /usage — quick token usage summary (ccusage)
+bot.command('usage', async (ctx) => {
+  const args = ctx.message.text.replace(/^\/usage\s*/, '').trim().toLowerCase();
+  log(`/usage ${args}`);
+
+  const period = ['week', 'weekly'].includes(args) ? 'weekly'
+    : ['month', 'monthly'].includes(args) ? 'monthly'
+    : ['session'].includes(args) ? 'session'
+    : 'daily';
+  const periodLabel = period === 'daily' ? 'Today' : period === 'weekly' ? 'This Week' : period === 'monthly' ? 'This Month' : 'Session';
+
+  try {
+    const { execSync } = require('child_process');
+    const raw = execSync(`ccusage ${period} --json --no-color`, {
+      encoding: 'utf-8',
+      timeout: 30000,
+      env: { ...process.env, NO_COLOR: '1' },
+    });
+    const data = JSON.parse(raw);
+    const entries = data[period] || data.daily || [];
+    const totals = data.totals || {};
+    const GBP_RATE = 0.79;
+
+    const totalTokens = totals.totalTokens || entries.reduce((s, e) => s + (e.totalTokens || 0), 0);
+    const inputTokens = totals.inputTokens || entries.reduce((s, e) => s + (e.inputTokens || 0), 0);
+    const outputTokens = totals.outputTokens || entries.reduce((s, e) => s + (e.outputTokens || 0), 0);
+    const cacheRead = totals.cacheReadTokens || entries.reduce((s, e) => s + (e.cacheReadTokens || 0), 0);
+    const cacheWrite = totals.cacheWriteTokens || entries.reduce((s, e) => s + (e.cacheWriteTokens || 0), 0);
+    const totalCost = totals.totalCost || entries.reduce((s, e) => s + (e.totalCost || 0), 0);
+    const costGBP = (totalCost * GBP_RATE).toFixed(2);
+
+    let msg = `**NAVADA Token Usage | ${periodLabel}**\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    msg += `**Total Tokens**: ${formatNum(totalTokens)}\n`;
+    msg += `  Input:  ${formatNum(inputTokens)}\n`;
+    msg += `  Output: ${formatNum(outputTokens)}\n`;
+    if (cacheRead > 0) msg += `  Cache Read:  ${formatNum(cacheRead)}\n`;
+    if (cacheWrite > 0) msg += `  Cache Write: ${formatNum(cacheWrite)}\n`;
+    msg += `\n**Cost**: £${costGBP} ($${totalCost.toFixed(2)})\n`;
+
+    // Model breakdown
+    const latest = entries[entries.length - 1];
+    if (latest?.modelBreakdowns?.length > 0) {
+      msg += `\n**By Model**:\n`;
+      for (const mb of latest.modelBreakdowns) {
+        const name = mb.modelName.replace('claude-', '').replace(/-\d+$/, '');
+        msg += `  ${name}: ${formatNum(mb.tokens || mb.totalTokens || 0)} tokens, £${(mb.cost * GBP_RATE).toFixed(2)}\n`;
+      }
+    }
+
+    // Daily breakdown for week/month
+    if ((period === 'weekly' || period === 'monthly') && entries.length > 1) {
+      msg += `\n**Daily**:\n`;
+      for (const e of entries.slice(-7)) {
+        msg += `  ${e.date}: ${formatNum(e.totalTokens || 0)} tokens, £${((e.totalCost || 0) * GBP_RATE).toFixed(2)}\n`;
+      }
+    }
+
+    // Guest budget summary
+    if (guestBudgets.size > 0) {
+      msg += `\n**Guest Budgets (today)**:\n`;
+      for (const [uid, budget] of guestBudgets) {
+        const remaining = Math.max(0, GUEST_DAILY_BUDGET_GBP - budget.spent);
+        msg += `  User ${uid}: £${budget.spent.toFixed(4)} spent, £${remaining.toFixed(4)} remaining\n`;
+      }
+    }
+
+    msg += `\n_/usage day | week | month | session_`;
+    await ctx.reply(msg, { parse_mode: 'Markdown' });
+  } catch (err) {
+    console.error('[usage] Error:', err.message);
+    await ctx.reply(`Usage report error: ${err.message}\n\nMake sure ccusage is installed: npm i -g ccusage`);
+  }
+});
+
 // ============================================================
 // COMMUNICATION COMMANDS
 // ============================================================
@@ -2802,32 +3226,117 @@ bot.command('memory', (ctx) => {
   );
 });
 
-// /cache — semantic cache stats & management (admin only)
+// /cache — 3-tier cache stats & management (admin only)
 guardCommand('cache', async (ctx) => {
   const args = ctx.message.text.replace('/cache', '').trim();
   log(`/cache ${args}`);
 
   if (args === 'cleanup') {
-    const result = await semanticCache.cleanup();
-    return ctx.reply(`Cache Cleanup\n\nRemoved ${result.removed} expired entries.${result.error ? `\nError: ${result.error}` : ''}`);
+    const semanticResult = await semanticCache.cleanup();
+    const dbEvicted = responseCache.evict();
+    return ctx.reply(`Cache Cleanup\n\nSemantic: removed ${semanticResult.removed} expired entries.${semanticResult.error ? `\nError: ${semanticResult.error}` : ''}\nExact-match DB: evicted ${dbEvicted} expired entries.`);
   }
 
   if (args === 'clear') {
-    const result = await semanticCache.cleanup();
-    return ctx.reply(`Cache cleared. Removed ${result.removed} expired entries. Memory cache resets on next restart.`);
+    const semanticResult = await semanticCache.cleanup();
+    const dbEvicted = responseCache.evict();
+    return ctx.reply(`Cache cleared.\nSemantic: ${semanticResult.removed} removed. Memory cache resets on next restart.\nExact-match DB: ${dbEvicted} evicted.`);
   }
 
   // Default: show stats
   const s = await semanticCache.stats();
+  const dbStats = responseCache.stats();
   ctx.reply(
-    `Semantic Cache Status\n\n` +
-    `Memory cache: ${s.memoryEntries} entries (hot, 30min TTL)\n` +
-    `ChromaDB cache: ${s.chromaEntries} entries (persistent, 24hr TTL)\n` +
-    `Threshold: ${0.12} (lower = stricter matching)\n\n` +
+    `3-Tier Cache Status\n\n` +
+    `Tier 1 - Memory LRU: ${s.memoryEntries} entries (30min TTL)\n` +
+    `Tier 2 - Exact-match DB: ${dbStats.entries || 0} entries (${dbStats.total_hits || 0} total hits)\n` +
+    `Tier 3 - ChromaDB semantic: ${s.chromaEntries} entries (24hr TTL)\n\n` +
+    `DB tokens saved: ${dbStats.tokens_saved || 0}\n` +
+    `DB cost saved: £${dbStats.cost_saved_gbp || 0}\n\n` +
     `Commands:\n` +
     `/cache cleanup - Remove expired entries\n` +
     `/cache clear - Full cache reset`
   );
+});
+
+// ============================================================
+// INSPIRE DISTRIBUTION LIST
+// ============================================================
+
+const INSPIRE_LIST_PATH = path.join(NAVADA_DIR, 'Automation/kb/inspire-distribution.json');
+
+function loadInspireList() {
+  try {
+    return JSON.parse(fs.readFileSync(INSPIRE_LIST_PATH, 'utf8'));
+  } catch { return { members: [] }; }
+}
+
+function findInspireMember(query) {
+  const list = loadInspireList();
+  const q = query.toLowerCase().trim();
+  // Exact name match first, then partial/fuzzy
+  return list.members.find(m => m.name.toLowerCase() === q)
+    || list.members.find(m => m.name.toLowerCase().includes(q))
+    || list.members.find(m => m.name.toLowerCase().split(' ').some(w => w.startsWith(q)));
+}
+
+// /inspire — send to one member or all
+guardCommand('inspire', async (ctx) => {
+  const args = ctx.message.text.replace('/inspire', '').trim();
+  log(`/inspire ${args}`);
+  if (!args) {
+    const list = loadInspireList();
+    const memberList = list.members.map(m => `  ${m.name} — ${m.email}`).join('\n');
+    return ctx.reply(`Inspire Powered by NAVADA (${list.members.length} members):\n\n${memberList}\n\nUsage:\n/inspire all <subject> | <body>\n/inspire <name> <subject> | <body>\n/inspire list`);
+  }
+
+  // /inspire list — show members
+  if (args.toLowerCase() === 'list') {
+    const list = loadInspireList();
+    const memberList = list.members.map(m => `  ${m.name} — ${m.email}`).join('\n');
+    return ctx.reply(`Inspire Powered by NAVADA (${list.members.length} members):\n\n${memberList}`);
+  }
+
+  // /inspire all <subject> | <body> — email everyone
+  if (args.toLowerCase().startsWith('all ')) {
+    const content = args.slice(4).trim();
+    const list = loadInspireList();
+    await askClaude(ctx, `Send an email to ALL members of the "Inspire Powered by NAVADA" distribution list. The members are: ${JSON.stringify(list.members)}. Address each person by their name in a personal greeting. The email content: ${content}. Parse "subject" (before the |) and "body" (after the |). Use the send_email tool for EACH member individually so you can personalise the greeting. Sign off as "Inspire Powered by NAVADA".`);
+    return;
+  }
+
+  // /inspire <name> <subject> | <body> — email specific member
+  // Try to extract name (everything before the subject which contains |)
+  const pipeIdx = args.indexOf('|');
+  if (pipeIdx === -1) {
+    // Maybe just a name lookup
+    const member = findInspireMember(args);
+    if (member) return ctx.reply(`Found: ${member.name} — ${member.email}`);
+    return ctx.reply('Member not found. Use /inspire list to see all members.\nTo send: /inspire <name> <subject> | <body>');
+  }
+
+  // Split into name + subject | body
+  const beforePipe = args.slice(0, pipeIdx).trim();
+  const body = args.slice(pipeIdx + 1).trim();
+  // Try different splits of beforePipe to find the name
+  const words = beforePipe.split(' ');
+  let member = null;
+  let subject = '';
+  for (let i = 1; i <= Math.min(words.length - 1, 3); i++) {
+    const candidateName = words.slice(0, i).join(' ');
+    const found = findInspireMember(candidateName);
+    if (found) {
+      member = found;
+      subject = words.slice(i).join(' ');
+      break;
+    }
+  }
+
+  if (!member) {
+    return ctx.reply(`Could not identify member from "${beforePipe}". Use /inspire list to see names.`);
+  }
+
+  await askClaude(ctx, `Send an email to ${member.name} (${member.email}) from the Inspire Powered by NAVADA distribution list. Address them as "${member.name}" in the greeting. Subject: "${subject}". Body: "${body}". Use the send_email tool. Sign off as "Inspire Powered by NAVADA".`);
 });
 
 // ============================================================
@@ -2917,6 +3426,77 @@ guardCommand('flux', async (ctx) => {
   await askClaude(ctx, `Generate an image using the flux_image tool (FREE Cloudflare Workers AI) with this prompt: "${prompt}". After generating, read the file_path from the result and send the image to me by reading and sharing the file.`);
 });
 
+// /crow (admin only) - Crow Theme design system
+guardCommand('crow', async (ctx) => {
+  const args = ctx.message.text.replace('/crow', '').trim();
+  log(`/crow ${args}`);
+  if (!args) {
+    return ctx.reply(
+      '◈ CROW THEME — NAVADA Lab Design System\n\n' +
+      'Usage:\n' +
+      '/crow image <subject> — Generate monochrome DALL-E image\n' +
+      '/crow image <subject> --use-case <type> — Types: product, abstract, portrait, architecture, tech, vehicle, ui\n' +
+      '/crow css — Get CSS variables for a project\n' +
+      '/crow components — List available component snippets\n' +
+      '/crow palette — Show the colour palette\n' +
+      '/crow rules — Quick reference card\n\n' +
+      'The Crow Theme is NAVADA\'s signature aesthetic: darkness, precision, restraint. ' +
+      '100% achromatic. Zero border-radius. Newsreader + IBM Plex Mono.'
+    );
+  }
+
+  if (args.startsWith('image ')) {
+    const imageArgs = args.replace('image ', '').trim();
+    // Parse --use-case flag
+    const useCaseMatch = imageArgs.match(/--use-case\s+(product|abstract|portrait|architecture|tech|vehicle|ui)/);
+    const useCase = useCaseMatch ? useCaseMatch[1] : 'product';
+    const subject = imageArgs.replace(/--use-case\s+\w+/, '').trim();
+    if (!subject) return ctx.reply('Usage: /crow image <subject>\nExample: /crow image a gaming laptop --use-case product');
+    await askClaude(ctx, `Generate a Crow Theme image using DALL-E 3. Read the Crow Theme SKILL.md at CLAUDE_NAVADA_AGENT/crow_theme/SKILL.md section "9. DALL-E IMAGE GENERATION INTEGRATION" for the exact prompt formula. Subject: "${subject}", use case: "${useCase}". Use the generate_image tool with HD quality. The prompt MUST follow the Crow Theme monochrome formula: pure black and white, near-black background #050505, dramatic studio lighting, no color, brutalist editorial aesthetic.`);
+  } else if (args === 'css') {
+    await askClaude(ctx, `Read the file CLAUDE_NAVADA_AGENT/crow_theme/references/css-variables.md and send its contents formatted nicely. This contains the Crow Theme CSS variables, Tailwind config, global styles, and animations.`);
+  } else if (args === 'components') {
+    await askClaude(ctx, `Read the file CLAUDE_NAVADA_AGENT/crow_theme/references/component-snippets.md and list the 14 available component patterns with brief descriptions. Don't send the full code, just the names and what they're for.`);
+  } else if (args === 'palette') {
+    await ctx.reply(
+      '◈ CROW THEME PALETTE\n\n' +
+      '--bg-void        #050505  Primary background\n' +
+      '--bg-elevated    #0a0a0a  Cards, code blocks\n' +
+      '--border-subtle  #1a1a1a  Section dividers\n' +
+      '--border-medium  #222222  Card/table borders\n' +
+      '--border-strong  #444444  Logo, hover, active\n' +
+      '--text-ghost     #444444  Decorative glyphs\n' +
+      '--text-muted     #555555  Labels, captions\n' +
+      '--text-secondary #888888  Body text\n' +
+      '--text-primary   #e0e0e0  Data, names, values\n' +
+      '--text-bright    #ffffff  Headlines, emphasis\n\n' +
+      'Fonts: Newsreader (serif, 300) + IBM Plex Mono (mono, 400)\n' +
+      'Radius: 0 everywhere. Glyphs: ◈ ⬡ ◉ ▸ ★'
+    );
+  } else if (args === 'rules') {
+    await ctx.reply(
+      '◈ CROW THEME QUICK REFERENCE\n\n' +
+      'NEVER:\n' +
+      '• Any colour with hue/saturation\n' +
+      '• Rounded corners (border-radius > 0)\n' +
+      '• Bold serif text (always weight 300)\n' +
+      '• Icon libraries (use Unicode glyphs)\n' +
+      '• Drop shadows or box shadows\n' +
+      '• Gradients (except subtle #0a→#050505)\n' +
+      '• More than 2 font families\n' +
+      '• Emojis in UI\n\n' +
+      'ALWAYS:\n' +
+      '• Mono labels = uppercase + wide spacing\n' +
+      '• Section headers start with glyph (◈ ⬡ ◉ ▸ ★)\n' +
+      '• 1px #1a1a1a dividers between sections\n' +
+      '• Hierarchy: #fff > #e0e0e0 > #888 > #555 > #444'
+    );
+  } else {
+    // Freeform crow theme request — pass to Claude with full context
+    await askClaude(ctx, `Crow Theme design request: "${args}". Read the Crow Theme spec at CLAUDE_NAVADA_AGENT/crow_theme/SKILL.md and the component snippets at crow_theme/references/component-snippets.md. Apply the Crow Theme rules strictly: 100% achromatic, zero border-radius, Newsreader + IBM Plex Mono, brutalist editorial aesthetic. Generate whatever the user is asking for.`);
+  }
+});
+
 // /gemini (admin only) - Gemini image generation
 guardCommand('gemini', async (ctx) => {
   const prompt = ctx.message.text.replace('/gemini', '').trim();
@@ -2930,7 +3510,43 @@ guardCommand('media', async (ctx) => {
   const args = ctx.message.text.replace('/media', '').trim();
   log(`/media ${args}`);
   if (!args) {
-    await askClaude(ctx, 'List all media files in the NAVADA media library using the play_media tool with action "list". Show a nicely formatted list with names, sizes, and playback URLs.');
+    // List media directly with play buttons instead of routing through Claude
+    try {
+      const CF_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+      const CF_ACCT = process.env.CLOUDFLARE_ACCOUNT_ID;
+      const R2_PUBLIC = 'https://pub-60e73a76c6ae44e0a73e6617ada8f376.r2.dev';
+      const listUrl = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCT}/r2/buckets/navada-assets/objects?prefix=media/`;
+      const listRes = await new Promise((resolve, reject) => {
+        const urlObj = new URL(listUrl);
+        https.get({
+          hostname: urlObj.hostname,
+          path: urlObj.pathname + urlObj.search,
+          headers: { 'Authorization': `Bearer ${CF_TOKEN}` }
+        }, (res) => {
+          let data = '';
+          res.on('data', c => data += c);
+          res.on('end', () => { try { resolve(JSON.parse(data)); } catch (e) { reject(e); } });
+        }).on('error', reject);
+      });
+      if (listRes.success && listRes.result && listRes.result.length > 0) {
+        const files = listRes.result.filter(o => o.key !== 'media/');
+        let msg = `NAVADA Media Library (${files.length} files)\n\n`;
+        const buttons = [];
+        for (const f of files) {
+          const name = f.key.replace('media/', '');
+          const sizeMB = (f.size / 1024 / 1024).toFixed(1);
+          msg += `${name} (${sizeMB} MB)\n`;
+          buttons.push([{ text: `Play: ${name}`, callback_data: `media_play:${name}` }]);
+        }
+        buttons.push([{ text: 'Watch All in Browser', url: `${R2_PUBLIC}/media/` }]);
+        await ctx.reply(msg.trim(), { reply_markup: { inline_keyboard: buttons } });
+      } else {
+        await ctx.reply('No media files found in R2.');
+      }
+    } catch (err) {
+      log(`/media list error: ${err.message}`);
+      await askClaude(ctx, 'List all media files in the NAVADA media library using the play_media tool with action "list". Show a nicely formatted list with names, sizes, and playback URLs.');
+    }
   } else if (args.startsWith('email ')) {
     const rest = args.replace('email ', '').trim();
     const parts = rest.split(' ');
@@ -2943,13 +3559,70 @@ guardCommand('media', async (ctx) => {
     const R2_PUBLIC = 'https://pub-60e73a76c6ae44e0a73e6617ada8f376.r2.dev';
     const videoUrl = `${R2_PUBLIC}/media/${filename}`;
     try {
+      // First try sending via URL (works for files <50MB)
       await ctx.replyWithVideo({ url: videoUrl }, {
         caption: `Now playing: ${filename}`,
         supports_streaming: true,
       });
     } catch (err) {
-      // Fallback: if video too large for Telegram (>50MB), send as link
-      log(`Video send failed (${err.message}), falling back to link`);
+      log(`Video URL send failed (${err.message}), trying local download...`);
+      // Download to temp file and send locally (supports up to 2GB)
+      const tmpPath = path.join(os.tmpdir(), filename);
+      try {
+        const fileStream = fs.createWriteStream(tmpPath);
+        await new Promise((resolve, reject) => {
+          https.get(videoUrl, (res) => {
+            if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
+            res.pipe(fileStream);
+            fileStream.on('finish', () => { fileStream.close(); resolve(); });
+          }).on('error', reject);
+        });
+        await ctx.replyWithVideo({ source: tmpPath }, {
+          caption: `Now playing: ${filename}`,
+          supports_streaming: true,
+        });
+        fs.unlinkSync(tmpPath);
+      } catch (dlErr) {
+        log(`Video local send also failed (${dlErr.message}), sending link`);
+        if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+        await ctx.reply(`${filename}\n\nWatch here: ${videoUrl}`);
+      }
+    }
+  }
+});
+
+// Callback handler for media play buttons
+bot.action(/^media_play:(.+)$/, async (ctx) => {
+  const filename = ctx.match[1];
+  const R2_PUBLIC = 'https://pub-60e73a76c6ae44e0a73e6617ada8f376.r2.dev';
+  const videoUrl = `${R2_PUBLIC}/media/${filename}`;
+  log(`[MEDIA PLAY] ${filename}`);
+  await ctx.answerCbQuery(`Loading ${filename}...`);
+  try {
+    await ctx.replyWithVideo({ url: videoUrl }, {
+      caption: `Now playing: ${filename}`,
+      supports_streaming: true,
+    });
+  } catch (err) {
+    log(`Media callback URL send failed (${err.message}), downloading...`);
+    const tmpPath = path.join(os.tmpdir(), filename);
+    try {
+      const fileStream = fs.createWriteStream(tmpPath);
+      await new Promise((resolve, reject) => {
+        https.get(videoUrl, (res) => {
+          if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
+          res.pipe(fileStream);
+          fileStream.on('finish', () => { fileStream.close(); resolve(); });
+        }).on('error', reject);
+      });
+      await ctx.replyWithVideo({ source: tmpPath }, {
+        caption: `Now playing: ${filename}`,
+        supports_streaming: true,
+      });
+      fs.unlinkSync(tmpPath);
+    } catch (dlErr) {
+      log(`Media callback local send failed (${dlErr.message})`);
+      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
       await ctx.reply(`${filename}\n\nWatch here: ${videoUrl}`);
     }
   }
@@ -2973,12 +3646,28 @@ guardCommand('video', async (ctx) => {
       'Asset types: video, image, thumbnail, clip, logo, infographic, audio, slides, all'
     );
   }
-  // Route through Claude with media generation context
-  await askClaude(ctx, `The user wants to generate media content. Use the available tools (generate_image, gemini_image, flux_image, run_shell) to create this asset. For videos, use Remotion if the navada-video project exists (~/navada-video), otherwise describe what tools are needed. For images, use DALL-E (generate_image), Gemini (gemini_image), or Flux (flux_image) based on what's best for the request. Save outputs to ~/navada-outputs/.
+  // Route through Claude with render_video tool
+  await askClaude(ctx, `TASK: Generate media content for the user. You MUST call a tool to do this. Do NOT respond with text only.
+
+MANDATORY: You MUST call one of these tools in your response. Do NOT skip the tool call. Do NOT pretend the content is ready. Do NOT fabricate URLs or results. Actually call the tool and wait for the real result.
+
+FOR VIDEO REQUESTS - Call the render_video tool:
+- Pre-built compositions: NavadaIntro (5s brand intro), NavadaIntroSquare (1080x1080), TextReveal (word-by-word text)
+- Custom videos: Set composition="custom" and provide custom_component with React TSX code
+- The tool handles rendering, R2 upload, and email automatically
+- Set email_to="leeakpareva@gmail.com" to email the result
+- Brand: navy #0A0F2C, gold #C9A84C, bg #080C22
+
+FOR IMAGE REQUESTS: Call generate_image (DALL-E), gemini_image, or flux_image.
 
 User request: "${args}"
 
-If this is a simple image request, generate it immediately. If it requires Remotion setup or complex video rendering, explain what's needed and offer to set it up.`);
+RULES:
+1. You MUST call a tool. This is not optional.
+2. Do NOT say "I'll render that for you" and then not call the tool.
+3. Do NOT generate fake R2 URLs or pretend rendering happened.
+4. Call the tool FIRST, then respond based on the REAL tool result.
+5. If the tool fails, tell the user the actual error.`);
 });
 
 // /r2 (admin only) - Cloudflare R2 object storage
@@ -3019,6 +3708,296 @@ guardCommand('logs', async (ctx) => {
   }
 });
 
+// /flix (admin only) - NAVADA Flix video streaming
+guardCommand('flix', async (ctx) => {
+  const args = ctx.message.text.replace('/flix', '').trim();
+  log(`/flix ${args}`);
+  if (!args) {
+    await askClaude(ctx, `List all videos in NAVADA Flix. Use run_shell to run: curl -s http://localhost:4000/api/videos | node -e "const v=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); if(!v.length){console.log('No videos yet. Use /video to generate one, then /flix import to add it.')} else {v.forEach((x,i)=>console.log((i+1)+'. '+x.title+' ['+x.status+'] '+Math.round(x.duration||0)+'s ('+x.source+')'))}"
+Also mention the streaming URL: http://192.168.0.58:4000`);
+  } else if (args.startsWith('import ')) {
+    const filePath = args.replace('import ', '').trim();
+    await askClaude(ctx, `Import a video into NAVADA Flix for HLS streaming. Use run_shell to run:
+curl -s -X POST http://localhost:4000/api/videos/import -H "Content-Type: application/json" -d '{"path":"${filePath}","title":"${require('path').basename(filePath, '.mp4')}","description":"Imported video"}'
+Report the result.`);
+  } else if (args === 'live') {
+    await askClaude(ctx, 'Check NAVADA Flix live stream status. Use run_shell: curl -s http://localhost:4000/api/stream/live');
+  } else {
+    await askClaude(ctx, `NAVADA Flix request: "${args}". The Flix API runs at http://localhost:4000. Available endpoints: GET /api/videos (list), POST /api/videos/import (import local file), POST /api/videos/upload (upload), DELETE /api/videos/:id, GET /api/playlists, POST /api/playlists. Streaming URL: http://192.168.0.58:4000. Use run_shell with curl to handle this.`);
+  }
+});
+
+// /aws (admin only) - AWS EC2 management
+guardCommand('aws', async (ctx) => {
+  const args = ctx.message.text.replace('/aws', '').trim();
+  log(`/aws ${args}`);
+  if (!args || args === 'status') {
+    await askClaude(ctx, `Check AWS EC2 status. Use run_shell to run:
+export PATH="/c/Program Files/Amazon/AWSCLIV2:$PATH" && aws ec2 describe-instances --region eu-west-2 --query "Reservations[*].Instances[*].[InstanceId,InstanceType,State.Name,Tags[?Key==\\\`Name\\\`].Value|[0],PublicIpAddress]" --output table
+Report instance status, IP, and type.`);
+  } else if (args === 'start') {
+    await askClaude(ctx, `Start the NAVADA Edge AWS EC2 instance. Use run_shell:
+export PATH="/c/Program Files/Amazon/AWSCLIV2:$PATH" && aws ec2 start-instances --region eu-west-2 --instance-ids i-083ce551563faa6db && echo "Starting instance..." && sleep 5 && aws ec2 describe-instances --region eu-west-2 --instance-ids i-083ce551563faa6db --query "Reservations[0].Instances[0].[State.Name,PublicIpAddress]" --output text`);
+  } else if (args === 'stop') {
+    await askClaude(ctx, `Stop the NAVADA Edge AWS EC2 instance to save costs. Use run_shell:
+export PATH="/c/Program Files/Amazon/AWSCLIV2:$PATH" && aws ec2 stop-instances --region eu-west-2 --instance-ids i-083ce551563faa6db
+Confirm it's stopping.`);
+  } else if (args === 'costs') {
+    await askClaude(ctx, `Check estimated AWS costs. The NAVADA Edge AWS setup:
+- EC2 t3.large: ~$0.0832/hr (~$60/month) ONLY when running
+- EBS 200GB gp3: ~$16/month (always charged)
+- Data transfer: varies
+Use run_shell with: export PATH="/c/Program Files/Amazon/AWSCLIV2:$PATH" && aws ec2 describe-instances --region eu-west-2 --instance-ids i-083ce551563faa6db --query "Reservations[0].Instances[0].State.Name" --output text
+Report if running (being charged compute) or stopped (storage only).`);
+  } else {
+    await askClaude(ctx, `AWS management request: "${args}". Use run_shell with AWS CLI (set PATH="/c/Program Files/Amazon/AWSCLIV2:$PATH" first). Region is eu-west-2. Instance ID: i-083ce551563faa6db.`);
+  }
+});
+
+// ============================================================
+// YOLO OBJECT DETECTION
+// ============================================================
+
+// Colour palette for bounding boxes (high contrast, colour-blind friendly)
+const YOLO_COLOURS = [
+  { r: 255, g: 0, b: 0 },     // Red
+  { r: 0, g: 180, b: 0 },     // Green
+  { r: 0, g: 100, b: 255 },   // Blue
+  { r: 255, g: 165, b: 0 },   // Orange
+  { r: 180, g: 0, b: 255 },   // Purple
+  { r: 0, g: 200, b: 200 },   // Cyan
+  { r: 255, g: 255, b: 0 },   // Yellow
+  { r: 255, g: 0, b: 150 },   // Pink
+];
+
+async function drawBoundingBoxes(imagePath, detections, imageSize) {
+  const sharp = require('sharp');
+  const img = sharp(imagePath);
+  const meta = await img.metadata();
+  const imgW = meta.width;
+  const imgH = meta.height;
+
+  // Scale factors if API returns coords for different resolution
+  const scaleX = imageSize ? imgW / imageSize.width : 1;
+  const scaleY = imageSize ? imgH / imageSize.height : 1;
+
+  // Build class-to-colour map
+  const classColours = {};
+  let colourIdx = 0;
+  for (const d of detections) {
+    const cls = d.label || d.class || d.name || 'unknown';
+    if (!classColours[cls]) {
+      classColours[cls] = YOLO_COLOURS[colourIdx % YOLO_COLOURS.length];
+      colourIdx++;
+    }
+  }
+
+  // Build SVG overlay with boxes and labels
+  const boxThickness = Math.max(2, Math.round(Math.min(imgW, imgH) / 200));
+  const fontSize = Math.max(14, Math.round(Math.min(imgW, imgH) / 40));
+
+  let svgParts = [];
+  svgParts.push(`<svg width="${imgW}" height="${imgH}" xmlns="http://www.w3.org/2000/svg">`);
+
+  detections.forEach((d, i) => {
+    const cls = d.label || d.class || d.name || 'unknown';
+    const conf = d.confidence || d.score || 0;
+    const c = classColours[cls];
+    const colour = `rgb(${c.r},${c.g},${c.b})`;
+
+    const bbox = d.bbox || {};
+    const x1 = Math.round((bbox.x1 || 0) * scaleX);
+    const y1 = Math.round((bbox.y1 || 0) * scaleY);
+    const x2 = Math.round((bbox.x2 || 0) * scaleX);
+    const y2 = Math.round((bbox.y2 || 0) * scaleY);
+    const w = x2 - x1;
+    const h = y2 - y1;
+
+    if (w <= 0 || h <= 0) return;
+
+    // Bounding box rectangle
+    svgParts.push(`<rect x="${x1}" y="${y1}" width="${w}" height="${h}" fill="none" stroke="${colour}" stroke-width="${boxThickness}" rx="3"/>`);
+
+    // Label background
+    const labelText = `${cls} ${(conf * 100).toFixed(0)}%`;
+    const labelW = labelText.length * fontSize * 0.6 + 10;
+    const labelH = fontSize + 8;
+    const labelY = Math.max(0, y1 - labelH);
+    svgParts.push(`<rect x="${x1}" y="${labelY}" width="${labelW}" height="${labelH}" fill="${colour}" rx="3"/>`);
+    svgParts.push(`<text x="${x1 + 5}" y="${labelY + fontSize}" font-family="Arial,sans-serif" font-size="${fontSize}" font-weight="bold" fill="white">${labelText}</text>`);
+  });
+
+  svgParts.push('</svg>');
+  const svgOverlay = Buffer.from(svgParts.join('\n'));
+
+  // Composite overlay onto image
+  const annotatedPath = imagePath.replace(/\.(jpg|jpeg|png|webp)$/i, '_annotated.jpg');
+  await img
+    .composite([{ input: svgOverlay, top: 0, left: 0 }])
+    .jpeg({ quality: 90 })
+    .toFile(annotatedPath);
+
+  return annotatedPath;
+}
+
+async function processYolo(ctx, fileId) {
+  try {
+    const file = await ctx.telegram.getFile(fileId);
+    const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${file.file_path}`;
+    const ext = path.extname(file.file_path) || '.jpg';
+    const filename = `yolo_${Date.now()}${ext}`;
+    const destPath = path.join(UPLOADS_DIR, filename);
+    await downloadFile(fileUrl, destPath);
+
+    await ctx.reply('Analysing image with YOLO...');
+
+    // Try ASUS local YOLO first (faster, free)
+    let detections = null;
+    let imageSize = null;
+    let source = '';
+    try {
+      const asusResult = await new Promise((resolve, reject) => {
+        const reqData = JSON.stringify({ image_path: destPath });
+        const req = http.request({
+          hostname: '100.88.118.128',
+          port: 8765,
+          path: '/detect',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 15000,
+        }, (res) => {
+          let body = '';
+          res.on('data', (d) => body += d);
+          res.on('end', () => {
+            try { resolve(JSON.parse(body)); } catch { reject(new Error('Invalid response')); }
+          });
+        });
+        req.on('error', reject);
+        req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+        req.write(reqData);
+        req.end();
+      });
+      if (asusResult && asusResult.detections) {
+        detections = asusResult.detections;
+        imageSize = asusResult.imageSize || null;
+        source = 'ASUS (local)';
+        log('[YOLO] ASUS local detection succeeded');
+      }
+    } catch (asusErr) {
+      log(`[YOLO] ASUS unavailable (${asusErr.message}), falling back to AWS`);
+    }
+
+    // Fallback to AWS API Gateway
+    if (!detections) {
+      try {
+        const imageData = fs.readFileSync(destPath).toString('base64');
+        const awsResult = await new Promise((resolve, reject) => {
+          const reqData = JSON.stringify({ imageBase64: imageData, action: 'yolo' });
+          const req = https.request({
+            hostname: 'xxqtcilmzi.execute-api.eu-west-2.amazonaws.com',
+            path: '/vision/yolo',
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 30000,
+          }, (res) => {
+            let body = '';
+            res.on('data', (d) => body += d);
+            res.on('end', () => {
+              try { resolve(JSON.parse(body)); } catch { reject(new Error('Invalid AWS response')); }
+            });
+          });
+          req.on('error', reject);
+          req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+          req.write(reqData);
+          req.end();
+        });
+        detections = awsResult.detections || awsResult.results || [];
+        imageSize = awsResult.imageSize || null;
+        source = 'AWS SageMaker';
+        log('[YOLO] AWS API detection succeeded');
+      } catch (awsErr) {
+        log(`[YOLO] AWS fallback failed: ${awsErr.message}`);
+        return ctx.reply(`YOLO detection failed. Both ASUS and AWS endpoints unavailable.\nASUS: offline\nAWS: ${awsErr.message}`);
+      }
+    }
+
+    // No detections
+    if (!detections || detections.length === 0) {
+      try { fs.unlinkSync(destPath); } catch {}
+      return ctx.reply('No objects detected in this image.');
+    }
+
+    // Draw bounding boxes on image
+    let annotatedPath = null;
+    try {
+      annotatedPath = await drawBoundingBoxes(destPath, detections, imageSize);
+    } catch (drawErr) {
+      log(`[YOLO] Bounding box draw failed: ${drawErr.message}`);
+    }
+
+    // Build detailed summary
+    const counts = {};
+    let totalConf = 0;
+    detections.forEach((d) => {
+      const label = d.label || d.class || d.name || 'unknown';
+      const conf = d.confidence || d.score || 0;
+      counts[label] = (counts[label] || 0) + 1;
+      totalConf += conf;
+    });
+    const avgConf = totalConf / detections.length;
+    const uniqueClasses = Object.keys(counts).length;
+
+    let msg = `NAVADA Vision - YOLO Detection\n`;
+    msg += `${'='.repeat(32)}\n\n`;
+
+    // Per-object details
+    detections.forEach((d, i) => {
+      const label = d.label || d.class || d.name || 'unknown';
+      const conf = d.confidence || d.score || 0;
+      const bbox = d.bbox || {};
+      const bboxW = Math.round((bbox.x2 || 0) - (bbox.x1 || 0));
+      const bboxH = Math.round((bbox.y2 || 0) - (bbox.y1 || 0));
+      msg += `${i + 1}. ${label} - ${(conf * 100).toFixed(1)}% confidence`;
+      if (bboxW > 0 && bboxH > 0) msg += ` [${bboxW}x${bboxH}px]`;
+      msg += '\n';
+    });
+
+    msg += `\n--- Summary ---\n`;
+    msg += `Objects: ${detections.length} detected\n`;
+    msg += `Classes: ${uniqueClasses} unique (${Object.entries(counts).map(([k, v]) => v > 1 ? `${k} x${v}` : k).join(', ')})\n`;
+    msg += `Avg confidence: ${(avgConf * 100).toFixed(1)}%\n`;
+    if (imageSize) msg += `Image: ${imageSize.width}x${imageSize.height}px\n`;
+    msg += `Model: YOLOv8n\n`;
+    msg += `Source: ${source}`;
+
+    // Send annotated image with caption, or just text if drawing failed
+    if (annotatedPath && fs.existsSync(annotatedPath)) {
+      await ctx.replyWithPhoto({ source: annotatedPath }, { caption: msg });
+      try { fs.unlinkSync(annotatedPath); } catch {}
+    } else {
+      await ctx.reply(msg);
+    }
+
+    // Cleanup
+    try { fs.unlinkSync(destPath); } catch {}
+  } catch (err) {
+    log(`[ERROR] YOLO: ${err.message}`);
+    await ctx.reply(`YOLO error: ${err.message}`);
+  }
+}
+
+// /yolo - Object detection on a photo
+guardCommand('yolo', async (ctx) => {
+  log('/yolo');
+  const reply = ctx.message.reply_to_message;
+  if (!reply || !reply.photo) {
+    return ctx.reply('Reply to a photo with /yolo to run object detection.\nOr send a photo with caption "yolo".');
+  }
+  const photos = reply.photo;
+  const largest = photos[photos.length - 1];
+  await processYolo(ctx, largest.file_id);
+});
+
 // ============================================================
 // PHOTO & DOCUMENT HANDLERS
 // ============================================================
@@ -3039,6 +4018,12 @@ bot.on('photo', async (ctx) => {
     log(`[PHOTO] Saved: ${destPath}`);
 
     const caption = ctx.message.caption || '';
+
+    // Check for YOLO caption
+    if (caption.toLowerCase().trim() === 'yolo' || caption.toLowerCase().trim() === '/yolo') {
+      return processYolo(ctx, largest.file_id);
+    }
+
     const msg = `Photo received and saved to ${destPath}. ${caption ? `Caption: "${caption}". ` : ''}What would you like me to do with this image?`;
     await askClaude(ctx, msg);
   } catch (err) {
@@ -3132,6 +4117,7 @@ async function registerCommands() {
       { command: 'sms', description: 'Send SMS to a number' },
       { command: 'call', description: 'Voice call with message' },
       { command: 'notify', description: 'Push notify all channels' },
+      { command: 'inspire', description: 'Inspire group email (name/all)' },
       // Creative
       { command: 'present', description: 'Email HTML presentation' },
       { command: 'report', description: 'Generate & email report' },
@@ -3149,6 +4135,7 @@ async function registerCommands() {
       { command: 'stream', description: 'Cloudflare Stream videos' },
       { command: 'trace', description: 'Trace request through Cloudflare' },
       { command: 'flux', description: 'Generate FREE AI image (Flux)' },
+      { command: 'crow', description: 'Crow Theme design system' },
       { command: 'gemini', description: 'Generate AI image (Gemini)' },
       { command: 'r2', description: 'R2 object storage' },
       { command: 'media', description: 'NAVADA media library' },
@@ -3158,6 +4145,11 @@ async function registerCommands() {
       { command: 'voicenote', description: 'Send voice email to Lee' },
       { command: 'cost', description: 'Usage & costs in £ (day/week/month)' },
       { command: 'logs', description: 'Search server logs (ELK)' },
+      { command: 'flix', description: 'NAVADA Flix video streaming' },
+      { command: 'aws', description: 'AWS EC2 management' },
+      { command: 'yolo', description: 'Object detection on a photo' },
+      { command: 'failover', description: 'Trigger failover to Oracle VM' },
+      { command: 'failback', description: 'Restore services to HP laptop' },
       { command: 'cache', description: 'Semantic cache stats' },
       { command: 'memory', description: 'Check memory status' },
       { command: 'clear', description: 'Reset conversation + memory' },
@@ -3258,15 +4250,11 @@ async function processInboundMessage(message, channel) {
     history.splice(0, 2);
   }
 
+  // Smart model selection for omni-channel
+  const omniModel = selectModel(message);
+
   // Omni-channel system prompt
-  const systemPrompt = ADMIN_SYSTEM_PROMPT.replace(
-    'You are communicating via Telegram from his iPhone.',
-    `You are communicating via ${channelLabel}. You are OMNI-CHANNEL: Lee reaches you on Telegram, SMS (+447446994961), and WhatsApp. Your conversation history is SHARED across ALL channels. Lee's messages may be prefixed with [Telegram], [SMS], or [WhatsApp] to show which channel they came from. NEVER include channel tags, timestamps, or brackets in YOUR responses. Just respond naturally as Claude.`
-  ) + `\n\n## ${channelLabel} Channel Rules
-- Keep responses concise (max ${maxChars} chars). ${channel === 'sms' ? 'SMS is expensive, be brief but helpful.' : 'WhatsApp allows more detail.'}
-- Do NOT use markdown formatting (no **, ##, \`\`\`). Use plain text only.
-- You are Claude, Chief of Staff. Same personality, same knowledge, same tools across all channels.
-- Current time: ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' })}${ragContext}`;
+  const systemPrompt = getAdminSystemPrompt(omniModel.name) + `\n\n${channelLabel} Channel: Keep responses under ${maxChars} chars. ${channel === 'sms' ? 'SMS is expensive, be brief.' : 'WhatsApp allows more detail.'} No markdown. Plain text only.${ragContext}`;
 
   let loopCount = 0;
   let messages = [...history];
@@ -3278,9 +4266,9 @@ async function processInboundMessage(message, channel) {
     while (loopCount < MAX_TOOL_LOOPS) {
       loopCount++;
 
-      const response = await anthropic.messages.create({
-        model: currentModel,
-        max_tokens: 4096,
+      const response = await callAnthropicWithRetry({
+        model: omniModel.model,
+        max_tokens: 8192,
         system: systemPrompt,
         tools: TOOLS,
         messages,
@@ -3289,11 +4277,11 @@ async function processInboundMessage(message, channel) {
       totalInputTokens += response.usage?.input_tokens || 0;
       totalOutputTokens += response.usage?.output_tokens || 0;
 
-      if (response.stop_reason === 'tool_use') {
+      const toolBlocks = response.content.filter(c => c.type === 'tool_use');
+      if (toolBlocks.length > 0) {
         usedTools = true;
-        const toolUses = response.content.filter(c => c.type === 'tool_use');
         const toolResults = [];
-        for (const toolUse of toolUses) {
+        for (const toolUse of toolBlocks) {
           log(`[${channel.toUpperCase()} TOOL] ${toolUse.name}: ${JSON.stringify(toolUse.input).slice(0, 200)}`);
           const result = await executeTool(toolUse.name, toolUse.input, 'admin');
           toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: String(result).slice(0, 4000) });
@@ -3326,18 +4314,19 @@ async function processInboundMessage(message, channel) {
 
         // Log interaction
         logInteraction({
-          direction: 'in', userId: OWNER_ID, username: 'Lee', model: currentModelName,
+          direction: 'in', userId: OWNER_ID, username: 'Lee', model: omniModel.name,
           message: `[${channelLabel}] ${message.slice(0, 500)}`,
         });
         logInteraction({
-          direction: 'out', userId: OWNER_ID, username: 'Lee', model: currentModelName,
+          direction: 'out', userId: OWNER_ID, username: 'Lee', model: omniModel.name,
+          model_reason: omniModel.reason,
           message: `[${channelLabel}] ${reply.slice(0, 500)}`,
           input_tokens: totalInputTokens, output_tokens: totalOutputTokens,
-          cost_gbp: estimateCost(currentModel, totalInputTokens, totalOutputTokens),
+          cost_gbp: estimateCost(omniModel.model, totalInputTokens, totalOutputTokens),
         });
 
         // Log cost
-        const modelKey = currentModel.includes('opus') ? 'claude-opus-4' : 'claude-sonnet-4';
+        const modelKey = omniModel.model.includes('opus') ? 'claude-opus-4' : 'claude-sonnet-4';
         costTracker.logCall(modelKey, {
           input_tokens: totalInputTokens,
           output_tokens: totalOutputTokens,
@@ -3394,12 +4383,43 @@ function isOwnMessage(from, body) {
   return false;
 }
 
+// Twilio webhook signature validation
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
+const TWILIO_WEBHOOK_URL = 'https://api.navada-edge-server.uk';
+
+function validateTwilioSignature(req, body, url) {
+  if (!TWILIO_AUTH_TOKEN) { log('[SECURITY] TWILIO_AUTH_TOKEN not set — rejecting webhook'); return false; }
+  const signature = req.headers['x-twilio-signature'];
+  if (!signature) {
+    log('[WEBHOOK] Missing X-Twilio-Signature header — request rejected');
+    return false;
+  }
+  try {
+    const params = Object.fromEntries(new URLSearchParams(body));
+    const valid = twilio.validateRequest(TWILIO_AUTH_TOKEN, signature, url, params);
+    if (!valid) {
+      log(`[WEBHOOK] Invalid Twilio signature — request rejected`);
+    }
+    return valid;
+  } catch (err) {
+    log(`[WEBHOOK] Signature validation error: ${err.message}`);
+    return false;
+  }
+}
+
 const webhookServer = http.createServer(async (req, res) => {
   if (req.method === 'POST' && req.url === '/twilio/sms') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', async () => {
       try {
+        // Validate Twilio webhook signature
+        if (!validateTwilioSignature(req, body, `${TWILIO_WEBHOOK_URL}/twilio/sms`)) {
+          logInteraction({ direction: 'system', event: 'webhook_rejected', endpoint: '/twilio/sms', reason: 'invalid_signature' });
+          res.writeHead(403, { 'Content-Type': 'text/plain' });
+          return res.end('Forbidden');
+        }
+
         const params = new URLSearchParams(body);
         const from = params.get('From') || 'unknown';
         const smsBody = params.get('Body') || '';
@@ -3447,6 +4467,13 @@ const webhookServer = http.createServer(async (req, res) => {
     req.on('data', chunk => { body += chunk; });
     req.on('end', async () => {
       try {
+        // Validate Twilio webhook signature
+        if (!validateTwilioSignature(req, body, `${TWILIO_WEBHOOK_URL}/twilio/whatsapp`)) {
+          logInteraction({ direction: 'system', event: 'webhook_rejected', endpoint: '/twilio/whatsapp', reason: 'invalid_signature' });
+          res.writeHead(403, { 'Content-Type': 'text/plain' });
+          return res.end('Forbidden');
+        }
+
         const params = new URLSearchParams(body);
         const rawFrom = params.get('From') || '';
         const from = rawFrom.replace('whatsapp:', '');
@@ -3500,6 +4527,30 @@ const webhookServer = http.createServer(async (req, res) => {
   } else if (req.method === 'GET' && req.url === '/twilio/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', service: 'twilio-webhook' }));
+  } else if (req.method === 'GET' && (req.url === '/health' || req.url === '/telegram/health')) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', service: 'navada-telegram-bot', mode: process.env.TELEGRAM_WEBHOOK_MODE === '1' ? 'webhook' : 'polling', uptime: process.uptime() }));
+  } else if (req.method === 'POST' && req.url === `/telegram/webhook/${BOT_TOKEN}`) {
+    // Telegram webhook endpoint — receives updates from Telegram via Cloudflare Tunnel
+    // CRITICAL: respond 200 IMMEDIATELY, then process async.
+    // Telegram retries if no 200 within ~60s, causing duplicate messages.
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      res.writeHead(200);
+      res.end('ok');
+      try {
+        const update = JSON.parse(body);
+        // Dedup handled by Telegraf middleware (bot.use at line ~377)
+        // Do NOT dedup here — it would add the ID before bot.handleUpdate,
+        // causing the middleware to see it as a duplicate and drop every message.
+        bot.handleUpdate(update).catch(e => {
+          console.error(`[NAVADA] Telegram webhook processing error: ${e.message}`);
+        });
+      } catch (e) {
+        console.error(`[NAVADA] Telegram webhook parse error: ${e.message}`);
+      }
+    });
   } else {
     res.writeHead(404);
     res.end('Not found');
@@ -3528,25 +4579,44 @@ console.log(`[NAVADA] Multi-user: enabled | Owner: ${OWNER_ID}`);
 
 registerCommands();
 
-// Launch Telegram bot — clear stale sessions first, then start polling
+// Launch Telegram bot — webhook mode (via Cloudflare Tunnel) or polling fallback
 async function launchBot() {
+  const useWebhook = process.env.TELEGRAM_WEBHOOK_MODE === '1';
+  const webhookDomain = process.env.TELEGRAM_WEBHOOK_DOMAIN || 'api.navada-edge-server.uk';
+
+  if (useWebhook) {
+    // Webhook mode: Telegram sends updates to our HTTP server via Cloudflare Tunnel
+    const webhookUrl = `https://${webhookDomain}/telegram/webhook/${BOT_TOKEN}`;
+    try {
+      await bot.telegram.setWebhook(webhookUrl);
+      console.log(`[NAVADA] Webhook set: ${webhookDomain}/telegram/webhook/***`);
+      console.log('[NAVADA] Online. Claude Chief of Staff ready (webhook mode).');
+    } catch (err) {
+      console.error(`[NAVADA] Webhook setup failed: ${err.message}, falling back to polling`);
+      await launchPolling();
+    }
+  } else {
+    await launchPolling();
+  }
+}
+
+async function launchPolling() {
   try {
     // Clear any stale polling sessions from zombie processes
     await bot.telegram.deleteWebhook({ drop_pending_updates: true });
     console.log('[NAVADA] Cleared stale Telegram sessions');
     await new Promise(r => setTimeout(r, 2000));
     await bot.launch({ dropPendingUpdates: true });
-    console.log('[NAVADA] Online. Claude Chief of Staff ready.');
+    console.log('[NAVADA] Online. Claude Chief of Staff ready (polling mode).');
   } catch (err) {
     console.error(`[NAVADA] Telegram launch error: ${err.message}`);
-    // On 409, wait longer and retry once
     if (err.message.includes('409')) {
       console.log('[NAVADA] Waiting 30s for stale polling to clear...');
       await new Promise(r => setTimeout(r, 30000));
       try {
         await bot.telegram.deleteWebhook({ drop_pending_updates: true });
         await bot.launch({ dropPendingUpdates: true });
-        console.log('[NAVADA] Online. Claude Chief of Staff ready (retry).');
+        console.log('[NAVADA] Online. Claude Chief of Staff ready (polling retry).');
       } catch (err2) {
         console.error(`[NAVADA] Telegram retry failed: ${err2.message}`);
         process.exit(1);
@@ -3558,5 +4628,34 @@ async function launchBot() {
 }
 launchBot();
 
+// --- Hourly cache eviction ---
+setInterval(() => {
+  try {
+    const evicted = responseCache.evict();
+    if (evicted > 0) console.log(`[CACHE] Evicted ${evicted} expired entries`);
+  } catch {}
+}, 60 * 60 * 1000);
+
+// --- Graceful shutdown ---
 process.once('SIGINT', () => { webhookServer.close(); bot.stop('SIGINT'); });
 process.once('SIGTERM', () => { webhookServer.close(); bot.stop('SIGTERM'); });
+
+// --- Bug 5: Uncaught exception handlers (prevent silent crashes) ---
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught exception:', err.message, err.stack);
+  try {
+    const logLine = JSON.stringify({ ts: new Date().toISOString(), event: 'uncaughtException', error: err.message, stack: err.stack?.slice(0, 500) });
+    fs.appendFileSync(path.join(LOG_DIR, 'telegram-crashes.log'), logLine + '\n');
+  } catch {}
+  // Let PM2 restart us
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  const msg = reason instanceof Error ? reason.message : String(reason);
+  console.error('[WARN] Unhandled rejection:', msg);
+  try {
+    const logLine = JSON.stringify({ ts: new Date().toISOString(), event: 'unhandledRejection', error: msg });
+    fs.appendFileSync(path.join(LOG_DIR, 'telegram-crashes.log'), logLine + '\n');
+  } catch {}
+});

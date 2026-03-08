@@ -25,18 +25,19 @@ const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
 const API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 const CF_API = `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}`;
 
-// R2 S3-compatible API (for object operations)
+// R2 S3-compatible API (for object operations — optional, falls back to CF API)
 const R2_ACCESS_KEY = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
 const R2_SECRET_KEY = process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
 const R2_ENDPOINT = process.env.CLOUDFLARE_R2_ENDPOINT || `https://${ACCOUNT_ID}.r2.cloudflarestorage.com`;
 const DEFAULT_BUCKET = process.env.CLOUDFLARE_R2_BUCKET || 'navada-assets';
+const USE_S3 = !!(R2_ACCESS_KEY && R2_SECRET_KEY);
 
 let s3Client = null;
 
 function getS3Client() {
   if (s3Client) return s3Client;
-  if (!R2_ACCESS_KEY || !R2_SECRET_KEY) {
-    throw new Error('Missing CLOUDFLARE_R2_ACCESS_KEY_ID or CLOUDFLARE_R2_SECRET_ACCESS_KEY in .env');
+  if (!USE_S3) {
+    throw new Error('S3 keys not configured, use Cloudflare API instead');
   }
   const { S3Client } = require('@aws-sdk/client-s3');
   s3Client = new S3Client({
@@ -121,23 +122,126 @@ async function ensureBucket(name) {
   }
 }
 
-// --- Object Operations (S3 API) ---
+// --- Cloudflare API v4 Object Operations (no S3 keys needed) ---
+
+function cfPutObject(bucket, key, buffer, contentType) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(`${CF_API}/r2/buckets/${bucket}/objects/${encodeURIComponent(key)}`);
+    const opts = {
+      hostname: url.hostname,
+      path: url.pathname,
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${API_TOKEN}`,
+        'Content-Type': contentType,
+        'Content-Length': buffer.length,
+      },
+    };
+    const req = https.request(opts, (res) => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve({ success: true });
+        } else {
+          try {
+            const json = JSON.parse(Buffer.concat(chunks).toString());
+            reject(new Error(json.errors?.[0]?.message || `HTTP ${res.statusCode}`));
+          } catch { reject(new Error(`HTTP ${res.statusCode}`)); }
+        }
+      });
+    });
+    req.on('error', reject);
+    req.write(buffer);
+    req.end();
+  });
+}
+
+function cfGetObject(bucket, key) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(`${CF_API}/r2/buckets/${bucket}/objects/${encodeURIComponent(key)}`);
+    const opts = {
+      hostname: url.hostname,
+      path: url.pathname,
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${API_TOKEN}` },
+    };
+    const req = https.request(opts, (res) => {
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        const chunks = [];
+        res.on('data', c => chunks.push(c));
+        res.on('end', () => resolve({ buffer: Buffer.concat(chunks), contentType: res.headers['content-type'] }));
+      } else {
+        res.resume();
+        reject(new Error(`HTTP ${res.statusCode}`));
+      }
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+function cfDeleteObject(bucket, key) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(`${CF_API}/r2/buckets/${bucket}/objects/${encodeURIComponent(key)}`);
+    const opts = {
+      hostname: url.hostname,
+      path: url.pathname,
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${API_TOKEN}` },
+    };
+    const req = https.request(opts, (res) => {
+      res.resume();
+      if (res.statusCode >= 200 && res.statusCode < 300) resolve();
+      else reject(new Error(`HTTP ${res.statusCode}`));
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+function cfListObjects(bucket, prefix = '') {
+  return new Promise((resolve, reject) => {
+    let urlPath = `/r2/buckets/${bucket}/objects`;
+    if (prefix) urlPath += `?prefix=${encodeURIComponent(prefix)}`;
+    const url = new URL(`${CF_API}${urlPath}`);
+    const opts = {
+      hostname: url.hostname,
+      path: url.pathname + url.search,
+      method: 'GET',
+      headers: cfHeaders(),
+    };
+    const req = https.request(opts, (res) => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(Buffer.concat(chunks).toString());
+          if (!json.success) reject(new Error(json.errors?.[0]?.message || 'CF API error'));
+          else resolve(json.result || []);
+        } catch (e) { reject(e); }
+      });
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+// --- Object Operations (S3 with CF API fallback) ---
 
 async function uploadFile(filePath, key, bucket = DEFAULT_BUCKET) {
-  const { PutObjectCommand } = require('@aws-sdk/client-s3');
-  const client = getS3Client();
-
   if (!fs.existsSync(filePath)) throw new Error(`File not found: ${filePath}`);
   const fileBuffer = fs.readFileSync(filePath);
   const ext = path.extname(filePath).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
-  await client.send(new PutObjectCommand({
-    Bucket: bucket,
-    Key: key,
-    Body: fileBuffer,
-    ContentType: contentType,
-  }));
+  if (USE_S3) {
+    const { PutObjectCommand } = require('@aws-sdk/client-s3');
+    const client = getS3Client();
+    await client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: fileBuffer, ContentType: contentType }));
+  } else {
+    await cfPutObject(bucket, key, fileBuffer, contentType);
+  }
 
   const size = (fileBuffer.length / 1024 / 1024).toFixed(2);
   console.log(`Uploaded: ${key} (${size} MB) to ${bucket}`);
@@ -145,65 +249,67 @@ async function uploadFile(filePath, key, bucket = DEFAULT_BUCKET) {
 }
 
 async function uploadBuffer(buffer, key, contentType = 'application/octet-stream', bucket = DEFAULT_BUCKET) {
-  const { PutObjectCommand } = require('@aws-sdk/client-s3');
-  const client = getS3Client();
-
-  await client.send(new PutObjectCommand({
-    Bucket: bucket,
-    Key: key,
-    Body: buffer,
-    ContentType: contentType,
-  }));
+  if (USE_S3) {
+    const { PutObjectCommand } = require('@aws-sdk/client-s3');
+    const client = getS3Client();
+    await client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: buffer, ContentType: contentType }));
+  } else {
+    await cfPutObject(bucket, key, buffer, contentType);
+  }
 
   console.log(`Uploaded buffer: ${key} (${(buffer.length / 1024).toFixed(1)} KB) to ${bucket}`);
   return { key, bucket, size: buffer.length, contentType };
 }
 
 async function listObjects(prefix = '', bucket = DEFAULT_BUCKET) {
-  const { ListObjectsV2Command } = require('@aws-sdk/client-s3');
-  const client = getS3Client();
-
-  const params = { Bucket: bucket, MaxKeys: 100 };
-  if (prefix) params.Prefix = prefix;
-
-  const result = await client.send(new ListObjectsV2Command(params));
-  const objects = result.Contents || [];
+  let objects;
+  if (USE_S3) {
+    const { ListObjectsV2Command } = require('@aws-sdk/client-s3');
+    const client = getS3Client();
+    const params = { Bucket: bucket, MaxKeys: 100 };
+    if (prefix) params.Prefix = prefix;
+    const result = await client.send(new ListObjectsV2Command(params));
+    objects = (result.Contents || []).map(o => ({ key: o.Key, size: o.Size, last_modified: o.LastModified?.toISOString() }));
+  } else {
+    const result = await cfListObjects(bucket, prefix);
+    objects = (Array.isArray(result) ? result : []).map(o => ({ key: o.key, size: o.size, last_modified: o.last_modified || o.uploaded }));
+  }
 
   console.log(`Objects in ${bucket}/${prefix || ''} (${objects.length}):`);
   for (const obj of objects) {
-    const size = (obj.Size / 1024 / 1024).toFixed(2);
-    console.log(`  ${obj.Key} | ${size} MB | ${obj.LastModified?.toISOString() || 'N/A'}`);
+    const size = ((obj.size || 0) / 1024 / 1024).toFixed(2);
+    console.log(`  ${obj.key} | ${size} MB | ${obj.last_modified || 'N/A'}`);
   }
   return objects;
 }
 
 async function getObject(key, bucket = DEFAULT_BUCKET) {
-  const { GetObjectCommand } = require('@aws-sdk/client-s3');
-  const client = getS3Client();
-
-  const result = await client.send(new GetObjectCommand({
-    Bucket: bucket,
-    Key: key,
-  }));
-
-  const chunks = [];
-  for await (const chunk of result.Body) {
-    chunks.push(chunk);
+  let buffer, contentType;
+  if (USE_S3) {
+    const { GetObjectCommand } = require('@aws-sdk/client-s3');
+    const client = getS3Client();
+    const result = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+    const chunks = [];
+    for await (const chunk of result.Body) { chunks.push(chunk); }
+    buffer = Buffer.concat(chunks);
+    contentType = result.ContentType;
+  } else {
+    const result = await cfGetObject(bucket, key);
+    buffer = result.buffer;
+    contentType = result.contentType;
   }
-  const buffer = Buffer.concat(chunks);
   console.log(`Downloaded: ${key} (${(buffer.length / 1024 / 1024).toFixed(2)} MB)`);
-  return { buffer, contentType: result.ContentType, size: buffer.length };
+  return { buffer, contentType, size: buffer.length };
 }
 
 async function deleteObject(key, bucket = DEFAULT_BUCKET) {
-  const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
-  const client = getS3Client();
-
-  await client.send(new DeleteObjectCommand({
-    Bucket: bucket,
-    Key: key,
-  }));
-
+  if (USE_S3) {
+    const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
+    const client = getS3Client();
+    await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+  } else {
+    await cfDeleteObject(bucket, key);
+  }
   console.log(`Deleted: ${key} from ${bucket}`);
   return { key, bucket };
 }

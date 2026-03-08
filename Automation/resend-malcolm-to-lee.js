@@ -24,7 +24,7 @@ ${table(
     ['Global MCPs', 'Puppeteer, GitHub, PostgreSQL, Bright Data, OpenAI Images'],
     ['Project MCPs', 'Fetch, Memory, Sequential Thinking, Context7, DuckDB, SQLite, Jupyter + 8 more'],
     ['Automation', 'Task Scheduler + PM2 daemons — AI News, Job Hunter, Economy Reports, Voice Assistant'],
-    ['Networking', 'LAN (192.168.0.36), Tailscale VPN, SSH, Cloudflare Tunnel'],
+    ['Networking', 'LAN (192.168.0.58), Tailscale VPN, SSH, Cloudflare Tunnel'],
     ['Client', 'iPhone 15 Pro Max via Termius / SSH / Tailscale'],
   ]
 )}

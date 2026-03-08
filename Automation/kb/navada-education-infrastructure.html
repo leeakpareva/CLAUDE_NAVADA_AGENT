@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAVADA Education: Understanding Your Three-Node Infrastructure</title>
+</head>
+<body style="margin:0; padding:0; background:#ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+<div style="display:none;max-height:0;overflow:hidden">Education mode: How your three-node mesh network works, with diagrams</div>
+
+<!-- Header -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#000000;">
+  <tr>
+    <td style="padding: 28px 40px;">
+      <div style="font-size:22px; font-weight:800; color:#ffffff; letter-spacing:0.15em; font-family: 'Helvetica Neue', Arial, sans-serif;">
+        NAVADA
+      </div>
+      <div style="font-size:11px; color:#999999; letter-spacing:0.08em; margin-top:4px; text-transform:uppercase;">
+        AI Engineering & Consulting
+      </div>
+    </td>
+  </tr>
+</table>
+
+<!-- Date Bar -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#fafafa; border-bottom: 1px solid #eaeaea;">
+  <tr>
+    <td style="padding: 10px 40px;">
+      <span style="font-size:11px; color:#888888; letter-spacing:0.04em;">
+        Thursday, 5 March 2026 &middot; 17:33
+      </span>
+    </td>
+  </tr>
+</table>
+
+<!-- Heading -->
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+  <tr>
+    <td style="padding: 32px 40px 0 40px;">
+      <h1 style="margin:0; font-size:20px; font-weight:700; color:#111111; line-height:1.3;">
+        Understanding Your Three-Node Infrastructure
+      </h1>
+    </td>
+  </tr>
+</table>
+
+
+<!-- Body Content -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+  <tr>
+    <td style="padding: 20px 40px 32px 40px; font-size:14px; line-height:1.7; color:#333333;">
+      
+<p style="margin:0 0 12px 0;">Lee,</p>
+
+<p style="margin:0 0 12px 0;">Here's the full education breakdown of your new infrastructure setup, including clear diagrams of how everything connects.</p>
+
+<h2 style="font-size:20px; font-weight:700; color:#111; margin:28px 0 16px;">Your Infrastructure at a Glance</h2>
+
+<p style="margin:0 0 12px 0;">You now run a <strong>three-node mesh network</strong> spread across three locations, all talking to each other over encrypted tunnels. Nothing is exposed to the open internet.</p>
+
+<!-- Three Node Diagram -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:20px 0;">
+  <tr>
+    <td style="text-align:center;">
+      <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto; border-collapse:separate; border-spacing:12px;">
+        <tr>
+          <!-- Node A -->
+          <td style="background:#fff; border:2px solid #ff9500; border-radius:12px; padding:16px 20px; text-align:center; width:180px; vertical-align:top;">
+            <div style="font-size:20px; margin-bottom:6px;">&#9729;</div>
+            <div style="font-size:15px; font-weight:700; color:#ff9500;">Node A</div>
+            <div style="font-size:13px; font-weight:700; color:#333;">AWS EC2</div>
+            <div style="font-size:11px; color:#888; margin-top:4px;">WATCHDOG</div>
+            <div style="font-size:10px; color:#666; margin-top:8px; line-height:1.5;">
+              t3.micro | 1GB RAM<br>
+              eu-west-2 (London)<br>
+              <span style="background:#ff9500; color:white; padding:1px 6px; border-radius:3px; font-size:9px;">FREE TIER</span>
+            </div>
+          </td>
+          <!-- Node B -->
+          <td style="background:linear-gradient(135deg, #1a1a2e, #16213e); border-radius:12px; padding:16px 20px; text-align:center; width:200px; vertical-align:top;">
+            <div style="font-size:20px; margin-bottom:6px;">&#128187;</div>
+            <div style="font-size:15px; font-weight:700; color:#00d4ff;">Node B</div>
+            <div style="font-size:13px; font-weight:700; color:white;">HP Laptop</div>
+            <div style="font-size:11px; color:#00d4ff; margin-top:4px;">THE BRAIN</div>
+            <div style="font-size:10px; color:#aaa; margin-top:8px; line-height:1.5;">
+              Intel i7 | 16GB RAM<br>
+              Windows 11 Pro<br>
+              <span style="background:#00d4ff; color:#1a1a2e; padding:1px 6px; border-radius:3px; font-size:9px; font-weight:700;">PRIMARY</span>
+            </div>
+          </td>
+          <!-- Node C -->
+          <td style="background:#fff; border:2px solid #00b894; border-radius:12px; padding:16px 20px; text-align:center; width:180px; vertical-align:top;">
+            <div style="font-size:20px; margin-bottom:6px;">&#9881;</div>
+            <div style="font-size:15px; font-weight:700; color:#00b894;">Node C</div>
+            <div style="font-size:13px; font-weight:700; color:#333;">Oracle VM</div>
+            <div style="font-size:11px; color:#888; margin-top:4px;">DATA + DR</div>
+            <div style="font-size:10px; color:#666; margin-top:8px; line-height:1.5;">
+              1 OCPU | 12GB RAM<br>
+              uk-london-1<br>
+              <span style="background:#00b894; color:white; padding:1px 6px; border-radius:3px; font-size:9px;">FREE FOREVER</span>
+            </div>
+          </td>
+        </tr>
+      </table>
+      <!-- Mesh line -->
+      <table role="presentation" cellspacing="0" cellpadding="0" style="margin:12px auto 0; width:520px;">
+        <tr>
+          <td style="background:linear-gradient(90deg, #00d4ff, #7b2ff7); height:3px; border-radius:2px;"></td>
+        </tr>
+        <tr>
+          <td style="text-align:center; padding-top:6px;">
+            <span style="font-size:11px; font-weight:700; color:#7b2ff7; background:#fafafa; padding:2px 10px; border-radius:4px;">
+              &#128274; Tailscale WireGuard Mesh (ChaCha20-Poly1305 Encryption)
+            </span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<h2 style="font-size:18px; font-weight:700; color:#111; margin:28px 0 12px;">The Three Roles Explained</h2>
+
+<!-- Node B Detail -->
+<div style="background:linear-gradient(135deg, #1a1a2e, #16213e); border-radius:10px; padding:20px; margin:16px 0;">
+  <div style="font-size:16px; font-weight:700; color:#00d4ff; margin-bottom:4px;">Node B: HP Laptop (The Brain)</div>
+  <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">All services, all control</div>
+  <div style="font-size:13px; color:#ccc; line-height:1.8;">
+    This is the brain. It runs <strong style="color:white;">everything</strong>: your Telegram bot, email responder, trading, WorldMonitor, Flix, voice commands. <strong style="color:white;">14 PM2 services + 3 Docker containers.</strong><br><br>
+    All traffic from the outside world comes in through a <strong style="color:#00d4ff;">Cloudflare Tunnel</strong>, which is an outbound-only connection from your laptop to Cloudflare's edge. This means your laptop has <strong style="color:#00d4ff;">zero open ports</strong> facing the internet. Nobody can find it, nobody can attack it directly.
+  </div>
+</div>
+
+<!-- Node C Detail -->
+<div style="background:#fff; border:2px solid #00b894; border-radius:10px; padding:20px; margin:16px 0;">
+  <div style="font-size:16px; font-weight:700; color:#00b894; margin-bottom:4px;">Node C: Oracle VM (Data + Disaster Recovery)</div>
+  <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Monitoring, database, failover target</div>
+  <div style="font-size:13px; color:#333; line-height:1.8;">
+    This is the database and monitoring layer. <strong>Elasticsearch, Kibana, Prometheus, Grafana, Uptime Kuma, Oracle XE</strong> all live here. It watches everything.<br><br>
+    As of today, it's also your <strong style="color:#00b894;">disaster recovery site</strong> with dormant copies of your critical services ready to wake up if the HP goes down. Think of it as a sleeping backup that springs to life when needed.
+  </div>
+</div>
+
+<!-- Node A Detail -->
+<div style="background:#fff; border:2px solid #ff9500; border-radius:10px; padding:20px; margin:16px 0;">
+  <div style="font-size:16px; font-weight:700; color:#ff9500; margin-bottom:4px;">Node A: AWS EC2 (The Watchdog)</div>
+  <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Health monitoring + failover trigger</div>
+  <div style="font-size:13px; color:#333; line-height:1.8;">
+    Its only real job is to ping the HP every 5 minutes and ask <strong>"are you alive?"</strong><br><br>
+    If the HP doesn't respond 3 times in a row (15 minutes), EC2 SSHs into Oracle and says <strong style="color:#ff9500;">"wake up, you're in charge now."</strong> It's the independent referee that triggers the failover.
+  </div>
+</div>
+
+<h2 style="font-size:18px; font-weight:700; color:#111; margin:28px 0 12px;">How They Talk to Each Other</h2>
+
+<p style="margin:0 0 12px 0;">All three nodes are connected via <strong>Tailscale</strong>, which creates a private WireGuard VPN mesh. Each node gets a stable IP (100.x.x.x) that works from anywhere, even if the physical IPs change. The encryption is <strong>ChaCha20-Poly1305</strong>, which is military-grade.</p>
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:16px 0; background:#fafafa; border:1px solid #eaeaea; border-radius:8px;">
+  <tr>
+    <td style="padding:20px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+        <tr>
+          <td style="font-size:12px; font-weight:700; color:#666; padding-bottom:8px; border-bottom:2px solid #111; width:33%;">Node</td>
+          <td style="font-size:12px; font-weight:700; color:#666; padding-bottom:8px; border-bottom:2px solid #111; width:33%;">Public IP</td>
+          <td style="font-size:12px; font-weight:700; color:#666; padding-bottom:8px; border-bottom:2px solid #111; width:34%;">Tailscale IP (Private)</td>
+        </tr>
+        <tr>
+          <td style="font-size:13px; color:#333; padding:8px 0; border-bottom:1px solid #eee;"><strong style="color:#ff9500;">A</strong> EC2</td>
+          <td style="font-size:12px; color:#555; padding:8px 0; border-bottom:1px solid #eee; font-family:monospace;">18.130.39.222</td>
+          <td style="font-size:12px; color:#555; padding:8px 0; border-bottom:1px solid #eee; font-family:monospace;">100.98.118.33</td>
+        </tr>
+        <tr>
+          <td style="font-size:13px; color:#333; padding:8px 0; border-bottom:1px solid #eee;"><strong style="color:#00d4ff;">B</strong> HP Laptop</td>
+          <td style="font-size:12px; color:#555; padding:8px 0; border-bottom:1px solid #eee; font-family:monospace;">192.168.0.58 (local)</td>
+          <td style="font-size:12px; color:#555; padding:8px 0; border-bottom:1px solid #eee; font-family:monospace;">100.121.187.67</td>
+        </tr>
+        <tr>
+          <td style="font-size:13px; color:#333; padding:8px 0;"><strong style="color:#00b894;">C</strong> Oracle VM</td>
+          <td style="font-size:12px; color:#555; padding:8px 0; font-family:monospace;">132.145.46.184</td>
+          <td style="font-size:12px; color:#555; padding:8px 0; font-family:monospace;">100.77.206.9</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<h2 style="font-size:18px; font-weight:700; color:#111; margin:28px 0 12px;">How the Outside World Reaches You</h2>
+
+<p style="margin:0 0 12px 0;">This is the traffic flow when someone sends a Telegram message, hits your API, or visits your services:</p>
+
+<!-- Traffic Flow Diagram -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:16px 0;">
+  <tr>
+    <td style="text-align:center;">
+      <!-- Step 1 -->
+      <div style="background:#333; color:white; display:inline-block; padding:10px 24px; border-radius:8px; font-size:13px; font-weight:600;">
+        &#127758; User's Browser / Phone / Telegram
+      </div>
+      <div style="text-align:center; padding:4px 0;">
+        <span style="font-size:20px; color:#f48120;">&#8595;</span>
+      </div>
+      <!-- Step 2 -->
+      <div style="background:linear-gradient(135deg, #f48120, #faad3f); color:white; display:inline-block; padding:12px 24px; border-radius:8px; font-size:13px; font-weight:600;">
+        &#9729; Cloudflare Edge Network<br>
+        <span style="font-size:11px; font-weight:400;">WAF | DDoS Protection | Zero Trust | DNS</span>
+      </div>
+      <div style="text-align:center; padding:4px 0;">
+        <span style="font-size:20px; color:#f48120;">&#8595;</span>
+        <span style="font-size:10px; color:#888; display:block;">Encrypted Tunnel (outbound-only from HP)</span>
+      </div>
+      <!-- Step 3 -->
+      <div style="background:#1a1a2e; color:white; display:inline-block; padding:10px 24px; border-radius:8px; font-size:13px; font-weight:600;">
+        &#128187; Nginx on HP Laptop<br>
+        <span style="font-size:11px; font-weight:400; color:#aaa;">Routes traffic to correct service</span>
+      </div>
+      <div style="text-align:center; padding:4px 0;">
+        <span style="font-size:20px; color:#00d4ff;">&#8595;</span>
+      </div>
+      <!-- Step 4 -->
+      <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto; border-collapse:separate; border-spacing:8px;">
+        <tr>
+          <td style="background:#fff; border:1px solid #ddd; border-radius:6px; padding:8px 14px; text-align:center; font-size:11px;">
+            <strong style="color:#00d4ff;">telegram-bot</strong><br>:3456
+          </td>
+          <td style="background:#fff; border:1px solid #ddd; border-radius:6px; padding:8px 14px; text-align:center; font-size:11px;">
+            <strong style="color:#00d4ff;">trading-api</strong><br>:5678
+          </td>
+          <td style="background:#fff; border:1px solid #ddd; border-radius:6px; padding:8px 14px; text-align:center; font-size:11px;">
+            <strong style="color:#00d4ff;">worldmonitor</strong><br>:4173
+          </td>
+          <td style="background:#fff; border:1px solid #ddd; border-radius:6px; padding:8px 14px; text-align:center; font-size:11px;">
+            <strong style="color:#00d4ff;">navada-flix</strong><br>:4000
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<div style="background:#fafafa; border-left:3px solid #e0e0e0; padding:12px 16px; margin:12px 0; font-size:13px; border-radius:0 2px 2px 0;"><strong>Key point:</strong> No one can hit your laptop directly. They hit Cloudflare first, which filters out attacks, then Cloudflare sends it through the tunnel your laptop created. Your laptop's real IP is completely hidden.</div>
+
+<h2 style="font-size:18px; font-weight:700; color:#111; margin:28px 0 12px;">The Failover: What We Built Today</h2>
+
+<p style="margin:0 0 12px 0;">If your HP crashes or loses power, here's exactly what happens:</p>
+
+<!-- Failover Flow -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:16px 0;">
+  <tr><td>
+    <!-- Step 1 -->
+    <div style="display:flex; align-items:flex-start; margin-bottom:12px;">
+      <div style="background:#ff9500; color:white; min-width:32px; height:32px; border-radius:50%; text-align:center; line-height:32px; font-weight:700; font-size:14px; margin-right:12px;">1</div>
+      <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:10px 16px; flex:1;">
+        <div style="font-size:13px; font-weight:600; color:#333;">EC2 Detects HP is Down</div>
+        <div style="font-size:12px; color:#888; margin-top:2px;">3 failed pings x 5 min intervals = 15 minutes to detect</div>
+      </div>
+    </div>
+    <!-- Step 2 -->
+    <div style="display:flex; align-items:flex-start; margin-bottom:12px;">
+      <div style="background:#ff9500; color:white; min-width:32px; height:32px; border-radius:50%; text-align:center; line-height:32px; font-weight:700; font-size:14px; margin-right:12px;">2</div>
+      <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:10px 16px; flex:1;">
+        <div style="font-size:13px; font-weight:600; color:#333;">EC2 SSHs into Oracle VM</div>
+        <div style="font-size:12px; color:#888; margin-top:2px;">Runs failover-activate.sh over Tailscale</div>
+      </div>
+    </div>
+    <!-- Step 3 -->
+    <div style="display:flex; align-items:flex-start; margin-bottom:12px;">
+      <div style="background:#e74c3c; color:white; min-width:32px; height:32px; border-radius:50%; text-align:center; line-height:32px; font-weight:700; font-size:14px; margin-right:12px;">3</div>
+      <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:10px 16px; flex:1;">
+        <div style="font-size:13px; font-weight:600; color:#e74c3c;">DNS Switches to Oracle</div>
+        <div style="font-size:12px; color:#888; margin-top:2px;">api.navada-edge-server.uk now points to Oracle's Cloudflare tunnel instead of HP's</div>
+      </div>
+    </div>
+    <!-- Step 4 -->
+    <div style="display:flex; align-items:flex-start; margin-bottom:12px;">
+      <div style="background:#00b894; color:white; min-width:32px; height:32px; border-radius:50%; text-align:center; line-height:32px; font-weight:700; font-size:14px; margin-right:12px;">4</div>
+      <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:10px 16px; flex:1;">
+        <div style="font-size:13px; font-weight:600; color:#333;">Oracle Starts Critical Services</div>
+        <div style="font-size:12px; color:#888; margin-top:2px;">Telegram bot, inbox responder, trading API + scheduler wake up from dormant state</div>
+      </div>
+    </div>
+    <!-- Step 5 -->
+    <div style="display:flex; align-items:flex-start;">
+      <div style="background:#00d4ff; color:#1a1a2e; min-width:32px; height:32px; border-radius:50%; text-align:center; line-height:32px; font-weight:700; font-size:14px; margin-right:12px;">5</div>
+      <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:10px 16px; flex:1;">
+        <div style="font-size:13px; font-weight:600; color:#333;">You Get a Telegram Message</div>
+        <div style="font-size:12px; color:#888; margin-top:2px;">"FAILOVER ACTIVE" - everything is running on Oracle now</div>
+      </div>
+    </div>
+  </td></tr>
+</table>
+
+<div style="background:#fafafa; border-left:3px solid #e0e0e0; padding:12px 16px; margin:12px 0; font-size:13px; border-radius:0 2px 2px 0;">When HP comes back online, EC2 detects the recovery and the entire process reverses automatically. State syncs back to HP, Oracle services stop, DNS restores. You get a "FAILBACK COMPLETE" message.</div>
+
+<h2 style="font-size:18px; font-weight:700; color:#111; margin:28px 0 12px;">Downtime Summary</h2>
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:12px 0;">
+  <thead>
+    <tr>
+      <th style="padding:8px 12px; font-size:11px; font-weight:600; color:#666; text-transform:uppercase; letter-spacing:0.06em; border-bottom:2px solid #111; text-align:left;">Scenario</th>
+      <th style="padding:8px 12px; font-size:11px; font-weight:600; color:#666; text-transform:uppercase; letter-spacing:0.06em; border-bottom:2px solid #111; text-align:left;">Detection</th>
+      <th style="padding:8px 12px; font-size:11px; font-weight:600; color:#666; text-transform:uppercase; letter-spacing:0.06em; border-bottom:2px solid #111; text-align:left;">Switchover</th>
+      <th style="padding:8px 12px; font-size:11px; font-weight:600; color:#666; text-transform:uppercase; letter-spacing:0.06em; border-bottom:2px solid #111; text-align:left;">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding:8px 12px; font-size:13px; color:#333; border-bottom:1px solid #eaeaea;">HP crash / power outage</td>
+      <td style="padding:8px 12px; font-size:13px; color:#333; border-bottom:1px solid #eaeaea;">15 min</td>
+      <td style="padding:8px 12px; font-size:13px; color:#333; border-bottom:1px solid #eaeaea;">~2 min</td>
+      <td style="padding:8px 12px; font-size:13px; font-weight:700; color:#e74c3c; border-bottom:1px solid #eaeaea;">~17 min</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 12px; font-size:13px; color:#333; border-bottom:1px solid #eaeaea;">You run /failover on Telegram</td>
+      <td style="padding:8px 12px; font-size:13px; color:#333; border-bottom:1px solid #eaeaea;">Instant</td>
+      <td style="padding:8px 12px; font-size:13px; color:#333; border-bottom:1px solid #eaeaea;">~2 min</td>
+      <td style="padding:8px 12px; font-size:13px; font-weight:700; color:#00b894; border-bottom:1px solid #eaeaea;">~2 min</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 12px; font-size:13px; color:#333;">Planned maintenance</td>
+      <td style="padding:8px 12px; font-size:13px; color:#333;">Pre-triggered</td>
+      <td style="padding:8px 12px; font-size:13px; color:#333;">~2 min</td>
+      <td style="padding:8px 12px; font-size:13px; font-weight:700; color:#00b894;">~2 min</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 style="font-size:18px; font-weight:700; color:#111; margin:28px 0 12px;">Full Node Map</h2>
+
+<p style="margin:0 0 12px 0;">Here's the detailed visual map showing all services, ports, connections, and the Cloudflare edge layer:</p>
+
+<img src="cid:node-map" alt="NAVADA Three-Node Infrastructure Map" style="width:100%; max-width:700px; border-radius:8px; border:1px solid #eaeaea; margin:12px 0;" />
+
+<p style="margin:0 0 12px 0;">This is your infrastructure. Ask me anything about it anytime.</p>
+
+    </td>
+  </tr>
+</table>
+
+<!-- Divider -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+  <tr>
+    <td style="padding: 0 40px;">
+      <hr style="border:none; border-top:1px solid #eaeaea; margin:0;">
+    </td>
+  </tr>
+</table>
+
+<!-- Signature Image -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+  <tr>
+    <td style="padding: 24px 40px 0 40px;">
+      <img src="cid:claude-signature" alt="Claude | NAVADA" style="width:280px; height:auto; display:block;" />
+    </td>
+  </tr>
+</table>
+
+<!-- Signature Details -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+  <tr>
+    <td style="padding: 16px 40px 8px 40px;">
+      <table role="presentation" cellspacing="0" cellpadding="0">
+        <tr>
+          <td style="vertical-align:top;">
+            <div style="font-size:16px; font-weight:800; color:#000000; letter-spacing:0.03em; font-family:'Helvetica Neue', Arial, sans-serif;">
+              CLAUDE
+            </div>
+            <div style="font-size:10px; font-weight:600; color:#666666; letter-spacing:0.12em; text-transform:uppercase; margin-top:2px;">
+              Chief of Staff
+            </div>
+            <div style="width:40px; height:2px; background:#000000; margin:8px 0;"></div>
+            <div style="font-size:12px; color:#555555; line-height:1.6;">
+              NAVADA AI Engineering &amp; Consulting<br>
+              On behalf of <strong>Lee Akpareva</strong>, Founder<br>
+              <a href="tel:+447446994961" style="color:#555555; text-decoration:none;">+44 7446 994961</a>
+              &nbsp;|&nbsp;
+              <a href="mailto:claude@navada-edge-server.uk" style="color:#555555; text-decoration:none;">claude@navada-edge-server.uk</a>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- Footer -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#fafafa; border-top:1px solid #eaeaea;">
+  <tr>
+    <td style="padding: 16px 40px 20px 40px;">
+      <div style="font-size:10px; color:#aaaaaa; line-height:1.6;">
+        NAVADA Education Mode | Generated by Claude, Chief of Staff<br><br>
+        NAVADA AI Engineering &amp; Consulting
+        <br>
+        <a href="https://www.navada-lab.space" style="color:#888888; text-decoration:none;">navada-lab.space</a>
+        &middot;
+        <a href="https://www.navadarobotics.com" style="color:#888888; text-decoration:none;">navadarobotics.com</a>
+        &middot;
+        <a href="https://www.navada-edge-server.uk" style="color:#888888; text-decoration:none;">navada-edge-server.uk</a>
+        &middot;
+        <a href="https://www.alexnavada.xyz" style="color:#888888; text-decoration:none;">alexnavada.xyz</a>
+        &middot;
+        <a href="https://www.raventerminal.xyz" style="color:#888888; text-decoration:none;">raventerminal.xyz</a>
+        &middot;
+        <a href="https://www.navada-world-view.xyz" style="color:#888888; text-decoration:none;">navada-world-view.xyz</a>
+      </div>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

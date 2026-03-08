@@ -32,8 +32,8 @@ const MAX_DELAY_MS = 120 * 1000;
 const MAX_CYCLES = 3;
 
 // Emails to ignore
-const IGNORE_FROM = ['noreply', 'no-reply', 'mailer-daemon', 'postmaster', 'welcome@zoho', 'notifications@', 'updates@'];
-const IGNORE_SUBJECTS = ['undeliverable', 'delivery failed', 'out of office', 'auto-reply', 'automatic reply'];
+const IGNORE_FROM = ['noreply', 'no-reply', 'mailer-daemon', 'postmaster', 'welcome@zoho', 'notifications@', 'updates@', 'leeakpareva@gmail.com', 'claude@navada-edge-server.uk'];
+const IGNORE_SUBJECTS = ['undeliverable', 'delivery failed', 'delivery status', 'mail delivery', 'failure notice', 'returned mail', 'out of office', 'auto-reply', 'automatic reply', '[inbox]', '[action]'];
 
 function log(msg) {
   const line = `[${new Date().toISOString()}] ${msg}`;

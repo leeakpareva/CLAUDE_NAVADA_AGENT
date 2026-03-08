@@ -42,7 +42,7 @@ Here is the current NAVADA WorldMonitor architecture. Everything runs on your HP
   </tr>
   <tr>
     <td style="padding:10px;border:1px solid #eee;">LAN Access</td>
-    <td style="padding:10px;border:1px solid #eee;"><code>192.168.0.36:4173</code> (direct, fastest)</td>
+    <td style="padding:10px;border:1px solid #eee;"><code>192.168.0.58:4173</code> (direct, fastest)</td>
   </tr>
 </table>
 
@@ -87,7 +87,7 @@ Here is the current NAVADA WorldMonitor architecture. Everything runs on your HP
 <ul style="color:#555;font-size:13px;line-height:2;">
   <li><strong>Public URL:</strong> <a href="https://navada-world-view.xyz" style="color:#000;">https://navada-world-view.xyz</a></li>
   <li><strong>Tailscale:</strong> <a href="https://navada.tail394c36.ts.net" style="color:#000;">https://navada.tail394c36.ts.net</a></li>
-  <li><strong>LAN:</strong> http://192.168.0.36:4173</li>
+  <li><strong>LAN:</strong> http://192.168.0.58:4173</li>
 </ul>
 
 <p style="color:#666;font-size:14px;line-height:1.7;margin-top:24px;">

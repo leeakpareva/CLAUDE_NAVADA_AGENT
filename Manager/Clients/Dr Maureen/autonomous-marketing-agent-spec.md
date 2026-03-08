@@ -1,6 +1,6 @@
 # Autonomous Marketing Agent — Technical Specification
 ## Based on NAVADA Edge Marketing Infrastructure
-### Client: Dr Maureen Emeagi | Agent Name: TBD (awaiting client confirmation)
+### Client: Dr Maureen Emeagi | Agent Name: Moneytree
 
 ---
 

@@ -1,0 +1,70 @@
+{
+  "version": "0.0.1",
+  "services": {
+    "svc:worldmonitor": {
+      "endpoints": {
+        "tcp:4173": "http://localhost:4173"
+      }
+    },
+    "svc:navada-flix": {
+      "endpoints": {
+        "tcp:4000": "http://localhost:4000"
+      }
+    },
+    "svc:cloudbeaver": {
+      "endpoints": {
+        "tcp:8978": "http://localhost:8978"
+      }
+    },
+    "svc:trading-api": {
+      "endpoints": {
+        "tcp:5678": "http://localhost:5678"
+      }
+    },
+    "svc:network-scanner": {
+      "endpoints": {
+        "tcp:7777": "http://localhost:7777"
+      }
+    },
+    "svc:grafana": {
+      "endpoints": {
+        "tcp:9090": "http://localhost:9090"
+      }
+    },
+    "svc:prometheus": {
+      "endpoints": {
+        "tcp:9091": "http://localhost:9091"
+      }
+    },
+    "svc:portainer": {
+      "endpoints": {
+        "tcp:9000": "http://localhost:9000"
+      }
+    },
+    "svc:uptime-kuma": {
+      "endpoints": {
+        "tcp:3002": "http://localhost:3002"
+      }
+    },
+    "svc:kibana": {
+      "endpoints": {
+        "tcp:5601": "http://localhost:5601"
+      }
+    },
+    "svc:elasticsearch": {
+      "endpoints": {
+        "tcp:9200": "http://localhost:9200"
+      }
+    },
+    "svc:excalidraw": {
+      "endpoints": {
+        "tcp:3001": "http://localhost:3001"
+      }
+    },
+    "svc:navada-logo": {
+      "endpoints": {
+        "tcp:3000": "http://localhost:3000"
+      }
+    }
+  }
+}
