@@ -14080,6 +14080,315 @@
       "dateFound": "2026-03-08",
       "dateApplied": null,
       "notes": ""
+    },
+    {
+      "id": "bugr7p",
+      "title": "Engineer Principal, Artificial Intelligence / Machine Learning",
+      "company": "FIS Global",
+      "salary": "Not listed",
+      "location": "London EC1Y",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=42c13d29615001cf",
+      "type": [
+        "Full-time"
+      ],
+      "score": 5,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "kkne9e",
+      "title": "Senior Data Engineer— AdTech Data Platform",
+      "company": "Zeta Global",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ba5fced6baad560f",
+      "type": [],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "ydoy05",
+      "title": "Lead Full-Stack Engineer",
+      "company": "Complexio",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=f9cb77becd9e499d",
+      "type": [
+        "Full-time"
+      ],
+      "score": 4,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "b636j8",
+      "title": "Senior Product Manager - Fixed Term Contract",
+      "company": "Yoti",
+      "salary": "£70,000 - £85,000 a year",
+      "location": "London EC3A 4AF",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=b6b665edf6a2cd2c",
+      "type": "Contract",
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "pe9llb",
+      "title": "Chief Technology Officer",
+      "company": "XWP US LLC",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ab7531b32224125c",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "o3mpx4",
+      "title": "Head of Data Science",
+      "company": "Raylo",
+      "salary": "Not listed",
+      "location": "London SE1 9EU",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=fd93d46cfa333d2d",
+      "type": [],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "5zituq",
+      "title": "Senior Mechanical (Contract / Remote)",
+      "company": "Rabbit Product Design Inc",
+      "salary": "$50 - $100 an hour",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=4947a6ceb7db748f",
+      "type": "Contract",
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "2onbhq",
+      "title": "Electrical Engineering Lead, Data Centers - Remote (U.S.)",
+      "company": "AECOM",
+      "salary": "$200,000 - $240,000 a year",
+      "location": "Chicago, IL",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=baf7df0da39eafc1",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "8c354d",
+      "title": "Head of Private Sector (CES)",
+      "company": "DXC Technology",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=bc23c99bc3fa5af1",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "h9giva",
+      "title": "Head of Total Rewards",
+      "company": "SoSafe",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=4075e30582d7eefc",
+      "type": [
+        "Full-time"
+      ],
+      "score": 3,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "oytrgr",
+      "title": "AI Solutions Engineer",
+      "company": "Multiverse",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=d6830ff5f4265cd9",
+      "type": [
+        "Full-time"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "nsbnwz",
+      "title": "Member of Technical Staff - AI Engineer",
+      "company": "Tessl",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=b4e5f1127bd34507",
+      "type": [
+        "Full-time"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "260g2p",
+      "title": "Manager, AI Services Consulting",
+      "company": "Zendesk",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=ff1aff171f9ea460",
+      "type": [
+        "Full-time"
+      ],
+      "score": 2,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "7s61gv",
+      "title": "Technical Support Engineer - EMEA",
+      "company": "Sigma Computing",
+      "salary": "Not listed",
+      "location": "London",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=8071f4de9e6367e2",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "3apksi",
+      "title": "Research Associate in Data-Driven Optimisation for Process Scale Up",
+      "company": "Imperial College London",
+      "salary": "£43,863 - £57,472 a year",
+      "location": "South Kensington",
+      "source": "Indeed (Apify)",
+      "link": "https://uk.indeed.com/viewjob?jk=661a9bbe5581d4b1",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "r154fl",
+      "title": "I4.0 Engineer",
+      "company": "Flowers Bakeries, LLC",
+      "salary": "$125,000 - $135,000 a year",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=9dc9db994ce7e35d",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "3qjdev",
+      "title": "(Remote) Operational Excellence Practice Manager (Industrial Extension Engineer) - Mining and Industrial Extension",
+      "company": "West Virginia University",
+      "salary": "Not listed",
+      "location": "Morgantown, WV",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=2c6993e7b10316e3",
+      "type": [],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "7h4i37",
+      "title": "Mechanical Designer, Data Centers - Remote (U.S.)",
+      "company": "AECOM",
+      "salary": "$110,000 - $150,000 a year",
+      "location": "Arlington, VA",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=15a0221aaae5db59",
+      "type": [
+        "Full-time"
+      ],
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
+    },
+    {
+      "id": "bity49",
+      "title": "E&U Test Analyst with energy domain exp",
+      "company": "SN Cloud Solutions",
+      "salary": "Not listed",
+      "location": "Remote",
+      "source": "Indeed (Apify)",
+      "link": "https://www.indeed.com/viewjob?jk=35d1181bb53489fd",
+      "type": "Contract",
+      "score": 0,
+      "status": "New",
+      "dateFound": "2026-03-09",
+      "dateApplied": null,
+      "notes": ""
     }
   ]
 }

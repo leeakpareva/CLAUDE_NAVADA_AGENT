@@ -1,79 +1,79 @@
 {
-  "week": 9,
+  "week": 10,
   "findings": [
     {
       "id": 1,
-      "category": "BUG",
-      "title": "Telegram Bot 409 Conflict - Chief of Staff Won't Start",
-      "description": "telegram-bot.log shows repeated startup failure: '409: Conflict: terminated by other getUpdates request'. Bot process may be hung or multiple instances running. This breaks the primary mobile interface for NAVADA.",
-      "action": "Run 'pm2 list' and 'pm2 delete telegram-bot && pm2 start Automation/telegram-bot.js --name telegram-bot'. If still fails, check for hung Node processes: 'tasklist | grep node' and kill orphaned telegram-bot instances.",
-      "priority": "high",
-      "effort": "5min"
-    },
-    {
-      "id": 2,
-      "category": "BUG",
-      "title": "IMAP Connection Instability - Frequent ECONNRESET",
-      "description": "inbox-responder.log and vc-monitor.log show recurring 'read ECONNRESET' errors (9+ occurrences on 2026-03-04 alone). IMAP connections dropping unexpectedly, causing inbox monitoring and VC response monitoring to fail silently. Zoho IMAP may have connection pooling issues or timeout settings.",
-      "action": "Add connection retry logic with exponential backoff in Automation/inbox-responder.js and Automation/vc-response-monitor.js. Implement connection pooling with keep-alive. Consider adding idle timeout management (Zoho: IMAP IDLE support).",
-      "priority": "high",
-      "effort": "1hr"
-    },
-    {
-      "id": 3,
-      "category": "BUG",
-      "title": "Prospect Pipeline Script Path Error",
-      "description": "prospect-pipeline.js_20260303_093001.log shows 'LeadPipeline' is not recognized as command (exit code 9009). Scheduled task at 9:30 AM daily is failing silently because script uses relative path that doesn't resolve in Task Scheduler context.",
-      "action": "Update Automation/scheduled-tasks config or LeadPipeline/prospect-pipeline.js to use absolute path: 'C:\\\\Users\\\\leeak\\\\CLAUDE_NAVADA_AGENT\\\\LeadPipeline\\\\...' or fix cwd in PM2 config/Windows Task Scheduler.",
+      "category": "SECURITY",
+      "title": "Claude API session tokens exposed in PM2 environment",
+      "description": "CLAUDE_CODE_SESSION_ACCESS_TOKEN (live OAuth tokens) is stored in the PM2 process environment for all 6 monitored processes. These tokens are readable via `pm2 list --json`, written to PM2's on-disk process store, and visible to any user who can read PM2 state. Two distinct active tokens are visible in this dump.",
+      "action": "Strip CLAUDE_CODE_SESSION_ACCESS_TOKEN from PM2 env by adding it to the `filter_env` array in each process's pm2 config, then `pm2 save`. Rotate both exposed tokens immediately via Anthropic console.",
       "priority": "high",
       "effort": "30min"
     },
     {
+      "id": 2,
+      "category": "BUG",
+      "title": "hp-cloudwatch-metrics crashing repeatedly (4 restarts, exit_code=1) [POSSIBLY STALE]",
+      "description": "hp-cloudwatch-metrics (pm_id: 20) has restarted 4 times with exit_code=1. Currently online but will keep cycling. Likely an unhandled exception or AWS credential/config issue in Automation/hp-cloudwatch-metrics.js.",
+      "action": "Check `pm2 logs hp-cloudwatch-metrics --err --lines 50` for the stack trace. Fix the root cause (likely a missing env var or AWS SDK error) in Automation/hp-cloudwatch-metrics.js.",
+      "priority": "medium",
+      "effort": "30min"
+    },
+    {
+      "id": 3,
+      "category": "BUG",
+      "title": "hp-health-monitor crashing repeatedly (3 restarts, exit_code=1)",
+      "description": "hp-health-monitor (pm_id: 23) has restarted 3 times with exit_code=1. Process runs from C:\\Users\\leeak\\Alex\\Automation\\hp-health-monitor.js — this is the Alex repo path, not CLAUDE_NAVADA_AGENT, which may indicate it is running stale/wrong code. [VERIFIED: Service currently ONLINE]",
+      "action": "Run `pm2 logs hp-health-monitor --err --lines 50`. Verify whether Alex\\Automation\\hp-health-monitor.js is the correct file or if it should be repointed to CLAUDE_NAVADA_AGENT\\Automation.",
+      "priority": "low",
+      "effort": "30min"
+    },
+    {
       "id": 4,
-      "category": "SECURITY",
-      "title": "Jupyter XSRF Token Validation Failures",
-      "description": "jupyter.log shows HTTP 403 errors: '_xsrf argument missing from POST'. Jupyter security middleware rejecting legitimate kernel creation requests. This may be XSRF cookie mismatch or misconfigured security settings.",
-      "action": "Run jupyter lab from command line with: 'jupyter lab --ip=0.0.0.0 --allow-root --disable-xsrf --NotebookApp.allow_remote_access=true'. Or regenerate XSRF tokens by clearing browser cookies and restarting Jupyter server on port 8888.",
+      "category": "BUG",
+      "title": "5 core services unreachable: elasticsearch, kibana, worldmonitor, worldmonitor-api, trading-api",
+      "description": "Live health probes return unreachable for all 5 services. These run on Oracle VM (elasticsearch/kibana) and EC2 (worldmonitor/worldmonitor-api) and HP (trading-api). A complete outage across 3 nodes simultaneously suggests either the health monitor itself is broken (see finding #3) or Tailscale connectivity is down.",
+      "action": "SSH into each node via Tailscale and verify: Oracle (`ssh navada-oracle`) for ELK status, EC2 for worldmonitor PM2 status, HP for trading-api. Check Tailscale peer connectivity first: `tailscale status`.",
       "priority": "high",
       "effort": "30min"
     },
     {
       "id": 5,
-      "category": "BUG",
-      "title": "Weekly Report PDF Unicode Encoding Error",
-      "description": "weekly-report_20260301_180000.log shows FPDFUnicodeEncodingException. Special characters in report titles (em dashes, unicode chars per CLAUDE.md content rules) break PDF generation using helveticaB font which only supports latin-1.",
-      "action": "Update Automation/reports/gen-report.py to use Unicode-compatible font: 'pdf.add_font(\"DejaVu\", \"\", \"path/to/DejaVuSans.ttf\")' before pdf.set_font(). Or sanitize input to remove unsupported characters.",
+      "category": "PERFORMANCE",
+      "title": "cloudflare-metrics event loop blocked: p95 latency 3129ms",
+      "description": "cloudflare-metrics (pm_id: 21) has a p95 event loop latency of 3129ms — 12x higher than all other processes (~230-256ms). This indicates a synchronous blocking operation or a very slow async operation holding the loop, likely in the Cloudflare API polling logic in Automation/cloudflare-metrics.js. [VERIFIED: Service currently ONLINE]",
+      "action": "Review Automation/cloudflare-metrics.js for synchronous I/O (fs.readFileSync, JSON.parse on large payloads, or a long-running setInterval callback). Add `setImmediate` yields or break up the work into smaller async chunks.",
       "priority": "medium",
-      "effort": "30min"
+      "effort": "1hr"
     },
     {
       "id": 6,
-      "category": "SECURITY",
-      "title": "Deprecated url.parse() Usage in ai-news-digest.js",
-      "description": "ai-news-digest_20260226_070000.log: '[DEP0169] DeprecationWarning: url.parse() behavior is not standardized...prone to security implications'. This is a known CVE vector even if not disclosed.",
-      "action": "Replace 'url.parse()' with WHATWG URL API in Automation/ai-news-digest.js: change 'new URL(urlString)' instead of 'url.parse(urlString)'. Search codebase for other url.parse() usage.",
+      "category": "PERFORMANCE",
+      "title": "Heap usage critically high across 3 processes (89-92%)",
+      "description": "hp-health-monitor: 91.78%, telegram-bot: 89.73%, navada-flix: 89.57%. All three are near GC pressure thresholds. Combined with restart history on telegram-bot (2x) and hp-health-monitor (3x), these processes are likely OOMing or hitting GC stalls. Total heap across all 6 processes is ~130MB — modest, but fragmentation at 90%+ usage is problematic. [VERIFIED: Service currently ONLINE]",
+      "action": "For telegram-bot: check kb/telegram-memory.json size and whether conversation history is being pruned. For hp-health-monitor: review for memory leaks (unbounded arrays/maps). Set `--max-old-space-size=256` in node_args for processes showing >85% sustained heap usage.",
       "priority": "medium",
-      "effort": "30min"
+      "effort": "1hr"
     },
     {
       "id": 7,
       "category": "MAINTENANCE",
-      "title": "TensorBoard Missing pkg_resources Module",
-      "description": "tensorboard.log shows 'ModuleNotFoundError: No module named pkg_resources'. TensorBoard fails to start - likely setuptools not installed or corrupted. Affects ML model tracking infrastructure.",
-      "action": "Run: 'pip install --upgrade setuptools' and 'pip install --upgrade tensorboard'. Verify with 'py -m tensorboard --version'.",
+      "title": "Disk space low: 16GB free (6.7%) on C:",
+      "description": "C: drive has 17,162,133,504 bytes free (~16GB) of 255GB total. At 6.7% free, Windows performance degrades and PM2 log rotation, SQLite WAL files, and Docker volumes risk filling the drive. The LeadPipeline .db-shm and .db-wal files in git status suggest active write pressure.",
+      "action": "Run `pm2 flush` to clear PM2 logs. Audit Docker volume usage (`docker system df`). Check Automation/logs/ for old log files. Consider setting PM2 log rotation: `pm2 install pm2-logrotate` with max_size 10M.",
       "priority": "medium",
-      "effort": "5min"
+      "effort": "30min"
     },
     {
       "id": 8,
-      "category": "MAINTENANCE",
-      "title": "Infrastructure Container Log Encoding Issues",
-      "description": "infrastructure-startup.log tail contains null bytes and control characters (\\u0000\\u0032\\u0030...) indicating binary/encoding corruption in Docker output. Makes troubleshooting container startup difficult.",
-      "action": "Update infrastructure/docker-compose.yml to ensure UTF-8 encoding. Add 'environment: LANG=C.UTF-8' to container configs. Test with 'docker logs navada-proxy | file -' to verify encoding.",
-      "priority": "low",
-      "effort": "30min"
+      "category": "BUG",
+      "title": "cloudflare-metrics and cloudwatch-logs running from wrong working directory",
+      "description": "cloudflare-metrics has pm_cwd=C:\\Users\\leeak\\Alex (not CLAUDE_NAVADA_AGENT\\Automation). cloudwatch-logs has pm_cwd=C:\\Users\\leeak\\Alex\\Automation. Both exec_paths point to CLAUDE_NAVADA_AGENT. This means relative file paths (logs, .env, config files) resolve to wrong directories, silently misconfiguring both services. [VERIFIED: Service currently ONLINE]",
+      "action": "Stop both processes, update their PM2 config to set `cwd` to `C:\\Users\\leeak\\CLAUDE_NAVADA_AGENT\\Automation`, then `pm2 save`. Confirm with `pm2 show cloudflare-metrics` after restart.",
+      "priority": "medium",
+      "effort": "5min"
     }
   ],
-  "scannedAt": "2026-03-04T03:56:14.272Z",
-  "sentAt": "2026-03-04T03:56:15.064Z"
+  "scannedAt": "2026-03-09T10:05:53.607Z",
+  "sentAt": "2026-03-09T10:05:55.358Z"
 }

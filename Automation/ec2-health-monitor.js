@@ -60,17 +60,15 @@ const CONFIG = {
 // Endpoint definitions
 // ---------------------------------------------------------------------------
 const ENDPOINTS = [
-  // --- HP (100.121.187.67) ---
-  { name: 'HP Tailscale Ping',  group: 'HP',         type: 'ping', host: '100.121.187.67', critical: true },
-  { name: 'Telegram Bot',       group: 'HP',         type: 'http', url: 'http://100.121.187.67:3456/health' },
-  { name: 'NAVADA Flix',        group: 'HP',         type: 'http', url: 'http://100.121.187.67:4000' },
-  { name: 'Network Scanner',    group: 'HP',         type: 'http', url: 'http://100.121.187.67:7777', optional: true },
+  // --- NAVADA-EDGE-SERVER / HP (100.121.187.67) — SSH-only node, no services ---
+  { name: 'HP Tailscale Ping',  group: 'HP',         type: 'ping', host: '100.121.187.67', critical: false },
+  { name: 'HP SSH',             group: 'HP',         type: 'port', port: 22, host: '100.121.187.67' },
 
-  // --- EC2 (localhost — runs on same machine as health monitor) ---
+  // --- NAVADA-COMPUTE / EC2 (localhost) ---
   { name: 'WorldMonitor',       group: 'EC2',        type: 'http', url: 'http://127.0.0.1:4000' },
   { name: 'NAVADA Dashboard',   group: 'EC2',        type: 'http', url: 'http://127.0.0.1:9090' },
 
-  // --- Oracle (100.77.206.9) ---
+  // --- NAVADA-ROUTER / Oracle (100.77.206.9) ---
   { name: 'Oracle Tailscale Ping', group: 'Oracle',  type: 'ping', host: '100.77.206.9', critical: true },
   { name: 'Nginx (Oracle)',        group: 'Oracle',  type: 'http', url: 'http://100.77.206.9:80' },
   { name: 'Grafana',              group: 'Oracle',   type: 'http', url: 'http://100.77.206.9:3000' },
@@ -78,10 +76,11 @@ const ENDPOINTS = [
   { name: 'CloudBeaver',          group: 'Oracle',   type: 'http', url: 'http://100.77.206.9:8978' },
   { name: 'Portainer',            group: 'Oracle',   type: 'http', url: 'http://100.77.206.9:9000' },
 
-  // --- Cloudflare (public HTTPS) ---
-  { name: 'CF API Health',  group: 'Cloudflare', type: 'http', url: 'https://api.navada-edge-server.uk/health' },
-  { name: 'CF Flix',         group: 'Cloudflare', type: 'http', url: 'https://flix.navada-edge-server.uk' },
+  // --- NAVADA-GATEWAY / Cloudflare ---
+  { name: 'CF Edge API',    group: 'Cloudflare', type: 'http', url: 'https://edge-api.navada-edge-server.uk/status' },
   { name: 'CF Dashboard',   group: 'Cloudflare', type: 'http', url: 'https://dashboard.navada-edge-server.uk' },
+  { name: 'CF Grafana',     group: 'Cloudflare', type: 'http', url: 'https://grafana.navada-edge-server.uk' },
+  { name: 'CF Flix',         group: 'Cloudflare', type: 'http', url: 'https://flix.navada-edge-server.uk', optional: true },
 ];
 
 // ---------------------------------------------------------------------------
@@ -164,11 +163,28 @@ function pingHost(host) {
 // ---------------------------------------------------------------------------
 // Check a single endpoint
 // ---------------------------------------------------------------------------
+function tcpPortCheck(host, port, timeout = 5000) {
+  const net = require('net');
+  return new Promise((resolve) => {
+    const sock = new net.Socket();
+    sock.setTimeout(timeout);
+    sock.on('connect', () => { sock.destroy(); resolve(true); });
+    sock.on('timeout', () => { sock.destroy(); resolve(false); });
+    sock.on('error', () => { sock.destroy(); resolve(false); });
+    sock.connect(port, host);
+  });
+}
+
 async function checkEndpoint(ep) {
   try {
     if (ep.type === 'ping') {
       const ok = await pingHost(ep.host);
       if (!ok) throw new Error('Ping failed');
+      return { ok: true };
+    }
+    if (ep.type === 'port') {
+      const ok = await tcpPortCheck(ep.host, ep.port);
+      if (!ok) throw new Error(`Port ${ep.port} closed`);
       return { ok: true };
     }
     if (ep.type === 'http') {
@@ -519,12 +535,13 @@ async function runChecks() {
     state.groupAllDown.Oracle = 0;
   }
 
-  // --- Bot standby management ---
-  const botState = state.endpoints['Telegram Bot'];
-  if (botState && botState.lastStatus === 'fail') {
+  // --- Bot standby management (Telegram bot now on Cloudflare Worker) ---
+  // Monitor CF Edge API instead of HP Telegram Bot
+  const edgeApiState = state.endpoints['CF Edge API'];
+  if (edgeApiState && edgeApiState.lastStatus === 'fail') {
     state.botDownChecks++;
     log(
-      `  [BOT] Down for ${state.botDownChecks}/${CONFIG.botStandby.checksBeforeStart} checks`
+      `  [BOT] Cloudflare Edge API down for ${state.botDownChecks}/${CONFIG.botStandby.checksBeforeStart} checks`
     );
     if (state.botDownChecks >= CONFIG.botStandby.checksBeforeStart) {
       startEC2Bot();

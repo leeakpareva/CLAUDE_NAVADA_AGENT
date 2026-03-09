@@ -24,15 +24,15 @@ const EC2_INSTANCE_ID = 'i-0055e7ace24db38b0';
 const SSH_KEY = '/home/ubuntu/.ssh/id_ed25519';
 
 const NODES = {
-  HP:     { tailscale: '100.121.187.67', role: 'Production Server (Always-On)', os: 'Windows 11 Pro' },
-  Oracle: { tailscale: '100.77.206.9',   role: 'Docker Infrastructure Host',    os: 'Ubuntu (OCI)' },
-  EC2:    { tailscale: '100.98.118.33',   role: 'Health Monitor + Dashboard',    os: 'Ubuntu (AWS)' },
-  ASUS:   { tailscale: '100.88.118.128',  role: 'Dev Workstation',               os: 'Windows 11 Home' },
-  iPhone: { tailscale: '100.68.251.111',  role: 'Mobile Client',                 os: 'iOS' },
+  HP:     { tailscale: '100.121.187.67', role: 'NAVADA-EDGE-SERVER | Dev Box / Node Server (SSH-only)', os: 'Windows 11 Pro' },
+  Oracle: { tailscale: '100.77.206.9',   role: 'NAVADA-ROUTER | Routing / Observability / Security',   os: 'Ubuntu (OCI)' },
+  EC2:    { tailscale: '100.98.118.33',   role: 'NAVADA-COMPUTE | 24/7 Compute / Monitoring',           os: 'Ubuntu (AWS)' },
+  ASUS:   { tailscale: '100.88.118.128',  role: 'NAVADA-CONTROL | Command Centre / Dev',                os: 'Windows 11 Home' },
+  iPhone: { tailscale: '100.68.251.111',  role: 'NAVADA-MOBILE | Client',                               os: 'iOS' },
 };
 
 const SUBDOMAINS = [
-  'api', 'flix', 'trading', 'network', 'kibana',
+  'api', 'edge-api', 'flix', 'trading', 'network', 'kibana',
   'grafana', 'monitor', 'cloudbeaver', 'nodes', 'dashboard', 'logo'
 ];
 
@@ -359,14 +359,15 @@ function buildEdgeNetwork(data) {
   const total = hpN + orcD + orcP + ec2N;
   const nodesUp = ts_.connectedCount || 0;
 
-  let md = `# NAVADA Edge Network\n`;
-  md += `**Master Console** | Lee Akpareva, Founder | NAVADA AI Infrastructure\n`;
-  md += `**Updated:** ${ts} | **Nodes:** ${nodesUp}/4 online | **Services:** ${total} running\n\n`;
-  md += `| Node | Status | Services | Role |\n|------|--------|----------|------|\n`;
+  let md = `# NAVADA Edge v4 Network\n`;
+  md += `**Master Console** | Lee Akpareva, Founder | Claude Chief of Staff on Cloudflare Edge\n`;
+  md += `**Updated:** ${ts} | **Nodes:** ${nodesUp}/5 online | **Services:** ${total} running | **Telegram Bot**: Cloudflare Worker (24/7)\n\n`;
+  md += `| Node | Role | Status | Services |\n|------|------|--------|----------|\n`;
+  md += `| NAVADA-GATEWAY | Cloudflare Edge | ON | Worker + D1 + R2 + 5 crons |\n`;
   for (const n of ts_.nodes) {
     const icon = n.online ? 'ON' : 'OFF';
-    const svcCount = n.name === 'HP' ? hpN : n.name === 'Oracle' ? (orcP + orcD) : n.name === 'EC2' ? ec2N : '-';
-    md += `| ${n.name} | ${icon} | ${svcCount} | ${esc(n.role)} |\n`;
+    const svcCount = n.name === 'HP' ? 'SSH-only' : n.name === 'Oracle' ? (orcP + orcD) : n.name === 'EC2' ? ec2N : '-';
+    md += `| ${esc(n.name)} | ${esc(n.role.split(' | ')[0])} | ${icon} | ${svcCount} |\n`;
   }
 
   const widgets = [
@@ -419,10 +420,10 @@ function buildHP(data) {
   const procs = data.hp.pm2 || [];
   const onlineCount = procs.filter(p => p.status === 'online').length;
 
-  let md = `# NAVADA HP Server\n`;
-  md += `**Role**: Claude Chief of Staff (Telegram/SMS/WhatsApp) + NAVADA Flix + Metrics Collectors\n`;
-  md += `**IP**: 192.168.0.58 (LAN) | 100.121.187.67 (Tailscale) | **OS**: Windows 11 Pro\n`;
-  md += `**Status**: ${on ? 'ONLINE' : 'OFFLINE'} | **PM2 Services**: ${onlineCount}/${procs.length} online\n\n`;
+  let md = `# NAVADA-EDGE-SERVER (HP Laptop)\n`;
+  md += `**Role**: Dev Box / Node Server (SSH-only access, no PM2, no scheduled tasks)\n`;
+  md += `**IP**: 192.168.0.58 (Ethernet, static) | 100.121.187.67 (Tailscale) | **OS**: Windows 11 Pro\n`;
+  md += `**Status**: ${on ? 'ONLINE' : 'OFFLINE'} | **Services**: PostgreSQL :5433, SSH server | **Telegram bot migrated to Cloudflare Worker**\n\n`;
   if (procs.length > 0) {
     md += `| Service | Status | CPU | Memory | Restarts |\n|---------|--------|-----|--------|----------|\n`;
     for (const p of procs) {
@@ -603,7 +604,7 @@ function buildPM2(data) {
   const onlineCount = all.filter(p => p.status === 'online').length;
 
   let md = `# NAVADA PM2 Services\n`;
-  md += `**Process Manager**: PM2 across 3 nodes (HP, Oracle, EC2)\n`;
+  md += `**Process Manager**: PM2 on EC2 (24/7) + Oracle | HP is SSH-only (no PM2)\n`;
   md += `**Total**: ${all.length} services | **Online**: ${onlineCount} | **Updated**: ${ts}\n\n`;
 
   const sections = [
@@ -954,7 +955,8 @@ function buildBKUP(data) {
   md += `| DynamoDB | NoSQL DB | navada-faces, navada-vision-log, navada-edge-logs (PAY_PER_REQUEST, 30-day TTL) |\n`;
   md += `| S3 | Object Storage | navada-vision-eu-west-2 (Vision API images) |\n`;
   md += `| PostgreSQL | Relational DB | navada_pipeline on HP:5433 (leads, prospects, heartbeats) |\n\n`;
-  md += `**Failover**: HP down 15 min -> EC2 triggers Oracle failover (tunnel swap + bot standby)\n`;
+  md += `**Telegram Bot**: Cloudflare Worker (navada-edge-api) on global edge, 24/7, zero cost\n`;
+  md += `**Failover**: Cloudflare Edge API down 15 min -> EC2 activates standby bot\n`;
 
   const widgets = [
     textWidget(0, 0, 24, 3, md),
@@ -982,9 +984,9 @@ function buildBKUP(data) {
       { namespace: 'AWS/S3', name: 'BucketSizeBytes', dimensions: [{ Name: 'BucketName', Value: 'navada-vision-eu-west-2' }, { Name: 'StorageType', Value: 'StandardStorage' }], stat: 'Maximum', label: 'Size (bytes)' },
     ], { view: 'singleValue', period: 86400 }),
     metricWidget(0, 15, 12, 6, 'Edge Network Health', [
-      { namespace: 'NAVADA/HP', name: 'TelegramBotUp', label: 'Telegram Bot' },
-      { namespace: 'NAVADA/HP', name: 'NavadaFlixUp', label: 'NAVADA Flix' },
+      { namespace: 'NAVADA/Cloudflare', name: 'SubdomainsUp', label: 'CF Subdomains Up' },
       { namespace: 'NAVADA/Cloudflare', name: 'TunnelStatus', label: 'CF Tunnel' },
+      { namespace: 'NAVADA/Tailscale', name: 'ConnectedNodes', label: 'Mesh Nodes' },
     ]),
     metricWidget(12, 15, 12, 6, 'Node Connectivity', [
       { namespace: 'NAVADA/Tailscale', name: 'NodeOnline', dimensions: [{ Name: 'Node', Value: 'HP' }], label: 'HP' },

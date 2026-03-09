@@ -1,0 +1,158 @@
+@startuml NAVADA_Edge_v4_Architecture
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName "Segoe UI"
+skinparam componentStyle rectangle
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 50
+
+title **NAVADA Edge v4 — Network Architecture**\n//Claude Chief of Staff on Cloudflare Edge | 9 March 2026//
+
+' ============================================================
+' External Actors
+' ============================================================
+actor "Lee Akpareva\n(Founder)" as Lee #333333
+actor "Telegram Users\n(Admin + Guests)" as TG #333333
+actor "Internet\n(Public HTTPS)" as WEB #333333
+
+' ============================================================
+' NAVADA-GATEWAY (Cloudflare)
+' ============================================================
+package "NAVADA-GATEWAY  //Cloudflare Global Edge//" as GW #E8F0FE {
+  component "**navada-edge-api**\nCloudflare Worker" as WORKER #4285F4
+  database "**D1: navada-edge**\n7 tables (WEUR)" as D1 #4285F4
+  storage "**R2: navada-assets**\nBackups, media" as R2 #4285F4
+  component "**DNS**\n13 subdomains\nnavada-edge-server.uk" as DNS #90CAF9
+  component "**WAF + DDoS + SSL**\nSecurity layer" as WAF #90CAF9
+  component "**Cron Triggers (5)**\nHealth, briefing,\nnews, pipeline, jobs" as CRON #90CAF9
+  component "**Cloudflare Tunnel**\nEncrypted ingress" as TUNNEL #90CAF9
+
+  WORKER --> D1 : read/write
+  WORKER --> R2 : store/fetch
+  CRON --> WORKER : triggers
+}
+
+' ============================================================
+' Tailscale Mesh
+' ============================================================
+cloud "**Tailscale Mesh VPN**\nWireGuard encrypted\n100.x.x.x overlay" as MESH #E0E0E0
+
+' ============================================================
+' NAVADA-CONTROL (ASUS)
+' ============================================================
+package "NAVADA-CONTROL  //ASUS Zenbook Duo//" as CTRL #FFF3E0 {
+  component "**Claude Code**\nVS Code, Dev Tools" as CCODE #FF9800
+  component "**LM Studio + Ollama**\nLocal AI inference" as LLM #FFB74D
+  component "**Docker Desktop**\nWSL2 backend" as DOCKER_ASUS #FFB74D
+  component "**PostgreSQL 17**\nDev/staging" as PG_ASUS #FFB74D
+}
+
+' ============================================================
+' NAVADA-EDGE-SERVER (HP)
+' ============================================================
+package "NAVADA-EDGE-SERVER  //HP Laptop//" as EDGE #E8F5E9 {
+  component "**SSH Server**\nSSH-only access" as SSH_HP #66BB6A
+  database "**PostgreSQL :5433**\nnavada_pipeline\n(leads, prospects)" as PG_HP #66BB6A
+  note right of EDGE : No PM2\nNo scheduled tasks\nEthernet always-on
+}
+
+' ============================================================
+' NAVADA-COMPUTE (AWS EC2)
+' ============================================================
+package "NAVADA-COMPUTE  //AWS EC2 t3.medium//" as COMPUTE #FCE4EC {
+  component "**ec2-health-monitor**\n14 endpoints / 5 min" as HEALTH #E53935
+  component "**cloudwatch-dashboard-updater**\n11 dashboards / 5 min" as CWDASH #E53935
+  component "**navada-dashboard**\nCommand centre" as DASH #EF5350
+  component "**worldmonitor**\nOSINT :4000" as WORLD #EF5350
+  component "**worldview-monitor**\nCW metrics" as WVMON #EF5350
+
+  package "AWS Services" as AWS #FFCDD2 {
+    component "CloudWatch\n11 dashboards" as CW
+    component "Lambda\nVision API" as LAMBDA
+    component "DynamoDB\n3 tables" as DYNAMO
+    component "S3 + ECR\nStorage" as S3
+    component "Bedrock\nClaude API" as BEDROCK
+    component "SageMaker\nYOLOv8n" as SAGE
+  }
+
+  HEALTH --> CW : push metrics
+  CWDASH --> CW : update dashboards
+}
+
+' ============================================================
+' NAVADA-ROUTER (Oracle VM)
+' ============================================================
+package "NAVADA-ROUTER  //Oracle Cloud VM//" as ROUTER #EDE7F6 {
+  component "**navada-proxy**\nNginx :80/:443/:8080" as NGINX #7E57C2
+  component "**navada-tunnel**\nCloudflare Tunnel" as CF_TUNNEL #7E57C2
+  component "**navada-grafana**\nMetrics :3000" as GRAFANA #9575CD
+  component "**navada-prometheus**\nCollection :9090" as PROM #9575CD
+  component "**cloudbeaver**\nDB admin :8978" as CBEAVER #9575CD
+  component "**navada-portainer**\nDocker mgmt :9000" as PORTAINER #9575CD
+
+  TUNNEL ..> CF_TUNNEL : encrypted
+  CF_TUNNEL --> NGINX : route
+}
+
+' ============================================================
+' NAVADA-MOBILE (iPhone)
+' ============================================================
+node "NAVADA-MOBILE\n//iPhone 15 Pro Max//" as MOBILE #F5F5F5 {
+  component "Telegram\n(Primary interface)" as TG_APP
+}
+
+' ============================================================
+' Connections — External
+' ============================================================
+TG --> WAF : HTTPS
+WEB --> WAF : HTTPS
+WAF --> DNS
+DNS --> TUNNEL
+DNS --> WORKER
+
+Lee --> CCODE : develops
+Lee --> TG_APP : commands
+Lee --> CTRL : local
+
+' ============================================================
+' Connections — Cloudflare to Services
+' ============================================================
+WORKER ..> BEDROCK : Claude API\n(Sonnet/Opus)
+WORKER ..> HEALTH : /shell (EC2 exec)
+
+' ============================================================
+' Connections — Mesh
+' ============================================================
+CTRL --> MESH
+EDGE --> MESH
+COMPUTE --> MESH
+ROUTER --> MESH
+MOBILE --> MESH
+
+MESH --> SSH_HP : SSH
+MESH --> NGINX : route traffic
+
+' ============================================================
+' Connections — Monitoring
+' ============================================================
+HEALTH ..> EDGE : ping + SSH check
+HEALTH ..> ROUTER : HTTP checks (6)
+HEALTH ..> GW : HTTPS checks (4)
+
+' ============================================================
+' Legend
+' ============================================================
+legend bottom right
+  |= Color |= Node |
+  | <#4285F4> | NAVADA-GATEWAY (Cloudflare) |
+  | <#FF9800> | NAVADA-CONTROL (ASUS) |
+  | <#66BB6A> | NAVADA-EDGE-SERVER (HP) |
+  | <#E53935> | NAVADA-COMPUTE (EC2) |
+  | <#7E57C2> | NAVADA-ROUTER (Oracle) |
+  **14/14 health checks passing**
+  **11/11 CloudWatch dashboards live**
+  **All 4 physical nodes ONLINE**
+endlegend
+
+@enduml

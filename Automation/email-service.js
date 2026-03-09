@@ -14,6 +14,10 @@ const path = require('path');
 const SENT_LOG = path.join(__dirname, 'logs', 'sent-emails.jsonl');
 const SIGNATURE_IMG = path.join(__dirname, '..', 'assets', 'claude-signature.png');
 
+// Auto-archive sent emails to crow_theme/Emails
+let archiveEmail;
+try { archiveEmail = require('./email-archiver').archiveEmail; } catch { archiveEmail = null; }
+
 // Ensure logs directory exists
 if (!fs.existsSync(path.dirname(SENT_LOG))) {
   fs.mkdirSync(path.dirname(SENT_LOG), { recursive: true });
@@ -307,6 +311,14 @@ async function sendEmail({
   try {
     fs.appendFileSync(SENT_LOG, JSON.stringify(logEntry) + '\n');
   } catch (e) { /* logging should not break email sending */ }
+
+  // Auto-archive to crow_theme/Emails
+  if (archiveEmail) {
+    try {
+      const archived = archiveEmail({ subject, html, to, from: mailOpts.from, timestamp: new Date().toISOString() });
+      if (archived) console.log(`Archived to: ${archived}`);
+    } catch (e) { /* archiving should not break email sending */ }
+  }
 
   console.log(`Email sent to ${to} via ${transportUsed} — MessageID: ${info.messageId}`);
   return info;
