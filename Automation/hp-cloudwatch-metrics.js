@@ -7,6 +7,7 @@
 
 const { exec } = require('child_process');
 const { promisify } = require('util');
+const os = require('os');
 const net = require('net');
 const execAsync = promisify(exec);
 const logger = require('./edge-logger');
@@ -36,14 +37,14 @@ async function pushMetric(name, value, dimensions) {
   } catch { /* skip */ }
 }
 
-function checkPort(port) {
+function checkPort(port, host = '127.0.0.1') {
   return new Promise((resolve) => {
     const sock = new net.Socket();
     sock.setTimeout(3000);
     sock.on('connect', () => { sock.destroy(); resolve(1); });
     sock.on('error', () => { sock.destroy(); resolve(0); });
     sock.on('timeout', () => { sock.destroy(); resolve(0); });
-    sock.connect(port, '127.0.0.1');
+    sock.connect(port, host);
   });
 }
 
@@ -86,19 +87,41 @@ async function collectAndPush() {
     pushes.push(pushMetric('OnlineProcesses', onlineProcs, ''));
     pushes.push(pushMetric('TotalMemoryMB', Math.round(totalMemMB * 10) / 10, ''));
 
-    // --- System Metrics ---
+    // --- System Metrics (native Node.js, no PowerShell) ---
     let sysCpu = 0, sysMem = 0, diskPct = 0, diskFreeGB = 0;
 
     try {
-      const { stdout } = await execAsync(
-        `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${PS_SCRIPT}"`,
-        { timeout: 20000, encoding: 'utf8', windowsHide: true }
-      );
-      const parts = stdout.trim().split('|');
-      sysCpu = parseFloat(parts[0]) || 0;
-      sysMem = parseFloat(parts[1]) || 0;
-      diskPct = parseFloat(parts[2]) || 0;
-      diskFreeGB = parseFloat(parts[3]) || 0;
+      // CPU usage: sample over 1 second
+      const cpus1 = os.cpus();
+      await new Promise(r => setTimeout(r, 1000));
+      const cpus2 = os.cpus();
+      let idleDelta = 0, totalDelta = 0;
+      for (let i = 0; i < cpus2.length; i++) {
+        const t1 = cpus1[i].times, t2 = cpus2[i].times;
+        idleDelta += (t2.idle - t1.idle);
+        totalDelta += (t2.user - t1.user) + (t2.nice - t1.nice) + (t2.sys - t1.sys) + (t2.irq - t1.irq) + (t2.idle - t1.idle);
+      }
+      sysCpu = Math.round((1 - idleDelta / totalDelta) * 1000) / 10;
+
+      // Memory usage
+      const totalMem = os.totalmem();
+      const freeMem = os.freemem();
+      sysMem = Math.round((totalMem - freeMem) / totalMem * 1000) / 10;
+
+      // Disk usage via wmic (windowsHide)
+      try {
+        const { stdout: diskOut } = await run('wmic logicaldisk where "DeviceID=\'C:\'" get FreeSpace,Size /format:csv', 10000);
+        const lines = diskOut.trim().split('\n').filter(l => l.includes(','));
+        if (lines.length > 0) {
+          const parts = lines[lines.length - 1].split(',');
+          const freeSpace = parseInt(parts[1]) || 0;
+          const size = parseInt(parts[2]) || 0;
+          if (size > 0) {
+            diskPct = Math.round((size - freeSpace) / size * 1000) / 10;
+            diskFreeGB = Math.round(freeSpace / 1073741824 * 10) / 10;
+          }
+        }
+      } catch {}
     } catch (e) {
       console.error(`[${ts}] System metrics error: ${e.message?.substring(0, 80)}`);
     }
@@ -108,13 +131,73 @@ async function collectAndPush() {
     pushes.push(pushMetric('DiskUsedPercent', diskPct, ''));
     pushes.push(pushMetric('DiskFreeGB', diskFreeGB, ''));
 
+    // --- Node.js Runtime Metrics (push to NAVADA/NodeJS namespace) ---
+    const mem = process.memoryUsage();
+    const heapUsedMB = Math.round(mem.heapUsed / 1024 / 1024 * 10) / 10;
+    const heapTotalMB = Math.round(mem.heapTotal / 1024 / 1024 * 10) / 10;
+    const rssMB = Math.round(mem.rss / 1024 / 1024 * 10) / 10;
+    const externalMB = Math.round(mem.external / 1024 / 1024 * 10) / 10;
+
+    // Event loop lag measurement
+    const lagStart = Date.now();
+    await new Promise(r => setImmediate(r));
+    const eventLoopLag = Date.now() - lagStart;
+
+    const njsDim = 'Name=Node,Value=HP';
+    const njsNs = 'NAVADA/NodeJS';
+    for (const [mName, mVal, mUnit] of [
+      ['HeapUsedMB', heapUsedMB, 'Megabytes'],
+      ['HeapTotalMB', heapTotalMB, 'Megabytes'],
+      ['RssMB', rssMB, 'Megabytes'],
+      ['ExternalMB', externalMB, 'Megabytes'],
+      ['EventLoopLag', eventLoopLag, 'Milliseconds'],
+      ['PM2TotalHeapMB', totalMemMB, 'Megabytes'],
+      ['PM2ProcessCount', totalProcs, 'Count'],
+    ]) {
+      pushes.push((async () => {
+        try {
+          await run(`aws cloudwatch put-metric-data --namespace "${njsNs}" --metric-name "${mName}" --value ${mVal} --unit ${mUnit} --dimensions "${njsDim}" --region ${REGION}`, 10000);
+        } catch {}
+      })());
+    }
+
     // --- Port Health Checks ---
-    const [botUp, tradingUp, wmUp] = await Promise.all([
-      checkPort(3456), checkPort(5678), checkPort(4173)
+    const [botUp, flixUp] = await Promise.all([
+      checkPort(3456), checkPort(4000)
     ]);
     pushes.push(pushMetric('TelegramBotUp', botUp, ''));
-    pushes.push(pushMetric('TradingAPIUp', tradingUp, ''));
-    pushes.push(pushMetric('WorldMonitorUp', wmUp, ''));
+    pushes.push(pushMetric('NavadaFlixUp', flixUp, ''));
+
+    // --- Tailscale Node Checks (push to NAVADA/Tailscale) ---
+    const tsNodes = [
+      { name: 'HP', ip: '100.121.187.67' },
+      { name: 'Oracle', ip: '100.77.206.9' },
+      { name: 'EC2', ip: '100.98.118.33' },
+      { name: 'ASUS', ip: '100.88.118.128' },
+    ];
+    let connectedNodes = 0;
+    for (const node of tsNodes) {
+      const up = await checkPort(22, node.ip).catch(() => 0);
+      // Fallback: try ping if port 22 fails
+      let online = up;
+      if (!online) {
+        try {
+          await run(`ping -n 1 -w 3000 ${node.ip}`, 5000, undefined);
+          online = 1;
+        } catch { online = 0; }
+      }
+      if (online) connectedNodes++;
+      pushes.push((async () => {
+        try {
+          await run(`aws cloudwatch put-metric-data --namespace "NAVADA/Tailscale" --metric-name "NodeOnline" --value ${online} --unit Count --dimensions "Name=Node,Value=${node.name}" --region ${REGION}`, 10000);
+        } catch {}
+      })());
+    }
+    pushes.push((async () => {
+      try {
+        await run(`aws cloudwatch put-metric-data --namespace "NAVADA/Tailscale" --metric-name "ConnectedNodes" --value ${connectedNodes} --unit Count --region ${REGION}`, 10000);
+      } catch {}
+    })());
 
     await Promise.allSettled(pushes);
 
@@ -122,7 +205,7 @@ async function collectAndPush() {
     logger.log({
       node: 'HP', eventType: 'metric', service: 'hp-cloudwatch-metrics', level: 'info',
       message: `HP: ${onlineProcs}/${totalProcs} procs, CPU ${sysCpu}%, Mem ${sysMem}%, Disk ${diskPct}%`,
-      metadata: { onlineProcs, totalProcs, sysCpu, sysMem, diskPct, diskFreeGB, botUp, tradingUp, wmUp }
+      metadata: { onlineProcs, totalProcs, sysCpu, sysMem, diskPct, diskFreeGB, botUp, flixUp }
     }).catch(() => {});
 
     console.log(`[${ts}] HP: ${onlineProcs}/${totalProcs} procs, CPU ${sysCpu}%, Mem ${sysMem}%, Disk ${diskPct}% (${diskFreeGB}GB free)`);

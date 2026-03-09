@@ -10,6 +10,17 @@ const { exec } = require('child_process');
 const https = require('https');
 const http = require('http');
 const { URL } = require('url');
+const fs = require('fs');
+const path = require('path');
+
+// Persistent audit log for chain-of-interaction traceability
+const AUDIT_LOG = path.join(__dirname, 'logs', 'health-monitor-audit.jsonl');
+try { fs.mkdirSync(path.dirname(AUDIT_LOG), { recursive: true }); } catch {}
+
+function auditLog(entry) {
+  const record = { timestamp: new Date().toISOString(), ...entry };
+  try { fs.appendFileSync(AUDIT_LOG, JSON.stringify(record) + '\n'); } catch {}
+}
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -52,19 +63,20 @@ const ENDPOINTS = [
   // --- HP (100.121.187.67) ---
   { name: 'HP Tailscale Ping',  group: 'HP',         type: 'ping', host: '100.121.187.67', critical: true },
   { name: 'Telegram Bot',       group: 'HP',         type: 'http', url: 'http://100.121.187.67:3456/health' },
-  { name: 'WorldMonitor',       group: 'HP',         type: 'http', url: 'http://100.121.187.67:4173' },
-  { name: 'WorldMonitor API',   group: 'HP',         type: 'http', url: 'http://100.121.187.67:46123' },
   { name: 'NAVADA Flix',        group: 'HP',         type: 'http', url: 'http://100.121.187.67:4000' },
-  { name: 'Trading API',        group: 'HP',         type: 'http', url: 'http://100.121.187.67:5678' },
-  { name: 'Network Scanner',    group: 'HP',         type: 'http', url: 'http://100.121.187.67:7777' },
+  { name: 'Network Scanner',    group: 'HP',         type: 'http', url: 'http://100.121.187.67:7777', optional: true },
+
+  // --- EC2 (localhost — runs on same machine as health monitor) ---
+  { name: 'WorldMonitor',       group: 'EC2',        type: 'http', url: 'http://127.0.0.1:4000' },
+  { name: 'NAVADA Dashboard',   group: 'EC2',        type: 'http', url: 'http://127.0.0.1:9090' },
 
   // --- Oracle (100.77.206.9) ---
   { name: 'Oracle Tailscale Ping', group: 'Oracle',  type: 'ping', host: '100.77.206.9', critical: true },
   { name: 'Nginx (Oracle)',        group: 'Oracle',  type: 'http', url: 'http://100.77.206.9:80' },
-  { name: 'Elasticsearch',        group: 'Oracle',   type: 'http', url: 'http://100.77.206.9:9200' },
-  { name: 'Kibana',               group: 'Oracle',   type: 'http', url: 'http://100.77.206.9:5601' },
   { name: 'Grafana',              group: 'Oracle',   type: 'http', url: 'http://100.77.206.9:3000' },
+  { name: 'Prometheus',           group: 'Oracle',   type: 'http', url: 'http://100.77.206.9:9090' },
   { name: 'CloudBeaver',          group: 'Oracle',   type: 'http', url: 'http://100.77.206.9:8978' },
+  { name: 'Portainer',            group: 'Oracle',   type: 'http', url: 'http://100.77.206.9:9000' },
 
   // --- Cloudflare (public HTTPS) ---
   { name: 'CF API Health',  group: 'Cloudflare', type: 'http', url: 'https://api.navada-edge-server.uk/health' },
@@ -200,6 +212,7 @@ async function sendTelegram(text) {
       return false;
     }
     log('[TELEGRAM] Alert sent');
+    auditLog({ event: 'telegram_alert', status: 'sent', text_length: text.length });
     return true;
   } catch (err) {
     log(`[TELEGRAM] Send failed: ${err.message}`);
@@ -245,20 +258,16 @@ async function sendSMS(message) {
 // CloudWatch: Push custom metric
 // ---------------------------------------------------------------------------
 function pushCloudWatchMetric(metricName, value, dimensions = []) {
-  // Use single dimension string to avoid shell parsing issues
-  const dimStr = dimensions
-    .map((d) => `Name=${d.Name},Value=${d.Value.replace(/\s+/g, '_')}`)
-    .join(',');
-  const args = [
-    'cloudwatch', 'put-metric-data',
-    '--namespace', 'NAVADA',
-    '--metric-name', metricName,
-    '--value', String(value),
-    '--unit', 'Count',
-    '--region', CONFIG.aws.region,
-  ];
-  if (dimStr) args.push('--dimensions', dimStr);
-  const cmd = 'aws ' + args.map(a => `"${a}"`).join(' ');
+  const metricData = {
+    Namespace: 'NAVADA',
+    MetricData: [{
+      MetricName: metricName,
+      Value: value,
+      Unit: 'Count',
+      Dimensions: dimensions,
+    }],
+  };
+  const cmd = `aws cloudwatch put-metric-data --region ${CONFIG.aws.region} --cli-input-json '${JSON.stringify(metricData)}'`;
 
   exec(cmd, { timeout: 15000 }, (err) => {
     if (err) log(`[CLOUDWATCH] Metric push failed: ${err.message}`);
@@ -282,6 +291,7 @@ function startEC2Bot() {
       }
       state.ec2BotRunning = true;
       log('[BOT-STANDBY] EC2 Telegram bot STARTED (HP bot down 15+ min)');
+      auditLog({ event: 'bot_failover', action: 'start', reason: 'HP bot down 15+ min' });
       sendTelegram(
         '<b>BOT FAILOVER</b>\n\n' +
           'EC2 standby bot activated.\n' +
@@ -299,6 +309,7 @@ function stopEC2Bot() {
     () => {
       state.ec2BotRunning = false;
       log('[BOT-STANDBY] EC2 Telegram bot STOPPED (HP bot recovered)');
+      auditLog({ event: 'bot_failover', action: 'stop', reason: 'HP bot recovered' });
       sendTelegram(
         '<b>BOT RECOVERY</b>\n\n' +
           'HP Telegram bot is back online.\n' +
@@ -334,6 +345,7 @@ async function triggerFailover() {
     await sshOracle('test -f /home/ubuntu/failover.sh && bash /home/ubuntu/failover.sh');
     state.failoverActive = true;
     log('=== FAILOVER ACTIVATED ===');
+    auditLog({ event: 'failover', action: 'activate', target: 'Oracle' });
   } catch (err) {
     log(`[FAILOVER] Activation failed: ${err.message}`);
     state.failoverTriggered = false; // allow retry
@@ -358,6 +370,7 @@ async function triggerFailback() {
     state.failoverActive = false;
     state.failoverTriggered = false;
     log('=== FAILBACK COMPLETE ===');
+    auditLog({ event: 'failover', action: 'failback', target: 'HP' });
   } catch (err) {
     log(`[FAILBACK] Failed: ${err.message}`);
   }
@@ -466,8 +479,8 @@ async function runChecks() {
         { Name: 'Group', Value: r.group },
       ]);
 
-      // Check if this endpoint should trigger an alert
-      if (shouldAlert(r.name)) {
+      // Check if this endpoint should trigger an alert (skip optional services)
+      if (!r.optional && shouldAlert(r.name)) {
         alertable.push({ name: r.name, group: r.group, error: r.error });
         s.lastAlertTime = Date.now();
         s.alertCount++;
@@ -547,6 +560,18 @@ async function runChecks() {
     // Aggregate CloudWatch metric
     pushCloudWatchMetric('TotalFailures', alertable.length);
   }
+
+  // --- Audit log: full check cycle for chain-of-interaction traceability ---
+  auditLog({
+    event: 'health_check',
+    passed: passed.map(p => ({ name: p.name, group: p.group })),
+    failed: failed.map(f => ({ name: f.name, group: f.group, error: f.error, critical: f.critical })),
+    alerts_sent: alertable.map(a => ({ name: a.name, group: a.group, error: a.error })),
+    sms_sent: (hpAllDown || oracleAllDown) && alertable.length > 0,
+    failover_active: state.failoverActive,
+    bot_standby: state.ec2BotRunning,
+    summary: { ok: passed.length, fail: failed.length, total: ENDPOINTS.length },
+  });
 
   // Summary
   log(`  Summary: ${passed.length} OK, ${failed.length} FAILED`);

@@ -1,0 +1,30 @@
+{
+  "name": "navada-edge-api",
+  "main": "worker.js",
+  "compatibility_date": "2024-12-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "navada-edge",
+      "database_id": "83ae8f95-8b93-4de6-9ed0-e046f42d0ae5"
+    }
+  ],
+  "vars": {
+    "API_KEY": "navada-edge-2026"
+  },
+  "routes": [
+    {
+      "pattern": "edge-api.navada-edge-server.uk/*",
+      "zone_name": "navada-edge-server.uk"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "30 6 * * *",
+      "0 7 * * *",
+      "30 8 * * *",
+      "0 9 * * *",
+      "*/5 * * * *"
+    ]
+  }
+}

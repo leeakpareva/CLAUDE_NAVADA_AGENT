@@ -1,236 +1,266 @@
-# CLAUDE_NAVADA_AGENT
+# NAVADA Edge — Autonomous AI Infrastructure
 
-**NAVADA AI Engineering Server** — Autonomous AI agent system run by Claude (Chief of Staff) on behalf of Lee Akpareva.
+**Claude, Chief of Staff** manages a distributed 5-node network 24/7 from Cloudflare's global edge.
 
-## Architecture
+Founded by **Lee Akpareva** | Principal AI Consultant
+leeakpareva@gmail.com | [navada-lab.space](https://navada-lab.space) | [github.com/Navada25](https://github.com/Navada25)
+
+## Network Architecture
 
 ```
-iPhone (Lee) ←→ Telegram Bot ←→ Claude API (Sonnet 4 / Opus 4)
-                                       ↕
-iPhone (Lee) ←→ Tailscale VPN ←→ NAVADA Server (HP Laptop, Windows 11)
-                                       ↕
-                                  Claude Code CLI
-                                       ↕
-                   ┌───────────────────┼───────────────────┐
-                   ↓                   ↓                   ↓
-             23 MCP Servers      Automations          Voice System
-             (AI/Data/Dev)     (PM2 + Scheduler)    (S8 Bluetooth)
+                    ┌──────────────────────────────────────────┐
+                    │       NAVADA-GATEWAY (Cloudflare)        │
+                    │  Role: CDN / Security / Edge Compute     │
+                    │                                          │
+                    │  Workers: navada-edge-api                │
+                    │  D1: navada-edge (7 tables, WEUR)        │
+                    │  R2: navada-assets (backups, media)      │
+                    │  DNS: navada-edge-server.uk (13 subs)    │
+                    │  Cron: 5 scheduled triggers              │
+                    │  WAF / DDoS / SSL / Tunnel Ingress       │
+                    └────────────────┬─────────────────────────┘
+                                     │ Cloudflare Tunnel (encrypted)
+                                     │
+     ┌───────────────────────────────┼───────────────────────────────┐
+     │              TAILSCALE MESH VPN (WireGuard, 100.x.x.x)       │
+     │              Encrypted peer-to-peer overlay network            │
+     └──┬──────────────┬──────────────┬──────────────┬──────────────┘
+        │              │              │              │
+   ┌────▼────┐   ┌────▼──────┐  ┌───▼────────┐ ┌──▼──────────┐
+   │ NAVADA- │   │ NAVADA-   │  │ NAVADA-    │ │ NAVADA-     │
+   │ CONTROL │   │ EDGE-     │  │ COMPUTE    │ │ ROUTER      │
+   │ (ASUS)  │   │ SERVER    │  │ (AWS EC2)  │ │ (Oracle VM) │
+   │         │   │ (HP)      │  │            │ │             │
+   │ Command │   │ Dev Box / │  │ 24/7       │ │ Routing /   │
+   │ Centre  │   │ Node      │  │ Compute /  │ │ Observ. /   │
+   │         │   │ Server    │  │ Monitoring │ │ Security    │
+   └─────────┘   └───────────┘  └────────────┘ └─────────────┘
 ```
+
+## Nodes
+
+### NAVADA-CONTROL (ASUS Zenbook Duo)
+- **Role**: Command Centre / Development
+- **IP**: 192.168.0.18 (WiFi) / 100.88.118.128 (Tailscale)
+- **OS**: Windows 11 Home, Intel Core Ultra 7, 16GB RAM
+- **Services**: Claude Code, VS Code, LM Studio, Ollama, Docker Desktop
+- **Connects to**: All nodes via SSH + Tailscale
+
+### NAVADA-EDGE-SERVER (HP Laptop)
+- **Role**: Dev Box / Node Server (SSH-only, no PM2)
+- **IP**: 192.168.0.58 (Ethernet, static) / 100.121.187.67 (Tailscale)
+- **OS**: Windows 11 Pro
+- **Services**: PostgreSQL (:5433), Node.js runtime, SSH server
+- **Connection**: Always-on ethernet
+
+### NAVADA-COMPUTE (AWS EC2)
+- **Role**: 24/7 Compute / Monitoring / Failover
+- **IP**: 3.11.119.181 (Elastic IP) / 100.98.118.33 (Tailscale)
+- **Spec**: t3.medium (2 vCPU, 4GB), Ubuntu, eu-west-2
+- **PM2 Services** (5):
+
+| Process | Purpose |
+|---------|---------|
+| ec2-health-monitor | 16-endpoint health checks every 5 min |
+| navada-dashboard | NAVADA command centre dashboard |
+| worldmonitor | WorldView OSINT dashboard :4000 |
+| worldview-monitor | WorldView CloudWatch metrics |
+| cloudwatch-dashboard-updater | Auto-updates 11 CW dashboards |
+
+- **AWS Services**: CloudWatch (11 dashboards), DynamoDB, S3, ECR, Lambda, Rekognition, Bedrock, SageMaker
+
+### NAVADA-ROUTER (Oracle VM)
+- **Role**: Routing / Observability / Security
+- **IP**: 132.145.46.184 / 100.77.206.9 (Tailscale)
+- **OS**: Ubuntu (ARM), Oracle Cloud Free Tier
+- **Docker Containers** (6):
+
+| Container | Port | Purpose |
+|-----------|------|---------|
+| navada-proxy | :80, :443, :8080 | Nginx reverse proxy |
+| navada-tunnel | — | Cloudflare Tunnel (encrypted ingress) |
+| navada-grafana | :3000 | Metrics dashboards |
+| navada-prometheus | :9090 | Metrics collection |
+| cloudbeaver | :8978 | Database admin UI |
+| navada-portainer | :9000 | Docker management UI |
+
+### NAVADA-GATEWAY (Cloudflare)
+- **Role**: CDN / Security / Edge Compute / DNS
+- **Services**:
+
+| Service | Purpose |
+|---------|---------|
+| Cloudflare Worker (`navada-edge-api`) | Telegram bot, metrics API, health checks, cron jobs |
+| D1 Database (`navada-edge`) | 7 tables: metrics, logs, health, conversations, users, commands, cache |
+| R2 Storage (`navada-assets`) | Backups, media, version snapshots |
+| DNS (13 subdomains) | Routing for all public services |
+| WAF + DDoS | Security layer for all traffic |
+| Cron Triggers (5) | Health checks, morning briefing, pipelines |
+
+### NAVADA-MOBILE (iPhone 15 Pro Max)
+- **Role**: Client / Mobile Ops
+- **IP**: 100.68.251.111 (Tailscale)
+- **Interface**: Telegram (primary), SMS, Tailscale direct access
 
 ## Claude: Chief of Staff
 
-Claude operates as NAVADA's Chief of Staff, not just an assistant:
-- **Full server control**: shell, files, processes, email, deployments
-- **24/7 availability** via Telegram (primary mobile interface)
-- **Proactive management**: monitors, maintains, and improves systems
-- Reports to Lee Akpareva (Founder)
+Claude operates as NAVADA's Chief of Staff from Cloudflare's global edge:
+- **24/7 availability** via Telegram, SMS (+447446994961), and WhatsApp
+- **Full system control**: shell (EC2), email, images, SMS/calls, D1 database
+- **Smart model routing**: Sonnet 4.6 default, auto-escalates to Opus 4.6
+- **Multi-user access**: Admin (full control) and guest (demo) roles
+- **Conversation memory**: D1-backed, persists across restarts
+- **Scheduled operations**: Cron triggers on Cloudflare (no local terminals)
 
-## Telegram Bot (Primary Interface)
-
-**Script**: `Automation/telegram-bot.js` | **PM2**: `telegram-bot`
-
-Lee controls the entire server from his iPhone via Telegram. 38 slash commands with autocomplete.
-
-### Capabilities
-- **Model switching**: `/sonnet` (Sonnet 4, fast) and `/opus` (Opus 4, powerful)
-- **Full system access**: Shell, files (read/write/delete), process management
-- **Email E2E**: Send (Zoho SMTP), read inbox, read sent, search (IMAP)
-- **Image generation**: `/image` (DALL-E 3 via OpenAI API)
-- **Voice notes**: `/voicenote` (OpenAI TTS HD, emailed as attachment)
-- **Persistent memory**: Conversation history survives bot restarts
-- **Cost tracking**: Every API call logged with model, tokens, ROI
-- **MCP access**: All 23 MCP servers accessible via shell commands
-- **Natural language**: Any text message routes through Claude with full tool access
-
-### Commands (38)
+### Telegram Commands (48+)
 
 | Category | Commands |
 |----------|----------|
-| AI Model | `/sonnet` `/opus` `/model` |
-| System | `/status` `/disk` `/uptime` `/ip` `/processes` |
+| System | `/status` `/uptime` `/ping` `/about` `/help` |
+| AI Model | `/sonnet` `/opus` `/auto` `/model` |
 | PM2 | `/pm2` `/pm2restart` `/pm2stop` `/pm2start` `/pm2logs` |
-| Automations | `/news` `/jobs` `/pipeline` `/prospect` `/run` `/tasks` |
-| Communication | `/email` `/emailme` `/briefing` `/inbox` `/sent` |
-| Creative | `/present` `/report` `/research` `/draft` `/image` |
-| Voice | `/voice` `/voicenote` |
-| Files | `/ls` `/cat` `/shell` |
-| Network | `/tailscale` `/docker` `/nginx` |
-| Other | `/costs` `/memory` `/clear` `/about` `/help` |
+| Files | `/ls` `/cat` `/shell` `/run` |
+| Communication | `/email` `/emailme` `/inbox` `/sent` `/sms` `/call` |
+| Creative | `/image` `/flux` `/research` `/draft` `/report` `/present` |
+| Network | `/tailscale` `/docker` `/nginx` `/failover` `/failback` |
+| Monitoring | `/costs` `/usage` `/logs` `/memory` |
+| Media | `/stream` `/video` `/media` `/voicenote` |
+| Other | `/clear` `/grant` `/revoke` `/users` `/cache` |
 
-### Tools (Claude API Tool Use)
+## Cloudflare Subdomains (13)
 
-| Tool | Description |
-|------|-------------|
-| `run_shell` | Execute any bash command on the server |
-| `read_file` | Read file contents (absolute paths) |
-| `write_file` | Create or overwrite files |
-| `list_files` | List directory contents with optional glob filter |
-| `server_status` | Full server health: CPU, RAM, disk, PM2, Docker, Tailscale |
-| `send_email` | NAVADA-branded email via Zoho SMTP (any recipient) |
-| `read_inbox` | Read Zoho email (INBOX, Sent, Drafts) via IMAP |
-| `generate_image` | DALL-E 3 image generation (square, landscape, portrait) |
+| Subdomain | Backend | Purpose |
+|-----------|---------|---------|
+| api.navada-edge-server.uk | HP :3456 | Telegram/Twilio webhooks (legacy) |
+| edge-api.navada-edge-server.uk | Cloudflare Worker | New API: bot, metrics, health |
+| flix.navada-edge-server.uk | HP :4000 | Video streaming |
+| trading.navada-edge-server.uk | HP :5678 | Trading Lab |
+| network.navada-edge-server.uk | HP :7777 | Network scanner |
+| kibana.navada-edge-server.uk | Oracle :5601 | Log search |
+| grafana.navada-edge-server.uk | Oracle :3000 | Metrics |
+| monitor.navada-edge-server.uk | Oracle :3001 | Uptime Kuma |
+| cloudbeaver.navada-edge-server.uk | Oracle :8978 | DB admin |
+| nodes.navada-edge-server.uk | Oracle | Network map |
+| dashboard.navada-edge-server.uk | EC2 | Command centre |
+| logo.navada-edge-server.uk | HP :3000 | Logo service |
 
-## PM2 Services (8)
+## Cloudflare Worker (navada-edge-api)
 
-**Config**: `ecosystem.config.js`
+**Endpoints**:
 
-| Service | Script | Port | Purpose |
-|---------|--------|------|---------|
-| worldmonitor | `serve-local.mjs` | 4173 | Frontend + proxy |
-| worldmonitor-api | `start-api.mjs` | 46123 | Local API server |
-| trading-api | `uvicorn src.api:app` | 5678 | Trading FastAPI |
-| inbox-responder | `inbox-auto-responder.js` | — | Email auto-reply + improvement gate |
-| auto-deploy | `scripts/auto-deploy.js` | — | Git poll + rebuild |
-| trading-scheduler | `scripts/scheduler.js` | — | Trading cron triggers |
-| telegram-bot | `telegram-bot.js` | — | Claude Chief of Staff |
-| voice-command | `voice-command.js` | 7777 | S8 Bluetooth voice |
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/telegram/webhook` | Telegram bot webhook |
+| POST | `/twilio/sms` | SMS inbound/outbound |
+| POST | `/metrics` | Ingest metrics from any node |
+| GET | `/metrics` | Query metrics (node, namespace, time range) |
+| POST | `/logs` | Ingest edge logs |
+| GET | `/logs` | Query logs |
+| POST | `/health` | Ingest health check results |
+| GET | `/health` | Query health history |
+| GET | `/status` | System overview |
 
-## Scheduled Automations (18 Windows Tasks)
+**Cron Triggers**:
 
-| Task | Schedule | Script |
-|------|----------|--------|
-| Morning-Briefing | Daily 6:30 AM | `morning-briefing.js` |
-| AI-News-Digest | Daily 7:00 AM | `ai-news-mailer.js` |
-| Economy-Report | Mon 8:00 AM | `uk-us-economy-report.py` |
-| NAVADA-LeadPipeline | Daily 8:30 AM | `pipeline.js` |
-| Job-Hunter-Daily | Daily 9:00 AM | `job-hunter-apify.js` |
-| NAVADA-ProspectPipeline | Daily 9:30 AM | `prospect-pipeline.js` |
-| Self-Improve-Weekly | Mon 10:00 AM | `self-improve.js` |
-| NAVADA-Trading-PreMarket | Daily 2:15 PM | Trading pre-market scan |
-| NAVADA-Trading-Execute | Daily 3:45 PM | Trading execution |
-| Market-Intelligence | Daily 6:00 PM | Market analysis |
-| Weekly-Report | Sun 6:00 PM | `weekly-report.js` |
-| NAVADA-Trading-FridayClose | Fri 8:30 PM | Close positions |
-| Daily-Ops-Report | Daily 9:00 PM | Operations summary |
-| NAVADA-Trading-Report | Daily 9:15 PM | Trading report |
-| Inbox-Monitor | Every 2hrs 8AM-10PM | `inbox-monitor.js` |
-| VC-Response-Monitor | At startup | `vc-response-monitor.js` |
-| NAVADA-Infrastructure | At startup | Health check |
-| PM2-Resurrect | At startup | `pm2 resurrect` |
+| Schedule | Action |
+|----------|--------|
+| `*/5 * * * *` | Health check all endpoints |
+| `30 6 * * *` | Morning briefing |
+| `0 7 * * *` | AI news digest (via EC2) |
+| `30 8 * * *` | Lead pipeline (via EC2) |
+| `0 9 * * *` | Job hunter (via EC2) |
 
-## Key Scripts
+## D1 Database Schema (7 tables)
 
-| Script | Purpose | Usage |
-|--------|---------|-------|
-| `telegram-bot.js` | Claude Chief of Staff Telegram bot | PM2 managed |
-| `email-service.js` | NAVADA-branded email sending | `node email-service.js <to> <subject> <body>` |
-| `voice-service.js` | TTS voice notes via OpenAI | `node voice-service.js <to> <message>` |
-| `inbox-monitor.js` | Read Zoho inbox via IMAP | `node inbox-monitor.js` |
-| `morning-briefing.js` | Executive morning brief | `node morning-briefing.js` |
-| `weekly-report.js` | PDF + voice weekly report | `node weekly-report.js` |
-| `job-hunter-apify.js` | Job search (max 10/email) | `node job-hunter-apify.js` |
-| `voice-command.js` | S8 Bluetooth voice control | PM2 managed |
+| Table | Purpose |
+|-------|---------|
+| metrics | Time-series metrics from all nodes |
+| edge_logs | Event logs (errors, deploys, cron runs) |
+| health_checks | Endpoint health check history |
+| telegram_users | User registry (admin/guest roles) |
+| conversations | AI conversation memory (per-user) |
+| command_log | All Telegram/SMS command history |
+| response_cache | AI response cache (7-day TTL) |
+
+## AWS Services (eu-west-2)
+
+| Service | Purpose |
+|---------|---------|
+| EC2 (t3.medium) | 24/7 compute, PM2 services |
+| CloudWatch | 11 dashboards, metrics, alarms |
+| DynamoDB | navada-faces, navada-vision-log, navada-edge-logs |
+| Lambda | navada-vision-router (Vision AI API) |
+| API Gateway | Vision API endpoint |
+| SageMaker Serverless | YOLOv8n object detection |
+| Rekognition | Face collection (navada-faces) |
+| S3 | navada-vision-eu-west-2 |
+| Bedrock | Claude Sonnet/Opus access |
+| ECR | navada-yolo container |
+| Budget | $25/month alerts (80%/100%) |
+
+## Directory Structure
+
+```
+Alex/
+├── Automation/
+│   ├── cloudflare-worker/     # Cloudflare Worker + D1 (new)
+│   │   ├── worker.js          # Main worker: bot, metrics, health, cron
+│   │   ├── wrangler.json      # Wrangler config + cron triggers
+│   │   ├── schema.sql         # D1 metrics/logs/health tables
+│   │   └── schema-telegram.sql # D1 telegram tables
+│   ├── telegram-bot.js        # Legacy bot (HP, now replaced by Worker)
+│   ├── hp-health-monitor.js   # Legacy health monitor (replaced by Worker cron)
+│   ├── hp-cloudwatch-metrics.js # Legacy metrics (replaced by Worker + D1)
+│   ├── ec2-health-monitor.js  # EC2 standby health monitor
+│   ├── email-service.js       # NAVADA branded email (Zoho SMTP)
+│   ├── morning-briefing.js    # Executive morning brief
+│   ├── ai-news-mailer.js      # Daily AI news digest
+│   ├── job-hunter-apify.js    # Job search automation
+│   ├── self-improve.js        # Ralph self-improvement engine
+│   ├── edge-logger.js         # DynamoDB event logger
+│   ├── kb/                    # Knowledge base
+│   ├── logs/                  # Task output logs
+│   └── .env                   # Secrets (gitignored)
+├── LeadPipeline/              # Lead generation + CRM
+├── Manager/                   # Cost tracking
+├── infrastructure/            # Docker + Nginx configs
+├── navada-lambda/             # AWS Lambda functions
+├── CLAUDE.md                  # Claude Code instructions
+└── README.md                  # This file
+```
+
+## Quick Commands
+
+```bash
+# Cloudflare Worker
+cd Automation/cloudflare-worker
+npx wrangler deploy              # Deploy worker
+npx wrangler tail                # Live logs
+npx wrangler d1 execute navada-edge --remote --command "SELECT COUNT(*) FROM metrics"
+
+# EC2 (via SSH)
+ssh navada-ec2 "pm2 list"
+ssh navada-ec2 "pm2 logs --lines 20"
+
+# Oracle (via SSH)
+ssh navada-oracle -l ubuntu "docker ps"
+
+# HP (via SSH from ASUS)
+ssh navada "node --version"
+```
 
 ## NAVADA Products
 
 | Product | URL | Description |
 |---------|-----|-------------|
-| NAVADA Edge | — | Productised AI home server deployment service |
+| NAVADA Edge | navada-edge-server.uk | Autonomous AI infrastructure |
 | WorldMonitor | navada-world-view.xyz | OSINT dashboard |
-| NAVADA Trading Lab | — | Autonomous paper trading (Alpaca + IEX) |
+| Trading Lab | trading.navada-edge-server.uk | Autonomous paper trading |
 | NAVADA Robotics | navadarobotics.com | Robotics company |
 | Navada Lab | navada-lab.space | GPU ML lab + portfolio |
 | ALEX | alexnavada.xyz | Autonomous AI agent |
 | Raven Terminal | raventerminal.xyz | AI code learning platform |
 
-## MCP Servers (23)
-
-**Cloud:** Excalidraw, Hugging Face, Vercel, Zapier
-**Global:** Puppeteer, GitHub, PostgreSQL, Bright Data, OpenAI Images
-**Project:** Fetch, Memory, Sequential Thinking, Context7, DBHub, DuckDB, SQLite, dbt, Zaturn, Fermat, Vizro, Optuna, NetworkX, Jupyter
-
-## Directory Structure
-
-```
-CLAUDE_NAVADA_AGENT/
-├── Automation/
-│   ├── telegram-bot.js           # Claude Chief of Staff (38 commands)
-│   ├── ai-news-mailer.js         # Daily AI news digest
-│   ├── morning-briefing.js       # Executive morning brief
-│   ├── job-hunter-apify.js       # Job scraper
-│   ├── uk-us-economy-report.py   # Economy analysis
-│   ├── self-improve.js           # Ralph Wiggum self-improvement
-│   ├── voice-command.js          # S8 Bluetooth voice assistant
-│   ├── voice-service.js          # TTS voice notes (OpenAI)
-│   ├── inbox-monitor.js          # Zoho IMAP inbox monitor
-│   ├── inbox-auto-responder.js   # Email auto-responder
-│   ├── email-service.js          # NAVADA branded email
-│   ├── weekly-report.js          # PDF + voice weekly report
-│   ├── deliver-app.js            # App deploy pipeline
-│   ├── linkedin-post.js          # LinkedIn API posting
-│   ├── kb/                       # Knowledge base (contacts, decisions, memory)
-│   ├── logs/                     # Task output logs
-│   └── .env                      # Secrets (gitignored)
-├── LeadPipeline/
-│   ├── pipeline.js               # Lead CRM engine
-│   ├── prospect-pipeline.js      # Prospect outreach automation
-│   ├── lead-scraper.js           # Google/LinkedIn scraping
-│   ├── email-finder.js           # Hunter.io email verification
-│   └── outreach.js               # Intro + follow-up emails
-├── NAVADA-Trading/
-│   ├── src/api.py                # FastAPI trading API
-│   └── scripts/scheduler.js      # Trading cron triggers
-├── Manager/
-│   ├── cost-tracker.js           # API cost logging + ROI
-│   └── cost-log.json             # Cost data
-├── navada-osint/worldmonitor-repo/
-│   ├── serve-local.mjs           # WorldMonitor frontend
-│   ├── start-api.mjs             # WorldMonitor API server
-│   └── api/                      # API endpoints (incl. navada-costs.js)
-├── infrastructure/
-│   ├── docker-compose.yml        # Nginx + Cloudflare tunnel
-│   └── nginx/                    # Reverse proxy configs
-├── ecosystem.config.js           # PM2 unified config (8 services)
-├── CLAUDE.md                     # Claude Code instructions
-└── README.md                     # This file
-```
-
-## Networking
-
-| Endpoint | Address |
-|----------|---------|
-| Local IP | `192.168.0.58` |
-| Tailscale | `100.121.187.67` |
-| iPhone Tailscale | `100.68.251.111` |
-| WorldMonitor | `navada.tail394c36.ts.net` |
-
-## Quick Commands
-
-```bash
-# PM2 services
-pm2 list                          # View all 8 services
-pm2 restart telegram-bot          # Restart Telegram bot
-pm2 logs telegram-bot --lines 20  # View logs
-pm2 start ecosystem.config.js     # Start all from config
-pm2 save                          # Persist across reboot
-
-# Docker
-cd ~/CLAUDE_NAVADA_AGENT/infrastructure
-docker compose up -d              # Start Nginx + tunnel
-docker compose down               # Stop all containers
-
-# Pipeline
-node LeadPipeline/pipeline.js     # Run lead pipeline
-node LeadPipeline/prospect-pipeline.js  # Run prospect outreach
-
-# Automations
-node Automation/morning-briefing.js
-node Automation/ai-news-mailer.js
-node Automation/job-hunter-apify.js
-```
-
-## Voice Command System
-
-| Mode | Enter | Exit |
-|------|-------|------|
-| **STANDBY** | Default | Auto after command |
-| **ACTIVE** | Say "Claude" | Auto -> STANDBY |
-| **CONVO** | "Claude, let's talk" | "Goodbye" |
-| **SLEEPING** | "Claude, go to sleep" | "Claude, wake up" |
-
-Wake words: "claude", "navada", "hey claude", "ok claude"
-
 ---
 
-**Owner:** Lee Akpareva — Founder of NAVADA | Principal AI Consultant
-leeakpareva@gmail.com | navada-lab.space | github.com/Navada25
+**Total: 17+ services across 5 nodes, managed 24/7 by Claude Chief of Staff on Cloudflare's edge.**

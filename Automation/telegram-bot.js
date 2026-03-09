@@ -445,7 +445,7 @@ function runShell(command, timeout = 60000) {
       resolve('Error: command must be a non-empty string');
       return;
     }
-    exec(command, { timeout, shell: 'bash', cwd: NAVADA_DIR, maxBuffer: 2 * 1024 * 1024 }, (err, stdout, stderr) => {
+    exec(command, { timeout, shell: 'bash', cwd: NAVADA_DIR, maxBuffer: 2 * 1024 * 1024, windowsHide: true }, (err, stdout, stderr) => {
       if (err && !stdout && !stderr) {
         resolve(`Error: ${err.message}`);
       } else {
@@ -1502,7 +1502,7 @@ async function executeTool(name, input, userRole) {
         try {
           renderOutput = execSync(
             `npx remotion render src/index.ts ${input.composition} --output "${outputPath}"`,
-            { cwd: videoDir, timeout: 300000, encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024, shell: 'bash' }
+            { cwd: videoDir, timeout: 300000, encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024, shell: 'bash', windowsHide: true }
           );
           // Keep only last 5 lines
           renderOutput = renderOutput.split('\n').slice(-5).join('\n');
@@ -2765,7 +2765,7 @@ guardCommand('failover', async (ctx) => {
   await ctx.reply('Triggering failover to Oracle VM...');
   try {
     const { exec } = require('child_process');
-    exec('ssh -o ConnectTimeout=15 oracle-navada "bash /home/ubuntu/navada-failover/failover-activate.sh"', { timeout: 120000 }, async (err, stdout, stderr) => {
+    exec('ssh -o ConnectTimeout=15 oracle-navada "bash /home/ubuntu/navada-failover/failover-activate.sh"', { timeout: 120000, windowsHide: true }, async (err, stdout, stderr) => {
       if (err) {
         await ctx.reply(`Failover activation failed:\n${stderr || err.message}`);
       } else {
@@ -2783,7 +2783,7 @@ guardCommand('failback', async (ctx) => {
   await ctx.reply('Triggering failback to HP laptop...');
   try {
     const { exec } = require('child_process');
-    exec('ssh -o ConnectTimeout=15 oracle-navada "bash /home/ubuntu/navada-failover/failover-deactivate.sh"', { timeout: 120000 }, async (err, stdout, stderr) => {
+    exec('ssh -o ConnectTimeout=15 oracle-navada "bash /home/ubuntu/navada-failover/failover-deactivate.sh"', { timeout: 120000, windowsHide: true }, async (err, stdout, stderr) => {
       if (err) {
         await ctx.reply(`Failback failed:\n${stderr || err.message}`);
       } else {
@@ -2799,7 +2799,7 @@ guardCommand('failback', async (ctx) => {
 async function handleFailoverStatus(ctx) {
   try {
     const { exec } = require('child_process');
-    exec('ssh -o ConnectTimeout=10 oracle-navada "cat /home/ubuntu/navada-failover/.failover-active 2>/dev/null || echo INACTIVE; pm2 jlist 2>/dev/null | head -1; docker ps --filter name=navada-failover --format \\"{{.Names}}: {{.Status}}\\" 2>/dev/null"', { timeout: 30000 }, async (err, stdout) => {
+    exec('ssh -o ConnectTimeout=10 oracle-navada "cat /home/ubuntu/navada-failover/.failover-active 2>/dev/null || echo INACTIVE; pm2 jlist 2>/dev/null | head -1; docker ps --filter name=navada-failover --format \\"{{.Names}}: {{.Status}}\\" 2>/dev/null"', { timeout: 30000, windowsHide: true }, async (err, stdout) => {
       if (err) {
         await ctx.reply('Could not reach Oracle VM to check failover status.');
         return;
@@ -2892,6 +2892,7 @@ async function handleCostCommand(ctx, args) {
         encoding: 'utf-8',
         timeout: 30000,
         env: { ...process.env, NO_COLOR: '1' },
+        windowsHide: true,
       });
       ccData = JSON.parse(raw);
     } catch (e) {
@@ -3015,6 +3016,7 @@ bot.command('usage', async (ctx) => {
       encoding: 'utf-8',
       timeout: 30000,
       env: { ...process.env, NO_COLOR: '1' },
+      windowsHide: true,
     });
     const data = JSON.parse(raw);
     const entries = data[period] || data.daily || [];
