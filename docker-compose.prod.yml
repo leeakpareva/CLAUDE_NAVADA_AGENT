@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  navada-main-agent:
+    image: your-image-name
+    volumes:
+      - navada-main-agent-data:/data
+    networks:
+      - backend
+    environment:
+      - ENV_VAR=value
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:your-port/health"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+  
+  chromadb:
+    image: your-image-name
+    volumes:
+      - chromadb-data:/data
+    networks:
+      - backend
+    environment:
+      - ENV_VAR=value
+  
+  redis:
+    image: redis:alpine
+    volumes:
+      - redis-data:/data
+    networks:
+      - backend
+  
+  telegram-bot:
+    image: your-image-name
+    networks:
+      - backend
+    environment:
+      - ENV_VAR=value
+  
+  sms-gateway:
+    image: your-image-name
+    networks:
+      - backend
+    environment:
+      - ENV_VAR=value
+  
+  whatsapp-gateway:
+    image: your-image-name
+    networks:
+      - backend
+    environment:
+      - ENV_VAR=value
+  
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - prometheus-data:/prometheus
+    networks:
+      - monitoring
+  
+  grafana:
+    image: grafana/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+  
+  alertmanager:
+    image: prom/alertmanager
+    networks:
+      - monitoring
+  
+  backup-service:
+    image: your-image-name
+    networks:
+      - backend
+  
+  health-monitor:
+    image: your-image-name
+    networks:
+      - backend
+  
+  mcp-servers:
+    image: your-image-name
+    networks:
+      - backend
+  
+  worker-nodes:
+    image: your-image-name
+    networks:
+      - backend
+  
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - backend
+  
+volumes:
+  navada-main-agent-data:
+  chromadb-data:
+  redis-data:
+  prometheus-data:
+
+networks:
+  backend:
+  monitoring:
