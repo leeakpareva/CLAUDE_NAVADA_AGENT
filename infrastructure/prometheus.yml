@@ -1,0 +1,40 @@
+# Prometheus Configuration for NAVADA Services
+
+# Global configurations.
+global:
+  scrape_interval: 15s  # Default scrape interval for all targets.
+  evaluation_interval: 15s  # Evaluate rules every 15 seconds.
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rules:
+  - alert: HighCPUUsage
+    expr: sum(rate(container_cpu_usage_seconds_total[5m])) by (container_name) > 0.75
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: High CPU usage detected in container {{ $labels.container_name }}
+
+# Scrape configurations for NAVADA services.
+scrape_configs:
+  - job_name: 'navada-service-1'
+    static_configs:
+      - targets: ['navada-service-1:8080']
+
+  - job_name: 'navada-service-2'
+    static_configs:
+      - targets: ['navada-service-2:8080']
+
+  - job_name: 'navada-service-3'
+    static_configs:
+      - targets: ['navada-service-3:8080']
+
+  # Add more services as needed
+
