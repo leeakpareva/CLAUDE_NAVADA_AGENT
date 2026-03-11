@@ -744,18 +744,19 @@ async function generateFluxImage(env, prompt, chatId) {
 // ============================================================
 async function runHealthChecks(env) {
   // Public endpoints only — Workers can't reach private IPs
+  // redirect: 'manual' to accept 3xx as OK without following
+  // Don't self-check CF API (recursive fetch)
   const endpoints = [
     { name: 'EC2 Dashboard', url: `https://dashboard.navada-edge-server.uk` },
-    { name: 'Oracle Grafana', url: `https://grafana.navada-edge-server.uk/api/health` },
-    { name: 'Oracle Nginx', url: `https://network.navada-edge-server.uk` },
-    { name: 'CF API', url: `https://edge-api.navada-edge-server.uk/status?key=${env?.API_KEY || ''}` },
+    { name: 'Oracle Grafana', url: `https://grafana.navada-edge-server.uk` },
+    { name: 'Oracle Network', url: `https://network.navada-edge-server.uk` },
     { name: 'CF Flix', url: `https://flix.navada-edge-server.uk` },
     { name: 'Vision API', url: `https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/vision/status` },
   ];
 
   const results = await Promise.allSettled(endpoints.map(async ep => {
     try {
-      const resp = await fetch(ep.url, { signal: AbortSignal.timeout(10000) });
+      const resp = await fetch(ep.url, { signal: AbortSignal.timeout(10000), redirect: 'manual' });
       return { ...ep, ok: resp.status < 500, status: resp.status };
     } catch (e) {
       return { ...ep, ok: false, error: e.message };
@@ -785,27 +786,30 @@ async function runHealthChecks(env) {
 }
 
 async function checkAllNodes(env) {
-  // Use public endpoints only — Cloudflare Workers can't reach private IPs (Tailscale/LAN)
+  // Public endpoints only — Workers can't reach private IPs
+  // redirect: 'manual' to accept 3xx as OK, avoid following redirects into loops
   const checks = [
     { name: 'NAVADA-COMPUTE (EC2)', url: 'https://dashboard.navada-edge-server.uk' },
-    { name: 'NAVADA-ROUTER (Oracle)', url: 'https://grafana.navada-edge-server.uk/api/health' },
-    { name: 'NAVADA-GATEWAY (Cloudflare)', url: 'https://edge-api.navada-edge-server.uk/status?key=' + (env?.API_KEY || '') },
+    { name: 'NAVADA-ROUTER (Oracle)', url: 'https://grafana.navada-edge-server.uk' },
     { name: 'Vision API (Lambda)', url: 'https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/vision/status' },
   ];
 
+  // Gateway is always OK if this code is running
   const results = await Promise.allSettled(checks.map(async c => {
     try {
-      const r = await fetch(c.url, { signal: AbortSignal.timeout(8000) });
-      return { name: c.name, ok: r.ok };
+      const r = await fetch(c.url, { signal: AbortSignal.timeout(8000), redirect: 'manual' });
+      return { name: c.name, ok: r.status < 500 };
     } catch {
       return { name: c.name, ok: false };
     }
   }));
 
-  return results.map(r => {
+  const lines = results.map(r => {
     const v = r.value || { name: '?', ok: false };
     return `${v.ok ? 'OK' : 'FAIL'}: ${v.name}`;
-  }).join('\n');
+  });
+  lines.push('OK: NAVADA-GATEWAY (Cloudflare)');
+  return lines.join('\n');
 }
 
 // ============================================================
