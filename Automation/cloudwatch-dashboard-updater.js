@@ -15,7 +15,8 @@ const { execSync } = require('child_process');
 const https = require('https');
 const http = require('http');
 
-const { CloudWatchClient, PutDashboardCommand, GetMetricDataCommand } = require('@aws-sdk/client-cloudwatch');
+const { CloudWatchClient, PutDashboardCommand, GetMetricDataCommand, PutMetricDataCommand } = require('@aws-sdk/client-cloudwatch');
+const net = require('net');
 
 const REGION = 'eu-west-2';
 const CW = new CloudWatchClient({ region: REGION });
@@ -88,6 +89,17 @@ function ping(host, timeout = 5) {
   } catch {
     return false;
   }
+}
+
+function tcpPortCheck(host, port, timeout = 5000) {
+  return new Promise((resolve) => {
+    const sock = new net.Socket();
+    sock.setTimeout(timeout);
+    sock.on('connect', () => { sock.destroy(); resolve(true); });
+    sock.on('timeout', () => { sock.destroy(); resolve(false); });
+    sock.on('error', () => { sock.destroy(); resolve(false); });
+    sock.connect(port, host);
+  });
 }
 
 function parsePM2(raw) {
@@ -165,39 +177,53 @@ function esc(s) {
 async function collectHP() {
   log('Collecting HP data...');
   const online = ping(NODES.HP.tailscale);
-  if (!online) {
-    log('HP: OFFLINE (ping failed)');
-    // Try CloudWatch for last known process count
-    try {
-      const end = new Date();
-      const start = new Date(end.getTime() - 10 * 60_000);
-      const resp = await CW.send(new GetMetricDataCommand({
-        StartTime: start, EndTime: end,
-        MetricDataQueries: [
-          { Id: 'total', MetricStat: { Metric: { Namespace: 'NAVADA/HP', MetricName: 'TotalProcesses' }, Period: 300, Stat: 'Maximum' } },
-          { Id: 'online', MetricStat: { Metric: { Namespace: 'NAVADA/HP', MetricName: 'OnlineProcesses' }, Period: 300, Stat: 'Maximum' } },
-        ],
-      }));
-      const total = resp.MetricDataResults?.[0]?.Values?.[0] || 0;
-      const onlineCount = resp.MetricDataResults?.[1]?.Values?.[0] || 0;
-      log(`HP: CloudWatch last known: ${onlineCount}/${total} processes`);
-    } catch (e) {
-      log(`HP: CloudWatch query failed: ${e.message}`);
+  const sshUp = await tcpPortCheck(NODES.HP.tailscale, 22);
+  const pgUp = await tcpPortCheck(NODES.HP.tailscale, 5433);
+
+  if (!online && !sshUp) {
+    log('HP: OFFLINE (ping + SSH both failed)');
+    return { online: false, pm2: [], system: { sshUp: false, pgUp: false } };
+  }
+
+  // HP is Windows SSH-only node — collect system metrics via SSH
+  const system = { sshUp, pgUp, cpu: null, memPercent: null, diskUsedPercent: null, diskFreeGB: null };
+
+  // CPU usage (Windows wmic)
+  const cpuRaw = ssh(NODES.HP.tailscale, 'wmic cpu get loadpercentage /value', 10000);
+  if (cpuRaw) {
+    const match = cpuRaw.match(/LoadPercentage=(\d+)/);
+    if (match) system.cpu = parseFloat(match[1]);
+  }
+
+  // Memory (Windows wmic)
+  const memRaw = ssh(NODES.HP.tailscale, 'wmic OS get FreePhysicalMemory,TotalVisibleMemorySize /value', 10000);
+  if (memRaw) {
+    const free = memRaw.match(/FreePhysicalMemory=(\d+)/);
+    const total = memRaw.match(/TotalVisibleMemorySize=(\d+)/);
+    if (free && total) {
+      const freeKB = parseFloat(free[1]);
+      const totalKB = parseFloat(total[1]);
+      system.memPercent = Math.round(((totalKB - freeKB) / totalKB) * 100 * 10) / 10;
+      system.memUsedGB = Math.round((totalKB - freeKB) / 1024 / 1024 * 100) / 100;
+      system.memTotalGB = Math.round(totalKB / 1024 / 1024 * 100) / 100;
     }
-    return { online: false, pm2: [], system: {} };
   }
 
-  // HP is Windows - try SSH first, may fail
-  let pm2 = [];
-  const raw = ssh(NODES.HP.tailscale, 'pm2 jlist');
-  if (raw) {
-    pm2 = parsePM2(raw);
-    log(`HP: Got ${pm2.length} PM2 processes via SSH`);
-  } else {
-    log('HP: SSH failed (Windows host), using ping-only status');
+  // Disk (Windows wmic — C: drive)
+  const diskRaw = ssh(NODES.HP.tailscale, 'wmic logicaldisk where "DeviceID=\'C:\'" get FreeSpace,Size /value', 10000);
+  if (diskRaw) {
+    const freeBytes = diskRaw.match(/FreeSpace=(\d+)/);
+    const sizeBytes = diskRaw.match(/Size=(\d+)/);
+    if (freeBytes && sizeBytes) {
+      const free = parseFloat(freeBytes[1]);
+      const size = parseFloat(sizeBytes[1]);
+      system.diskFreeGB = Math.round(free / 1024 / 1024 / 1024 * 10) / 10;
+      system.diskUsedPercent = Math.round(((size - free) / size) * 100 * 10) / 10;
+    }
   }
 
-  return { online, pm2, system: {} };
+  log(`HP: online=${online} ssh=${sshUp} pg=${pgUp} cpu=${system.cpu}% mem=${system.memPercent}% disk=${system.diskUsedPercent}%`);
+  return { online: online || sshUp, pm2: [], system };
 }
 
 async function collectOracle() {
@@ -250,8 +276,14 @@ async function collectCloudflare() {
     })
   );
   const upCount = checks.filter(c => c.up).length;
-  log(`Cloudflare: ${upCount}/${checks.length} subdomains UP`);
-  return { subdomains: checks, upCount };
+
+  // Check Claude Chief of Staff (Edge API Telegram webhook health)
+  const edgeApiCheck = checks.find(c => c.subdomain === 'edge-api');
+  const cosUp = edgeApiCheck ? edgeApiCheck.up : false;
+  const cosLatency = edgeApiCheck ? edgeApiCheck.latency : 0;
+
+  log(`Cloudflare: ${upCount}/${checks.length} subdomains UP | Claude CoS: ${cosUp ? 'UP' : 'DOWN'}`);
+  return { subdomains: checks, upCount, cosUp, cosLatency };
 }
 
 async function collectAll() {
@@ -263,6 +295,94 @@ async function collectAll() {
     collectCloudflare().catch(e => { log(`Cloudflare collect error: ${e.message}`); return { subdomains: [], upCount: 0 }; }),
   ]);
   return { hp, oracle, ec2, tailscale, cloudflare, timestamp: new Date().toISOString() };
+}
+
+// ---------------------------------------------------------------------------
+// Metric Push — fills NAVADA/HP, NAVADA/Tailscale, NAVADA/Cloudflare namespaces
+// ---------------------------------------------------------------------------
+async function pushMetrics(data) {
+  const now = new Date();
+  const batches = [];
+
+  // --- NAVADA/HP metrics ---
+  const hp = data.hp.system || {};
+  const hpMetrics = [];
+  if (hp.cpu !== null && hp.cpu !== undefined) hpMetrics.push({ MetricName: 'SystemCPU', Value: hp.cpu, Unit: 'Percent' });
+  if (hp.memPercent !== null && hp.memPercent !== undefined) hpMetrics.push({ MetricName: 'SystemMemoryPercent', Value: hp.memPercent, Unit: 'Percent' });
+  if (hp.diskUsedPercent !== null && hp.diskUsedPercent !== undefined) hpMetrics.push({ MetricName: 'DiskUsedPercent', Value: hp.diskUsedPercent, Unit: 'Percent' });
+  if (hp.diskFreeGB !== null && hp.diskFreeGB !== undefined) hpMetrics.push({ MetricName: 'DiskFreeGB', Value: hp.diskFreeGB, Unit: 'Gigabytes' });
+  hpMetrics.push({ MetricName: 'SSHUp', Value: hp.sshUp ? 1 : 0, Unit: 'None' });
+  hpMetrics.push({ MetricName: 'PostgreSQLUp', Value: hp.pgUp ? 1 : 0, Unit: 'None' });
+  hpMetrics.push({ MetricName: 'NodeOnline', Value: data.hp.online ? 1 : 0, Unit: 'None' });
+
+  if (hpMetrics.length > 0) {
+    batches.push(CW.send(new PutMetricDataCommand({
+      Namespace: 'NAVADA/HP',
+      MetricData: hpMetrics.map(m => ({ ...m, Timestamp: now })),
+    })).then(() => log('  Pushed NAVADA/HP metrics')).catch(e => log(`  FAIL NAVADA/HP: ${e.message}`)));
+  }
+
+  // --- NAVADA/Tailscale metrics ---
+  const tsNodes = data.tailscale.nodes || [];
+  const tsMetrics = [
+    { MetricName: 'ConnectedNodes', Value: data.tailscale.connectedCount || 0, Unit: 'Count', Timestamp: now },
+  ];
+  for (const n of tsNodes) {
+    tsMetrics.push({
+      MetricName: 'NodeOnline', Value: n.online ? 1 : 0, Unit: 'None', Timestamp: now,
+      Dimensions: [{ Name: 'Node', Value: n.name }],
+    });
+  }
+  batches.push(CW.send(new PutMetricDataCommand({
+    Namespace: 'NAVADA/Tailscale',
+    MetricData: tsMetrics,
+  })).then(() => log('  Pushed NAVADA/Tailscale metrics')).catch(e => log(`  FAIL NAVADA/Tailscale: ${e.message}`)));
+
+  // --- NAVADA/Cloudflare metrics ---
+  const cfSubs = data.cloudflare.subdomains || [];
+  const cfMetrics = [
+    { MetricName: 'SubdomainsUp', Value: data.cloudflare.upCount || 0, Unit: 'Count', Timestamp: now },
+    { MetricName: 'TunnelStatus', Value: data.cloudflare.upCount > 0 ? 1 : 0, Unit: 'None', Timestamp: now },
+  ];
+  // Claude Chief of Staff uptime
+  cfMetrics.push({ MetricName: 'ClaudeCoSUp', Value: data.cloudflare.cosUp ? 1 : 0, Unit: 'None', Timestamp: now });
+  cfMetrics.push({ MetricName: 'ClaudeCoSLatencyMs', Value: data.cloudflare.cosLatency || 0, Unit: 'Milliseconds', Timestamp: now });
+
+  // Per-subdomain metrics (batch max 1000, we have ~12)
+  for (const s of cfSubs) {
+    cfMetrics.push({
+      MetricName: 'SubdomainStatus', Value: s.up ? 1 : 0, Unit: 'None', Timestamp: now,
+      Dimensions: [{ Name: 'Subdomain', Value: s.subdomain }],
+    });
+    cfMetrics.push({
+      MetricName: 'SubdomainLatencyMs', Value: s.latency || 0, Unit: 'Milliseconds', Timestamp: now,
+      Dimensions: [{ Name: 'Subdomain', Value: s.subdomain }],
+    });
+  }
+  batches.push(CW.send(new PutMetricDataCommand({
+    Namespace: 'NAVADA/Cloudflare',
+    MetricData: cfMetrics,
+  })).then(() => log('  Pushed NAVADA/Cloudflare metrics')).catch(e => log(`  FAIL NAVADA/Cloudflare: ${e.message}`)));
+
+  // --- NAVADA/NodeJS metrics (EC2 runtime) ---
+  const nodeMetrics = [];
+  try {
+    const mem = process.memoryUsage();
+    nodeMetrics.push({ MetricName: 'HeapUsedMB', Value: Math.round(mem.heapUsed / 1024 / 1024 * 10) / 10, Unit: 'Megabytes', Timestamp: now, Dimensions: [{ Name: 'Node', Value: 'EC2' }] });
+    nodeMetrics.push({ MetricName: 'HeapTotalMB', Value: Math.round(mem.heapTotal / 1024 / 1024 * 10) / 10, Unit: 'Megabytes', Timestamp: now, Dimensions: [{ Name: 'Node', Value: 'EC2' }] });
+    nodeMetrics.push({ MetricName: 'RssMB', Value: Math.round(mem.rss / 1024 / 1024 * 10) / 10, Unit: 'Megabytes', Timestamp: now, Dimensions: [{ Name: 'Node', Value: 'EC2' }] });
+    nodeMetrics.push({ MetricName: 'ExternalMB', Value: Math.round(mem.external / 1024 / 1024 * 10) / 10, Unit: 'Megabytes', Timestamp: now, Dimensions: [{ Name: 'Node', Value: 'EC2' }] });
+    nodeMetrics.push({ MetricName: 'PM2ProcessCount', Value: (data.ec2.pm2 || []).length, Unit: 'Count', Timestamp: now, Dimensions: [{ Name: 'Node', Value: 'EC2' }] });
+  } catch {}
+  if (nodeMetrics.length > 0) {
+    batches.push(CW.send(new PutMetricDataCommand({
+      Namespace: 'NAVADA/NodeJS',
+      MetricData: nodeMetrics,
+    })).then(() => log('  Pushed NAVADA/NodeJS metrics')).catch(e => log(`  FAIL NAVADA/NodeJS: ${e.message}`)));
+  }
+
+  await Promise.allSettled(batches);
+  log('Metric push complete');
 }
 
 // ---------------------------------------------------------------------------
@@ -383,10 +503,10 @@ function buildEdgeNetwork(data) {
     metricWidget(16, 5, 8, 6, 'EC2 CPU', [
       { namespace: 'AWS/EC2', name: 'CPUUtilization', dimensions: [{ Name: 'InstanceId', Value: EC2_INSTANCE_ID }], label: 'CPU %' },
     ]),
-    metricWidget(0, 11, 8, 6, 'Service Health (HP)', [
-      { namespace: 'NAVADA/HP', name: 'TelegramBotUp', label: 'Telegram Bot' },
-      { namespace: 'NAVADA/HP', name: 'NavadaFlixUp', label: 'NAVADA Flix' },
-      { namespace: 'NAVADA/HP', name: 'OnlineProcesses', label: 'PM2 Online' },
+    metricWidget(0, 11, 8, 6, 'HP Services', [
+      { namespace: 'NAVADA/HP', name: 'SSHUp', label: 'SSH' },
+      { namespace: 'NAVADA/HP', name: 'PostgreSQLUp', label: 'PostgreSQL' },
+      { namespace: 'NAVADA/HP', name: 'NodeOnline', label: 'Online' },
     ], { view: 'singleValue' }),
     metricWidget(8, 11, 8, 6, 'Docker (Oracle)', [
       { namespace: 'NAVADA/Docker', name: 'TotalContainers', label: 'Containers', stat: 'Maximum' },
@@ -400,9 +520,9 @@ function buildEdgeNetwork(data) {
       { namespace: 'AWS/Lambda', name: 'Invocations', dimensions: [{ Name: 'FunctionName', Value: 'navada-vision-router' }], stat: 'Sum', label: 'Invocations' },
       { namespace: 'AWS/Lambda', name: 'Errors', dimensions: [{ Name: 'FunctionName', Value: 'navada-vision-router' }], stat: 'Sum', label: 'Errors' },
     ]),
-    metricWidget(8, 17, 8, 6, 'Cloudflare Traffic', [
-      { namespace: 'NAVADA/Cloudflare', name: 'RequestCount', label: 'Requests', stat: 'Sum' },
-      { namespace: 'NAVADA/Cloudflare', name: 'SubdomainsUp', label: 'Subdomains Up' },
+    metricWidget(8, 17, 8, 6, 'Claude Chief of Staff', [
+      { namespace: 'NAVADA/Cloudflare', name: 'ClaudeCoSUp', label: 'CoS UP (1=Yes)' },
+      { namespace: 'NAVADA/Cloudflare', name: 'ClaudeCoSLatencyMs', label: 'Latency (ms)' },
     ]),
     metricWidget(16, 17, 8, 6, 'EC2 Network I/O', [
       { namespace: 'AWS/EC2', name: 'NetworkIn', dimensions: [{ Name: 'InstanceId', Value: EC2_INSTANCE_ID }], stat: 'Sum', label: 'In' },
@@ -413,61 +533,49 @@ function buildEdgeNetwork(data) {
   return JSON.stringify({ widgets });
 }
 
-// 2. HP Dashboard
+// 2. HP Dashboard — SSH-only node (PostgreSQL + SSH, no PM2)
 function buildHP(data) {
   const ts = data.timestamp;
   const on = data.hp.online;
-  const procs = data.hp.pm2 || [];
-  const onlineCount = procs.filter(p => p.status === 'online').length;
+  const sys = data.hp.system || {};
 
   let md = `# NAVADA-EDGE-SERVER (HP Laptop)\n`;
-  md += `**Role**: Dev Box / Node Server (SSH-only access, no PM2, no scheduled tasks)\n`;
-  md += `**IP**: 192.168.0.58 (Ethernet, static) | 100.121.187.67 (Tailscale) | **OS**: Windows 11 Pro\n`;
-  md += `**Status**: ${on ? 'ONLINE' : 'OFFLINE'} | **Services**: PostgreSQL :5433, SSH server | **Telegram bot migrated to Cloudflare Worker**\n\n`;
-  if (procs.length > 0) {
-    md += `| Service | Status | CPU | Memory | Restarts |\n|---------|--------|-----|--------|----------|\n`;
-    for (const p of procs) {
-      md += `| ${esc(p.name)} | ${p.status === 'online' ? 'ON' : 'OFF'} | ${p.cpu}% | ${p.memory}MB | ${p.restarts} |\n`;
-    }
-  }
-
-  const hpProcMem = procs.slice(0, 12).map(p => ({
-    namespace: 'NAVADA/HP', name: 'ProcessMemoryMB', dimensions: [{ Name: 'Process', Value: p.name }], label: p.name,
-  }));
-  const hpProcCPU = procs.slice(0, 12).map(p => ({
-    namespace: 'NAVADA/HP', name: 'ProcessCPU', dimensions: [{ Name: 'Process', Value: p.name }], label: p.name,
-  }));
+  md += `**Role**: SSH-only node server | PostgreSQL :5433 | No PM2, no scheduled tasks\n`;
+  md += `**IP**: 192.168.0.58 (Ethernet) | 100.121.187.67 (Tailscale) | **OS**: Windows 11 Pro\n`;
+  md += `**Status**: ${on ? 'ONLINE' : 'OFFLINE'} | **SSH**: ${sys.sshUp ? 'UP' : 'DOWN'} | **PostgreSQL**: ${sys.pgUp ? 'UP' : 'DOWN'}`;
+  if (sys.cpu != null) md += ` | **CPU**: ${sys.cpu}% | **Mem**: ${sys.memPercent}% | **Disk**: ${sys.diskFreeGB}GB free`;
+  md += `\n**Metrics via SSH from EC2 every 5 min** | Telegram bot on Cloudflare Worker\n`;
 
   const widgets = [
-    textWidget(0, 0, 24, 4 + Math.min(procs.length, 8), md),
-    metricWidget(0, 4 + Math.min(procs.length, 8), 8, 6, 'CPU + Memory', [
+    textWidget(0, 0, 24, 4, md),
+    metricWidget(0, 4, 6, 5, 'Online', [
+      { namespace: 'NAVADA/HP', name: 'NodeOnline', label: 'Online (1=Yes)' },
+    ], { view: 'singleValue' }),
+    metricWidget(6, 4, 6, 5, 'SSH', [
+      { namespace: 'NAVADA/HP', name: 'SSHUp', label: 'SSH (1=Yes)' },
+    ], { view: 'singleValue' }),
+    metricWidget(12, 4, 6, 5, 'PostgreSQL', [
+      { namespace: 'NAVADA/HP', name: 'PostgreSQLUp', label: 'PG (1=Yes)' },
+    ], { view: 'singleValue' }),
+    metricWidget(18, 4, 6, 5, 'Disk Free', [
+      { namespace: 'NAVADA/HP', name: 'DiskFreeGB', label: 'GB Free' },
+    ], { view: 'singleValue' }),
+    metricWidget(0, 9, 12, 6, 'CPU + Memory', [
       { namespace: 'NAVADA/HP', name: 'SystemCPU', label: 'CPU %' },
       { namespace: 'NAVADA/HP', name: 'SystemMemoryPercent', label: 'Memory %' },
     ]),
-    metricWidget(8, 4 + Math.min(procs.length, 8), 8, 6, 'Disk Usage', [
+    metricWidget(12, 9, 12, 6, 'Disk Usage', [
       { namespace: 'NAVADA/HP', name: 'DiskUsedPercent', label: 'Used %' },
-    ]),
-    metricWidget(16, 4 + Math.min(procs.length, 8), 8, 6, 'Service Health', [
-      { namespace: 'NAVADA/HP', name: 'TelegramBotUp', label: 'Telegram Bot' },
-      { namespace: 'NAVADA/HP', name: 'NavadaFlixUp', label: 'NAVADA Flix' },
-      { namespace: 'NAVADA/HP', name: 'OnlineProcesses', label: 'Online Procs' },
-    ], { view: 'singleValue' }),
-    metricWidget(0, 10 + Math.min(procs.length, 8), 12, 6, 'Process Memory (MB)', hpProcMem.length > 0 ? hpProcMem : [
-      { namespace: 'NAVADA/HP', name: 'TotalMemoryMB', label: 'Total MB' },
-    ]),
-    metricWidget(12, 10 + Math.min(procs.length, 8), 12, 6, 'Process CPU (%)', hpProcCPU.length > 0 ? hpProcCPU : [
-      { namespace: 'NAVADA/HP', name: 'SystemCPU', label: 'System CPU' },
-    ]),
-    metricWidget(0, 16 + Math.min(procs.length, 8), 12, 6, 'Disk Free (GB)', [
       { namespace: 'NAVADA/HP', name: 'DiskFreeGB', label: 'Free GB' },
-    ], { view: 'singleValue' }),
-    metricWidget(12, 16 + Math.min(procs.length, 8), 12, 6, 'Process Restarts', [
-      ...procs.slice(0, 6).map(p => ({
-        namespace: 'NAVADA/HP', name: 'ProcessRestarts', dimensions: [{ Name: 'Process', Value: p.name }], label: p.name,
-      })),
-    ].length > 0 ? procs.slice(0, 6).map(p => ({
-      namespace: 'NAVADA/HP', name: 'ProcessRestarts', dimensions: [{ Name: 'Process', Value: p.name }], label: p.name,
-    })) : [{ namespace: 'NAVADA/HP', name: 'TotalProcesses', label: 'Total' }]),
+    ]),
+    metricWidget(0, 15, 12, 6, 'Service Health History', [
+      { namespace: 'NAVADA/HP', name: 'SSHUp', label: 'SSH' },
+      { namespace: 'NAVADA/HP', name: 'PostgreSQLUp', label: 'PostgreSQL' },
+      { namespace: 'NAVADA/HP', name: 'NodeOnline', label: 'Node Online' },
+    ]),
+    metricWidget(12, 15, 12, 6, 'Tailscale Connectivity', [
+      { namespace: 'NAVADA/Tailscale', name: 'NodeOnline', dimensions: [{ Name: 'Node', Value: 'HP' }], label: 'HP Tailscale' },
+    ]),
   ];
 
   return JSON.stringify({ widgets });
@@ -639,9 +747,9 @@ function buildPM2(data) {
     metricWidget(12, textH, 12, 6, 'HP Process CPU (%)', hpCPU.length > 0 ? hpCPU : [
       { namespace: 'NAVADA/HP', name: 'SystemCPU', label: 'System CPU' },
     ]),
-    metricWidget(0, textH + 6, 8, 6, 'HP Online Processes', [
-      { namespace: 'NAVADA/HP', name: 'OnlineProcesses', label: 'Online' },
-      { namespace: 'NAVADA/HP', name: 'TotalProcesses', label: 'Total' },
+    metricWidget(0, textH + 6, 8, 6, 'HP Services', [
+      { namespace: 'NAVADA/HP', name: 'SSHUp', label: 'SSH' },
+      { namespace: 'NAVADA/HP', name: 'PostgreSQLUp', label: 'PostgreSQL' },
     ], { view: 'singleValue' }),
     metricWidget(8, textH + 6, 8, 6, 'Oracle Docker', [
       { namespace: 'NAVADA/Docker', name: 'TotalContainers', label: 'Containers', stat: 'Maximum' },
@@ -747,48 +855,40 @@ function buildTailscale(data) {
   return JSON.stringify({ widgets });
 }
 
-// 8. Node.js Runtime
+// 8. Node.js Runtime — EC2 is primary runtime now (HP has no PM2)
 function buildNodeJS(data) {
   const ts = data.timestamp;
-  const hpProcs = data.hp.pm2 || [];
   const orcProcs = data.oracle.pm2 || [];
   const ec2Procs = data.ec2.pm2 || [];
 
   let md = `# NAVADA Node.js Runtime\n`;
-  md += `**V8 Engine Metrics** | Heap usage, RSS, event loop lag from hp-cloudwatch-metrics collector\n`;
-  md += `**Updated**: ${ts}\n\n`;
+  md += `**V8 Engine Metrics** | EC2 dashboard-updater runtime + PM2 process metrics\n`;
+  md += `**Updated**: ${ts} | HP is SSH-only (no Node.js runtime metrics)\n\n`;
   md += `| Node | Processes | Online |\n|------|-----------|--------|\n`;
-  md += `| HP | ${hpProcs.length} | ${hpProcs.filter(p => p.status === 'online').length} |\n`;
-  md += `| Oracle | ${orcProcs.length} | ${orcProcs.filter(p => p.status === 'online').length} |\n`;
   md += `| EC2 | ${ec2Procs.length} | ${ec2Procs.filter(p => p.status === 'online').length} |\n`;
+  md += `| Oracle | ${orcProcs.length} | ${orcProcs.filter(p => p.status === 'online').length} |\n`;
 
   const widgets = [
     textWidget(0, 0, 24, 4, md),
-    metricWidget(0, 4, 8, 6, 'Heap Used (MB)', [
-      { namespace: 'NAVADA/NodeJS', name: 'HeapUsedMB', dimensions: [{ Name: 'Node', Value: 'HP' }], label: 'HP Heap Used' },
+    metricWidget(0, 4, 8, 6, 'EC2 Heap Used (MB)', [
+      { namespace: 'NAVADA/NodeJS', name: 'HeapUsedMB', dimensions: [{ Name: 'Node', Value: 'EC2' }], label: 'Heap Used' },
     ]),
-    metricWidget(8, 4, 8, 6, 'Heap Total (MB)', [
-      { namespace: 'NAVADA/NodeJS', name: 'HeapTotalMB', dimensions: [{ Name: 'Node', Value: 'HP' }], label: 'HP Heap Total' },
+    metricWidget(8, 4, 8, 6, 'EC2 Heap Total (MB)', [
+      { namespace: 'NAVADA/NodeJS', name: 'HeapTotalMB', dimensions: [{ Name: 'Node', Value: 'EC2' }], label: 'Heap Total' },
     ]),
-    metricWidget(16, 4, 8, 6, 'RSS + External (MB)', [
-      { namespace: 'NAVADA/NodeJS', name: 'RssMB', dimensions: [{ Name: 'Node', Value: 'HP' }], label: 'RSS' },
-      { namespace: 'NAVADA/NodeJS', name: 'ExternalMB', dimensions: [{ Name: 'Node', Value: 'HP' }], label: 'External' },
+    metricWidget(16, 4, 8, 6, 'EC2 RSS + External (MB)', [
+      { namespace: 'NAVADA/NodeJS', name: 'RssMB', dimensions: [{ Name: 'Node', Value: 'EC2' }], label: 'RSS' },
+      { namespace: 'NAVADA/NodeJS', name: 'ExternalMB', dimensions: [{ Name: 'Node', Value: 'EC2' }], label: 'External' },
     ]),
-    metricWidget(0, 10, 8, 6, 'Event Loop Lag (ms)', [
-      { namespace: 'NAVADA/NodeJS', name: 'EventLoopLag', dimensions: [{ Name: 'Node', Value: 'HP' }], label: 'Lag' },
-    ]),
-    metricWidget(8, 10, 8, 6, 'PM2 Total Heap', [
-      { namespace: 'NAVADA/NodeJS', name: 'PM2TotalHeapMB', dimensions: [{ Name: 'Node', Value: 'HP' }], label: 'Total Heap MB' },
+    metricWidget(0, 10, 8, 6, 'EC2 PM2 Process Count', [
+      { namespace: 'NAVADA/NodeJS', name: 'PM2ProcessCount', dimensions: [{ Name: 'Node', Value: 'EC2' }], label: 'Count' },
     ], { view: 'singleValue' }),
-    metricWidget(16, 10, 8, 6, 'PM2 Process Count', [
-      { namespace: 'NAVADA/NodeJS', name: 'PM2ProcessCount', dimensions: [{ Name: 'Node', Value: 'HP' }], label: 'Count' },
+    metricWidget(8, 10, 8, 6, 'EC2 CPU', [
+      { namespace: 'AWS/EC2', name: 'CPUUtilization', dimensions: [{ Name: 'InstanceId', Value: EC2_INSTANCE_ID }], label: 'EC2 CPU %' },
+    ]),
+    metricWidget(16, 10, 8, 6, 'Tailscale Nodes', [
+      { namespace: 'NAVADA/Tailscale', name: 'ConnectedNodes', label: 'Connected' },
     ], { view: 'singleValue' }),
-    metricWidget(0, 16, 12, 6, 'HP Per-Process Memory', hpProcs.length > 0 ? hpProcs.slice(0, 10).map(p => ({
-      namespace: 'NAVADA/HP', name: 'ProcessMemoryMB', dimensions: [{ Name: 'Process', Value: p.name }], label: p.name,
-    })) : [{ namespace: 'NAVADA/NodeJS', name: 'PM2TotalHeapMB', dimensions: [{ Name: 'Node', Value: 'HP' }], label: 'Total' }]),
-    metricWidget(12, 16, 12, 6, 'HP Per-Process CPU', hpProcs.length > 0 ? hpProcs.slice(0, 10).map(p => ({
-      namespace: 'NAVADA/HP', name: 'ProcessCPU', dimensions: [{ Name: 'Process', Value: p.name }], label: p.name,
-    })) : [{ namespace: 'NAVADA/HP', name: 'SystemCPU', label: 'System CPU' }]),
   ];
 
   return JSON.stringify({ widgets });
@@ -1072,6 +1172,9 @@ async function update() {
     log('=== Starting dashboard update cycle ===');
     const data = await collectAll();
     log(`Data collection took ${((Date.now() - start) / 1000).toFixed(1)}s`);
+
+    // Push metric data to CloudWatch (NAVADA/HP, NAVADA/Tailscale, NAVADA/Cloudflare, NAVADA/NodeJS)
+    await pushMetrics(data);
 
     const { success, failed } = await pushAllDashboards(data);
     const elapsed = ((Date.now() - start) / 1000).toFixed(1);

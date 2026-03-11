@@ -42,6 +42,7 @@ export default {
       if (path === '/metrics' && request.method === 'GET') return handleMetricsGet(url, env);
       if (path === '/logs' && request.method === 'POST') return handleLogsPost(request, env);
       if (path === '/logs' && request.method === 'GET') return handleLogsGet(url, env);
+      if (path === '/health/telegram' && request.method === 'GET') return handleTelegramHealth(env);
       if (path === '/health' && request.method === 'POST') return handleHealthPost(request, env);
       if (path === '/health' && request.method === 'GET') return handleHealthGet(url, env);
       if (path === '/status') return handleStatus(env);
@@ -60,6 +61,8 @@ export default {
       if (cron === '*/5 * * * *') {
         // Health check every 5 min
         await runHealthChecks(env);
+        // Telegram webhook self-heal check
+        await ensureTelegramWebhook(env);
       }
       if (cron === '30 6 * * *') {
         // Morning briefing 6:30 AM UTC
@@ -78,10 +81,9 @@ export default {
         // Job Hunter 9:00 AM UTC
         await forwardToEC2(env, 'node /home/ubuntu/navada-bot/job-hunter.js');
       }
-      // Log the event
-      await env.DB.prepare('INSERT INTO edge_logs (node, event_type, message) VALUES (?, ?, ?)').bind('Cloudflare', 'cron.run', `Cron ${cron} executed`).run();
+      await logToD1(env, 'cron.run', `Cron ${cron} executed`);
     } catch (e) {
-      await env.DB.prepare('INSERT INTO edge_logs (node, event_type, message, data) VALUES (?, ?, ?, ?)').bind('Cloudflare', 'error', `Cron ${cron} failed`, e.message).run();
+      await logToD1(env, 'error', `Cron ${cron} failed`, e.message);
     }
   }
 };
@@ -129,7 +131,10 @@ async function handleTelegramWebhook(request, env) {
       await handleAIChat(env, text, userId, username, isAdminUser, chatId);
     }
   } catch (e) {
-    await sendTelegram(env, `Error: ${e.message}`, chatId);
+    const errMsg = e?.message || String(e) || 'Unknown error';
+    await logToD1(env, 'error', 'Telegram handler failed', errMsg);
+    // Try to notify via Telegram
+    try { await sendTelegram(env, `Error: ${errMsg.substring(0, 500)}`, chatId); } catch {}
   }
 
   return json({ ok: true });
@@ -198,6 +203,28 @@ Time: ${new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC`;
     case 'auto':
       await setUserPref(env, userId, 'model', 'auto');
       return 'Smart routing enabled. Sonnet for quick tasks, Opus for complex ones.';
+
+    case 'webhook': {
+      if (!isAdmin) return 'Admin only.';
+      const whResp = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getWebhookInfo`);
+      const whData = await whResp.json();
+      const wh = whData.result || {};
+      let whMsg = `Telegram Webhook Status\n\nURL: ${wh.url || 'NOT SET'}\nPending: ${wh.pending_update_count || 0}`;
+      if (wh.last_error_date) whMsg += `\nLast error: ${wh.last_error_message} (${new Date(wh.last_error_date * 1000).toISOString()})`;
+      if (wh.ip_address) whMsg += `\nIP: ${wh.ip_address}`;
+      if (args === 'fix') {
+        await ensureTelegramWebhook(env);
+        whMsg += '\n\nWebhook re-registered.';
+      }
+      return whMsg;
+    }
+
+    case 'test': {
+      if (!isAdmin) return 'Admin only.';
+      const testResult = await sendTelegram(env, `NAVADA Test — Pipeline verified at ${new Date().toISOString()}`, chatId);
+      if (testResult?.ok) return null; // already sent
+      return `Delivery FAILED: ${testResult?.error || 'unknown'}. Check /logs for telegram.send_fail entries.`;
+    }
 
     case 'clear':
       if (!isAdmin) return 'Admin only.';
@@ -327,26 +354,35 @@ async function handleAIChat(env, text, userId, username, isAdmin, chatId, forceM
     ? getAdminSystemPrompt(env, modelName)
     : getGuestSystemPrompt(modelName);
 
-  // Call Claude
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': env.ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages,
-      tools: isAdmin ? getAdminTools() : getGuestTools(),
-    }),
-  });
-
-  const result = await response.json();
+  // Call Claude (with timeout to prevent Worker kill)
+  let response, result;
+  try {
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 2048,
+        system: systemPrompt,
+        messages,
+        tools: isAdmin ? getAdminTools() : getGuestTools(),
+      }),
+      signal: AbortSignal.timeout(25000),
+    });
+    result = await response.json();
+  } catch (fetchErr) {
+    const errMsg = `Claude API failed: ${fetchErr?.message || 'timeout'}`;
+    await logToD1(env, 'error', errMsg, `model=${model}`);
+    await sendTelegram(env, `API timeout/error. Try again or use /sonnet for faster responses.`, chatId);
+    return;
+  }
 
   if (result.error) {
+    await logToD1(env, 'error', `API error: ${result.error.message}`, `model=${model}, type=${result.error.type}`);
     await sendTelegram(env, `API Error: ${result.error.message}`, chatId);
     return;
   }
@@ -367,18 +403,30 @@ async function handleAIChat(env, text, userId, username, isAdmin, chatId, forceM
 
   // If tools were used, make a follow-up call
   if (toolResults.length > 0 && result.stop_reason === 'tool_use') {
-    const followUp = [...messages, { role: 'assistant', content: result.content }, { role: 'user', content: toolResults }];
-    const followUpResp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({ model, max_tokens: 2048, system: systemPrompt, messages: followUp }),
-    });
-    const followUpResult = await followUpResp.json();
-    reply = (followUpResult.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    const firstReply = reply; // preserve as fallback
+    try {
+      const followUp = [...messages, { role: 'assistant', content: result.content }, { role: 'user', content: toolResults }];
+      const followUpResp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({ model, max_tokens: 2048, system: systemPrompt, messages: followUp }),
+        signal: AbortSignal.timeout(25000),
+      });
+      const followUpResult = await followUpResp.json();
+      if (followUpResult.error) {
+        await logToD1(env, 'error', `Follow-up API error: ${followUpResult.error.message}`, { model });
+        reply = firstReply || `Tool executed but follow-up failed: ${followUpResult.error.message}`;
+      } else {
+        reply = (followUpResult.content || []).filter(b => b.type === 'text').map(b => b.text).join('') || firstReply;
+      }
+    } catch (e) {
+      await logToD1(env, 'error', `Follow-up call failed: ${e.message}`, { model });
+      reply = firstReply || 'Tool executed but follow-up timed out.';
+    }
   }
 
   if (!reply) reply = '(No response generated)';
@@ -440,7 +488,11 @@ async function executeTool(env, name, input, isAdmin) {
 
       case 'send_email':
         if (!isAdmin) return 'Permission denied.';
-        return await forwardShellToEC2(env, `node -e "require('./email-service').sendEmail({to:'${input.to}',subject:'${input.subject.replace(/'/g, "\\'")}',body:'${input.body.replace(/'/g, "\\'").replace(/\n/g, '\\n')}'})" `);
+        // Base64-encode JSON payload to avoid shell injection
+        const emailPayload = JSON.stringify({ to: input.to, subject: input.subject, body: input.body });
+        const emailB64 = btoa(unescape(encodeURIComponent(emailPayload)));
+        return await forwardShellToEC2(env, `echo '${emailB64}' | base64 -d | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const p=JSON.parse(d);require('./email-service').sendEmail(p).then(r=>console.log('sent')).catch(e=>console.error(e.message))})"`
+        );
 
       case 'send_sms':
         if (!isAdmin) return 'Permission denied.';
@@ -498,6 +550,53 @@ You have standard guest access. Be helpful, professional, warm. Show the power o
 GUARDRAILS: Never reveal user data, credentials, file paths, client names, or internal configs.
 
 Model: ${modelName}. navada-lab.space | navadarobotics.com`;
+}
+
+// ============================================================
+// TELEGRAM WEBHOOK SELF-HEAL
+// ============================================================
+async function ensureTelegramWebhook(env) {
+  const expectedUrl = 'https://edge-api.navada-edge-server.uk/telegram/webhook';
+  try {
+    const resp = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getWebhookInfo`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    const data = await resp.json();
+    if (!data.ok) {
+      await logToD1(env, 'error', 'getWebhookInfo returned not ok', JSON.stringify(data));
+      return;
+    }
+    const info = data.result || {};
+    const currentUrl = (info.url || '').trim();
+    const urlWrong = currentUrl !== expectedUrl;
+    const lastError = info.last_error_message || '';
+
+    // Only repair if URL is actually wrong or missing — don't repair on transient errors alone
+    if (urlWrong) {
+      await logToD1(env, 'telegram.webhook_repair', `Webhook ${!currentUrl ? 'missing' : 'wrong URL'}. Re-registering...`, JSON.stringify({ currentUrl, lastError }));
+
+      const setResp = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/setWebhook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: expectedUrl,
+          allowed_updates: ['message', 'callback_query'],
+          drop_pending_updates: false,
+        }),
+        signal: AbortSignal.timeout(8000),
+      });
+      const setResult = await setResp.json();
+
+      if (setResult.ok) {
+        await sendTelegram(env, `NAVADA SELF-HEAL\n\nTelegram webhook was ${!currentUrl ? 'missing' : 'wrong URL: ' + currentUrl}.\n\nAuto-repaired. Bot is back online.`);
+        await logToD1(env, 'telegram.webhook_restored', 'Webhook auto-repaired successfully');
+      } else {
+        await logToD1(env, 'error', 'Webhook repair failed', JSON.stringify(setResult));
+      }
+    }
+  } catch (e) {
+    await logToD1(env, 'error', 'Webhook check failed', e.message);
+  }
 }
 
 // ============================================================
@@ -644,12 +743,12 @@ async function generateFluxImage(env, prompt, chatId) {
 // HEALTH CHECKS (replaces hp-health-monitor)
 // ============================================================
 async function runHealthChecks(env) {
+  // Public endpoints only — Workers can't reach private IPs
   const endpoints = [
-    { name: 'EC2 Health Monitor', url: `http://3.11.119.181:9090` },
-    { name: 'WorldMonitor', url: `http://3.11.119.181:4000` },
-    { name: 'Oracle Nginx', url: `http://100.77.206.9:80` },
-    { name: 'Oracle Grafana', url: `http://100.77.206.9:3000` },
-    { name: 'CF API', url: `https://api.navada-edge-server.uk/health` },
+    { name: 'EC2 Dashboard', url: `https://dashboard.navada-edge-server.uk` },
+    { name: 'Oracle Grafana', url: `https://grafana.navada-edge-server.uk/api/health` },
+    { name: 'Oracle Nginx', url: `https://network.navada-edge-server.uk` },
+    { name: 'CF API', url: `https://edge-api.navada-edge-server.uk/status?key=${env?.API_KEY || ''}` },
     { name: 'CF Flix', url: `https://flix.navada-edge-server.uk` },
     { name: 'Vision API', url: `https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/vision/status` },
   ];
@@ -686,9 +785,10 @@ async function runHealthChecks(env) {
 }
 
 async function checkAllNodes(env) {
+  // Use public endpoints only — Cloudflare Workers can't reach private IPs (Tailscale/LAN)
   const checks = [
-    { name: 'NAVADA-COMPUTE (EC2)', url: 'http://3.11.119.181:9090' },
-    { name: 'NAVADA-ROUTER (Oracle)', url: 'http://100.77.206.9:80' },
+    { name: 'NAVADA-COMPUTE (EC2)', url: 'https://dashboard.navada-edge-server.uk' },
+    { name: 'NAVADA-ROUTER (Oracle)', url: 'https://grafana.navada-edge-server.uk/api/health' },
     { name: 'NAVADA-GATEWAY (Cloudflare)', url: 'https://edge-api.navada-edge-server.uk/status?key=' + (env?.API_KEY || '') },
     { name: 'Vision API (Lambda)', url: 'https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/vision/status' },
   ];
@@ -713,7 +813,7 @@ async function checkAllNodes(env) {
 // ============================================================
 async function checkUser(env, userId) {
   // Owner always authorized
-  if (userId === env.TELEGRAM_OWNER_ID) return { authorized: true, role: 'admin' };
+  if (String(userId).trim() === String(env.TELEGRAM_OWNER_ID).trim()) return { authorized: true, role: 'admin' };
 
   const user = await env.DB.prepare('SELECT * FROM telegram_users WHERE user_id = ?').bind(userId).first();
   if (!user) return { authorized: false };
@@ -723,7 +823,8 @@ async function checkUser(env, userId) {
 }
 
 async function getUserPref(env, userId, key) {
-  const row = await env.DB.prepare("SELECT content FROM conversations WHERE user_id = ? AND role = 'pref_' || ? ORDER BY ts DESC LIMIT 1").bind(userId, key).first();
+  const prefRole = `pref_${key}`;
+  const row = await env.DB.prepare("SELECT content FROM conversations WHERE user_id = ? AND role = ? ORDER BY rowid DESC LIMIT 1").bind(userId, prefRole).first();
   return row?.content || 'auto';
 }
 
@@ -735,30 +836,96 @@ async function setUserPref(env, userId, key, value) {
 // TELEGRAM API
 // ============================================================
 async function sendTelegram(env, text, chatId) {
-  chatId = chatId || env.TELEGRAM_OWNER_ID;
-  if (!text || !chatId) return;
+  chatId = Number(chatId || env.TELEGRAM_OWNER_ID);
+  if (!text || !chatId || isNaN(chatId)) return { ok: false, error: 'invalid chatId or text' };
 
-  await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text: text.substring(0, 4096), disable_web_page_preview: true }),
-  });
+  const MAX_RETRIES = 2;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const resp = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: text.substring(0, 4096), disable_web_page_preview: true }),
+        signal: AbortSignal.timeout(10000),
+      });
+      const data = await resp.json();
+      if (data.ok) return { ok: true };
+
+      // Rate limited — honor retry_after
+      if (data.error_code === 429 && attempt < MAX_RETRIES) {
+        const wait = (data.parameters?.retry_after || 3) * 1000;
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+      // Server error — retry with backoff
+      if (data.error_code >= 500 && attempt < MAX_RETRIES) {
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+        continue;
+      }
+      // Non-retryable failure
+      await logToD1(env, 'telegram.send_fail', `sendMessage failed: ${data.description}`, { chatId, error_code: data.error_code, attempt });
+      return { ok: false, error: data.description };
+    } catch (e) {
+      if (attempt < MAX_RETRIES) {
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+        continue;
+      }
+      await logToD1(env, 'telegram.send_fail', `sendMessage exception: ${e.message}`, { chatId, attempt });
+      return { ok: false, error: e.message };
+    }
+  }
+  return { ok: false, error: 'max retries exceeded' };
 }
 
 async function sendTelegramPhoto(env, chatId, photoUrl, caption) {
-  await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendPhoto`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, photo: photoUrl, caption: caption?.substring(0, 1024) }),
-  });
+  chatId = Number(chatId);
+  const MAX_RETRIES = 2;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const resp = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, photo: photoUrl, caption: caption?.substring(0, 1024) }),
+        signal: AbortSignal.timeout(10000),
+      });
+      const data = await resp.json();
+      if (data.ok) return { ok: true };
+      if (data.error_code === 429 && attempt < MAX_RETRIES) { await new Promise(r => setTimeout(r, (data.parameters?.retry_after || 3) * 1000)); continue; }
+      if (data.error_code >= 500 && attempt < MAX_RETRIES) { await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); continue; }
+      await logToD1(env, 'telegram.send_fail', `sendPhoto failed: ${data.description}`, { chatId, attempt });
+      return { ok: false, error: data.description };
+    } catch (e) {
+      if (attempt < MAX_RETRIES) { await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); continue; }
+      await logToD1(env, 'telegram.send_fail', `sendPhoto exception: ${e.message}`, { chatId, attempt });
+      return { ok: false, error: e.message };
+    }
+  }
+  return { ok: false, error: 'max retries exceeded' };
 }
 
 async function sendTelegramPhotoBuffer(env, chatId, buffer, caption) {
+  chatId = Number(chatId);
   const form = new FormData();
   form.append('chat_id', chatId);
   form.append('photo', new Blob([buffer], { type: 'image/png' }), 'image.png');
   if (caption) form.append('caption', caption.substring(0, 1024));
-  await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendPhoto`, { method: 'POST', body: form });
+  const MAX_RETRIES = 2;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const resp = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendPhoto`, { method: 'POST', body: form, signal: AbortSignal.timeout(10000) });
+      const data = await resp.json();
+      if (data.ok) return { ok: true };
+      if (data.error_code === 429 && attempt < MAX_RETRIES) { await new Promise(r => setTimeout(r, (data.parameters?.retry_after || 3) * 1000)); continue; }
+      if (data.error_code >= 500 && attempt < MAX_RETRIES) { await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); continue; }
+      await logToD1(env, 'telegram.send_fail', `sendPhotoBuffer failed: ${data.description}`, { chatId, attempt });
+      return { ok: false, error: data.description };
+    } catch (e) {
+      if (attempt < MAX_RETRIES) { await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); continue; }
+      await logToD1(env, 'telegram.send_fail', `sendPhotoBuffer exception: ${e.message}`, { chatId, attempt });
+      return { ok: false, error: e.message };
+    }
+  }
+  return { ok: false, error: 'max retries exceeded' };
 }
 
 // ============================================================
@@ -825,6 +992,36 @@ async function handleHealthGet(url, env) {
   return json({ health: results, count: results.length });
 }
 
+async function handleTelegramHealth(env) {
+  const result = { bot_token_valid: false, webhook_url: null, webhook_ok: false, webhook_errors: null, owner_id_numeric: false, healthy: false };
+  try {
+    // Check bot token via getMe
+    const meResp = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getMe`, { signal: AbortSignal.timeout(8000) });
+    const meData = await meResp.json();
+    result.bot_token_valid = meData.ok === true;
+    if (meData.ok) result.bot_username = meData.result.username;
+
+    // Check webhook
+    const whResp = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getWebhookInfo`, { signal: AbortSignal.timeout(8000) });
+    const whData = await whResp.json();
+    const wh = whData.result || {};
+    result.webhook_url = wh.url || null;
+    result.webhook_ok = wh.url === 'https://edge-api.navada-edge-server.uk/telegram/webhook';
+    if (wh.last_error_message) result.webhook_errors = { message: wh.last_error_message, date: new Date((wh.last_error_date || 0) * 1000).toISOString() };
+    result.pending_updates = wh.pending_update_count || 0;
+
+    // Check owner ID
+    const ownerId = env.TELEGRAM_OWNER_ID;
+    result.owner_id_numeric = !isNaN(Number(ownerId)) && Number(ownerId) > 0;
+    result.owner_id = ownerId;
+
+    result.healthy = result.bot_token_valid && result.webhook_ok && result.owner_id_numeric;
+  } catch (e) {
+    result.error = e.message;
+  }
+  return json(result, result.healthy ? 200 : 503);
+}
+
 async function handleStatus(env) {
   const [m, l, h] = await Promise.all([
     env.DB.prepare("SELECT COUNT(*) as c FROM metrics WHERE ts > datetime('now', '-1 hour')").first(),
@@ -832,6 +1029,13 @@ async function handleStatus(env) {
     env.DB.prepare("SELECT COUNT(*) as c FROM health_checks WHERE ts > datetime('now', '-1 hour')").first(),
   ]);
   return json({ status: 'online', database: 'D1', region: 'WEUR', last_hour: { metrics: m.c, logs: l.c, health_checks: h.c }, ts: new Date().toISOString() });
+}
+
+// ============================================================
+// D1 LOGGING HELPER
+// ============================================================
+async function logToD1(env, eventType, message, data) {
+  try { await env.DB.prepare('INSERT INTO edge_logs (node, event_type, message, data) VALUES (?, ?, ?, ?)').bind('Cloudflare', eventType, message, typeof data === 'string' ? data : JSON.stringify(data || null)).run(); } catch {}
 }
 
 // ============================================================

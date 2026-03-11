@@ -1,26 +1,54 @@
-version: '3.7'
+# NAVADA Edge — Monitoring Stack (standalone)
+# Deploy on any node: docker compose -f docker-compose.monitoring.yml up -d
+# For when you need monitoring without the full prod stack
+
+
 services:
   prometheus:
-    image: prom/prometheus
-    volumes:
-      - ./prometheus:/prometheus
+    image: prom/prometheus:latest
+    container_name: navada-prometheus
+    restart: always
     ports:
       - '9090:9090'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus_data:/prometheus
     command:
-      - '--config.file=/prometheus/prometheus.yml'
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:latest
+    container_name: navada-grafana
+    restart: always
     ports:
       - '3000:3000'
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-navada2026}
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_healthy
 
   alertmanager:
-    image: prom/alertmanager
-    volumes:
-      - ./alertmanager:/alertmanager
+    image: prom/alertmanager:latest
+    container_name: navada-alertmanager
+    restart: always
     ports:
       - '9093:9093'
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
     command:
-      - '--config.file=/alertmanager/alertmanager.yml'
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+
+volumes:
+  prometheus_data:
+  grafana_data:

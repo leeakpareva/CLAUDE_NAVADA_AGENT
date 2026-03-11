@@ -1,21 +1,34 @@
-# Makefile for Docker Management
+# NAVADA Edge — Infrastructure Makefile (inside infrastructure/)
+# Quick commands for managing the Oracle Docker stack
 
-# Build the Docker image
-build:
-	docker build -t my-image .
+ORACLE_HOST = ubuntu@100.77.206.9
+ORACLE_KEY = ~/.ssh/oracle-navada
 
-# Run the Docker container
-run:
-	docker run -d -p 8080:80 my-image
+up:
+	docker compose -f docker-compose.monitoring.yml up -d
 
-# Stop the Docker container
-stop:
-	docker stop $(docker ps -q --filter ancestor=my-image)
+down:
+	docker compose -f docker-compose.monitoring.yml down
 
-# Remove the Docker container
-rm:
-	docker rm $(docker ps -aq --filter ancestor=my-image)
+restart:
+	docker compose -f docker-compose.monitoring.yml restart
 
-# Remove the Docker image
-rmi:
-	docker rmi my-image
+status:
+	docker compose -f docker-compose.monitoring.yml ps
+
+logs:
+	docker compose -f docker-compose.monitoring.yml logs --tail 50
+
+oracle-up:
+	ssh -i $(ORACLE_KEY) $(ORACLE_HOST) "cd /home/ubuntu/navada && docker compose up -d"
+
+oracle-down:
+	ssh -i $(ORACLE_KEY) $(ORACLE_HOST) "cd /home/ubuntu/navada && docker compose down"
+
+oracle-status:
+	ssh -i $(ORACLE_KEY) $(ORACLE_HOST) "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+
+oracle-logs:
+	ssh -i $(ORACLE_KEY) $(ORACLE_HOST) "docker logs navada-proxy --tail 30"
+
+.PHONY: up down restart status logs oracle-up oracle-down oracle-status oracle-logs

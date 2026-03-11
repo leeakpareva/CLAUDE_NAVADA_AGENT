@@ -1,25 +1,56 @@
-version: '3.8'
+# NAVADA Edge — Development Compose
+# For local dev on ASUS or HP. Does NOT replace Cloudflare Worker (Telegram bot).
+# Production services: see docker-compose.prod.yml
+
 
 services:
-  navada:
-    image: navada:latest
-    container_name: navada_container
-    restart: always
-    volumes:
-      - navada_data:/data
-    ports:
-      - "8080:8080"
-    healthcheck:
-      test: "exit 0"
-      interval: 30s
-      timeout: 10s
-      retries: 5
+  # PostgreSQL (dev/staging — production runs natively on HP :5433)
+  postgres:
+    image: postgres:17-alpine
+    container_name: navada-postgres-dev
+    restart: unless-stopped
     environment:
-      - NODE_ENV=production
+      POSTGRES_DB: navada
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5434:5432"
+    volumes:
+      - pg_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (caching layer for bot responses)
+  redis:
+    image: redis:7-alpine
+    container_name: navada-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ChromaDB (local vector store for RAG)
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: navada-chromadb
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      ANONYMIZED_TELEMETRY: "false"
 
 volumes:
-  navada_data:
-
-networks:
-  default:
-    driver: bridge
+  pg_dev_data:
+  redis_data:
+  chroma_data:

@@ -1,0 +1,79 @@
+# NAVADA Edge — Prometheus Alert Rules
+
+groups:
+  - name: navada-node-health
+    rules:
+      # Node down (no scrape for 2 min)
+      - alert: NodeDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} on {{ $labels.node }} is DOWN"
+          description: "No response from {{ $labels.instance }} for 2 minutes"
+
+      # High CPU (>80% for 5 min)
+      - alert: HighCPU
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU on {{ $labels.node }}: {{ $value | printf \"%.1f\" }}%"
+
+      # High memory (>85%)
+      - alert: HighMemory
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory on {{ $labels.node }}: {{ $value | printf \"%.1f\" }}%"
+
+      # Disk >85% full
+      - alert: DiskSpaceLow
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk usage on {{ $labels.node }}: {{ $value | printf \"%.1f\" }}%"
+
+      # Disk >95% full (critical)
+      - alert: DiskSpaceCritical
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CRITICAL disk on {{ $labels.node }}: {{ $value | printf \"%.1f\" }}%"
+
+  - name: navada-services
+    rules:
+      # Cloudflare Worker down
+      - alert: CloudflareWorkerDown
+        expr: up{job="cloudflare-worker"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Cloudflare Worker (Telegram bot) is unreachable"
+
+      # EC2 health monitor down
+      - alert: EC2HealthMonitorDown
+        expr: up{job="ec2-health-monitor"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "EC2 health monitor API is down"
+
+      # High container restart rate
+      - alert: ContainerRestarting
+        expr: increase(container_restart_count[1h]) > 3
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} restarted {{ $value }} times in 1h"

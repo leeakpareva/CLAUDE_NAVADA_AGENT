@@ -1,40 +1,95 @@
-# Prometheus Configuration for NAVADA Services
+# NAVADA Edge — Prometheus Configuration
+# Scrapes all 5 nodes for metrics
 
-# Global configurations.
 global:
-  scrape_interval: 15s  # Default scrape interval for all targets.
-  evaluation_interval: 15s  # Evaluate rules every 15 seconds.
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  scrape_timeout: 10s
 
-# Alertmanager configuration
+# AlertManager
 alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          - alertmanager:9093
+            - navada-alertmanager:9093
 
-# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
-rules:
-  - alert: HighCPUUsage
-    expr: sum(rate(container_cpu_usage_seconds_total[5m])) by (container_name) > 0.75
-    for: 2m
-    labels:
-      severity: critical
-    annotations:
-      summary: High CPU usage detected in container {{ $labels.container_name }}
+# Alert rules
+rule_files:
+  - /etc/prometheus/alert-rules.yml
 
-# Scrape configurations for NAVADA services.
+# Scrape targets — all NAVADA nodes
 scrape_configs:
-  - job_name: 'navada-service-1'
+  # Self (Prometheus on Oracle)
+  - job_name: 'prometheus'
     static_configs:
-      - targets: ['navada-service-1:8080']
+      - targets: ['localhost:9090']
+        labels:
+          node: 'NAVADA-ROUTER'
 
-  - job_name: 'navada-service-2'
+  # EC2 Health Monitor API (:9090 on EC2)
+  - job_name: 'ec2-health-monitor'
+    metrics_path: /metrics
     static_configs:
-      - targets: ['navada-service-2:8080']
+      - targets: ['3.11.119.181:9090']
+        labels:
+          node: 'NAVADA-COMPUTE'
+    scrape_interval: 60s
 
-  - job_name: 'navada-service-3'
+  # WorldMonitor (:4000 on EC2)
+  - job_name: 'worldmonitor'
+    metrics_path: /
     static_configs:
-      - targets: ['navada-service-3:8080']
+      - targets: ['3.11.119.181:4000']
+        labels:
+          node: 'NAVADA-COMPUTE'
+    scrape_interval: 120s
 
-  # Add more services as needed
+  # Cloudflare Worker (edge-api health)
+  - job_name: 'cloudflare-worker'
+    metrics_path: /status
+    params:
+      key: ['navada-edge-2026']
+    scheme: https
+    static_configs:
+      - targets: ['edge-api.navada-edge-server.uk']
+        labels:
+          node: 'NAVADA-GATEWAY'
+    scrape_interval: 60s
 
+  # Nginx on Oracle (self, via Docker network)
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['navada-proxy:80']
+        labels:
+          node: 'NAVADA-ROUTER'
+    scrape_interval: 60s
+
+  # Grafana (self, via Docker network)
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['navada-grafana:3000']
+        labels:
+          node: 'NAVADA-ROUTER'
+
+  # HP PostgreSQL (via Tailscale)
+  - job_name: 'hp-postgres'
+    static_configs:
+      - targets: ['100.121.187.67:5433']
+        labels:
+          node: 'NAVADA-EDGE-SERVER'
+    scrape_interval: 120s
+
+  # Node Exporter (if installed on EC2/Oracle)
+  - job_name: 'node-exporter-ec2'
+    static_configs:
+      - targets: ['3.11.119.181:9100']
+        labels:
+          node: 'NAVADA-COMPUTE'
+    scrape_interval: 60s
+
+  - job_name: 'node-exporter-oracle'
+    static_configs:
+      - targets: ['localhost:9100']
+        labels:
+          node: 'NAVADA-ROUTER'
+    scrape_interval: 60s
