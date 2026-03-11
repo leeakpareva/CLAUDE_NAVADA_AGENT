@@ -1,0 +1,11 @@
+{
+  "project": "NAVADA Edge Infrastructure",
+  "owner": "Lee Akpareva",
+  "agents": {
+    "chief-of-staff": ".kiro/agents/chief-of-staff.md",
+    "network-ops": ".kiro/agents/network-ops.md",
+    "deploy": ".kiro/agents/deploy.md",
+    "outreach": ".kiro/agents/outreach.md",
+    "test-runner": ".kiro/agents/test-runner.md"
+  }
+}

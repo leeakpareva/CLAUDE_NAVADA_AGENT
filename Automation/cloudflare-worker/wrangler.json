@@ -16,6 +16,14 @@
     {
       "pattern": "edge-api.navada-edge-server.uk/*",
       "zone_name": "navada-edge-server.uk"
+    },
+    {
+      "pattern": "traffic.navada-edge-server.uk/*",
+      "zone_name": "navada-edge-server.uk"
+    },
+    {
+      "pattern": "live.navada-edge-server.uk/*",
+      "zone_name": "navada-edge-server.uk"
     }
   ],
   "triggers": {

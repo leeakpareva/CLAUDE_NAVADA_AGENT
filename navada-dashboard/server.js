@@ -520,12 +520,14 @@ app.post('/yolo', async (req, res) => {
 
   // Respond immediately — do the work async so Worker doesn't timeout
   res.json({ ok: true, status: 'processing' });
+  console.log(`[YOLO] Job received: chatId=${chatId}, imageSize=${imageBase64.length} chars`);
 
   try {
     const https = require('https');
     const sharp = require('sharp');
 
     // 1. Call SageMaker YOLO (no timeout — handles cold starts)
+    console.log(`[YOLO] Calling SageMaker YOLO endpoint...`);
     const yoloResult = await new Promise((resolve, reject) => {
       const data = JSON.stringify({ imageBase64, confidence: 0.25, maxDetections: 50 });
       const req = https.request({
@@ -547,8 +549,10 @@ app.post('/yolo', async (req, res) => {
 
     const detections = yoloResult.detections || [];
     const imageSize = yoloResult.imageSize || null;
+    console.log(`[YOLO] SageMaker returned: ${detections.length} detections, imageSize: ${JSON.stringify(imageSize)}`);
 
     if (detections.length === 0) {
+      console.log(`[YOLO] No objects detected, notifying user`);
       await sendTelegramText(botToken, chatId, 'No objects detected in this image.');
       return;
     }
@@ -635,15 +639,24 @@ async function sendTelegramText(token, chatId, text) {
 }
 
 async function sendTelegramPhoto(token, chatId, imageBuffer, caption) {
+  console.log(`[YOLO] Sending annotated photo to Telegram: chatId=${chatId}, bufferSize=${imageBuffer.length} bytes`);
   const FormData = require('form-data');
   const form = new FormData();
-  form.append('chat_id', chatId);
+  form.append('chat_id', String(chatId));
   form.append('photo', imageBuffer, { filename: 'yolo.jpg', contentType: 'image/jpeg' });
   if (caption) form.append('caption', caption);
   await new Promise((resolve, reject) => {
     form.submit(`https://api.telegram.org/bot${token}/sendPhoto`, (err, res) => {
-      if (err) reject(err);
-      else { res.resume(); resolve(); }
+      if (err) { console.error(`[YOLO] Telegram sendPhoto error: ${err.message}`); reject(err); }
+      else {
+        let body = '';
+        res.on('data', d => body += d);
+        res.on('end', () => {
+          try { const r = JSON.parse(body); console.log(`[YOLO] Telegram response: ok=${r.ok}, desc=${r.description || 'sent'}`); }
+          catch { console.log(`[YOLO] Telegram raw response: ${body.substring(0, 200)}`); }
+        });
+        resolve();
+      }
     });
   });
 }

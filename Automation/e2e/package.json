@@ -1,0 +1,25 @@
+{
+  "name": "navada-e2e",
+  "version": "1.0.0",
+  "description": "NAVADA Edge E2E test runner — production monitoring with Playwright headless",
+  "main": "runner.js",
+  "scripts": {
+    "test": "node runner.js once",
+    "test:suite": "node runner.js suite",
+    "test:gateway": "node runner.js suite gateway",
+    "test:compute": "node runner.js suite compute",
+    "test:network": "node runner.js suite network",
+    "test:telegram": "node runner.js suite telegram",
+    "test:database": "node runner.js suite database",
+    "test:cross-node": "node runner.js suite cross-node",
+    "test:vision": "node runner.js suite vision",
+    "test:cron": "node runner.js suite cron",
+    "test:playwright": "node runner.js suite playwright",
+    "daemon": "node runner.js daemon",
+    "install:browsers": "npx playwright install chromium"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudwatch": "^3.600.0",
+    "playwright": "^1.50.0"
+  }
+}

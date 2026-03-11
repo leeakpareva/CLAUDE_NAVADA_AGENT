@@ -13,6 +13,7 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - ../navada-network-diagram.html:/usr/share/nginx/html/nodes/index.html:ro
+      - ../Automation/reports/charts/NVADA-EDGE.SYSTEM DIAGRAM.V1.drawio.html:/usr/share/nginx/html/diagram/index.html:ro
     restart: always
     extra_hosts:
       - "host.docker.internal:host-gateway"

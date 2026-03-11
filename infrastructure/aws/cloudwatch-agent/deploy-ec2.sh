@@ -54,7 +54,9 @@ for LOCAL_FILE in "${!SYNC_MAP[@]}"; do
   REMOTE_PATH="${SYNC_MAP[$LOCAL_FILE]}"
   if [ -f "$LOCAL_FILE" ]; then
     scp $SSH_OPTS "$LOCAL_FILE" "$EC2_HOST:$REMOTE_PATH" 2>/dev/null
-    echo "  SYNCED: $(basename $LOCAL_FILE) -> $REMOTE_PATH"
+    # Fix Windows CRLF line endings
+    ssh $SSH_OPTS $EC2_HOST "sed -i 's/\r$//' $REMOTE_PATH" 2>/dev/null
+    echo "  SYNCED: $(basename $LOCAL_FILE) -> $REMOTE_PATH (CRLF fixed)"
   fi
 done
 
