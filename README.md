@@ -1,9 +1,11 @@
-# NAVADA Edge — Autonomous AI Infrastructure
+# NAVADA Edge v4.1 — Autonomous AI Infrastructure
 
-**Claude, Chief of Staff** manages a distributed 5-node network 24/7 from Cloudflare's global edge.
+**Claude, Chief of Staff** manages a distributed 6-node network 24/7 from Cloudflare's global edge. **Kiro AI Agents** provide autonomous agentic capabilities for deploys, testing, outreach, and operations.
 
 Founded by **Lee Akpareva** | Principal AI Consultant
 leeakpareva@gmail.com | [navada-lab.space](https://navada-lab.space) | [github.com/Navada25](https://github.com/Navada25)
+
+**Live Dashboards**: [Traffic](https://edge-api.navada-edge-server.uk/traffic) | [Live Visualiser](https://edge-api.navada-edge-server.uk/live)
 
 ## Network Architecture
 
@@ -15,7 +17,7 @@ leeakpareva@gmail.com | [navada-lab.space](https://navada-lab.space) | [github.c
                     │  Workers: navada-edge-api                │
                     │  D1: navada-edge (7 tables, WEUR)        │
                     │  R2: navada-assets (backups, media)      │
-                    │  DNS: navada-edge-server.uk (13 subs)    │
+                    │  DNS: navada-edge-server.uk (15 subs)    │
                     │  Cron: 5 scheduled triggers              │
                     │  WAF / DDoS / SSL / Tunnel Ingress       │
                     └────────────────┬─────────────────────────┘
@@ -34,7 +36,15 @@ leeakpareva@gmail.com | [navada-lab.space](https://navada-lab.space) | [github.c
    │ Command │   │ Dev Box / │  │ 24/7       │ │ Routing /   │
    │ Centre  │   │ Node      │  │ Compute /  │ │ Observ. /   │
    │         │   │ Server    │  │ Monitoring │ │ Security    │
-   └─────────┘   └───────────┘  └────────────┘ └─────────────┘
+   └────┬────┘   └───────────┘  └────────────┘ └─────────────┘
+        │
+   ┌────▼──────────┐
+   │ NAVADA-AGENTS  │
+   │ (Kiro IDE)     │
+   │                │
+   │ 5 AI Agents /  │
+   │ Hooks / IaC    │
+   └────────────────┘
 ```
 
 ## Nodes
@@ -43,8 +53,25 @@ leeakpareva@gmail.com | [navada-lab.space](https://navada-lab.space) | [github.c
 - **Role**: Command Centre / Development
 - **IP**: 192.168.0.18 (WiFi) / 100.88.118.128 (Tailscale)
 - **OS**: Windows 11 Home, Intel Core Ultra 7, 16GB RAM
-- **Services**: Claude Code, VS Code, LM Studio, Ollama, Docker Desktop
+- **Services**: Claude Code, VS Code, Kiro IDE, LM Studio, Ollama, Docker Desktop
 - **Connects to**: All nodes via SSH + Tailscale
+
+### NAVADA-AGENTS (Kiro IDE)
+- **Role**: AI Agent Orchestration / IaC / Autonomous Operations
+- **Location**: Runs on ASUS (`.kiro/` folder in project root)
+- **Agents** (5):
+
+| Agent | Purpose |
+|-------|---------|
+| chief-of-staff | Full system control, multi-channel comms, operational lead |
+| network-ops | Health monitoring, diagnostics, connectivity checks |
+| deploy | Safe deploys to Worker + EC2 with validation |
+| outreach | Prospect pipeline, email sequences, lead gen |
+| test-runner | E2E test execution + failure analysis |
+
+- **Steering**: product.md, tech.md, structure.md, network.md (auto-loaded context)
+- **Hooks**: pre-deploy (syntax validation), post-deploy (health check)
+- **Integration**: Agents call Worker API, forward commands to EC2, query D1
 
 ### NAVADA-EDGE-SERVER (HP Laptop)
 - **Role**: Dev Box / Node Server (SSH-only, no PM2)
@@ -143,6 +170,47 @@ Claude operates as NAVADA's Chief of Staff from Cloudflare's global edge:
 | nodes.navada-edge-server.uk | Oracle | Network map |
 | dashboard.navada-edge-server.uk | EC2 | Command centre |
 | logo.navada-edge-server.uk | HP :3000 | Logo service |
+| traffic.navada-edge-server.uk | Cloudflare Worker | Architecture diagram (animated) |
+| live.navada-edge-server.uk | Cloudflare Worker | Canvas traffic visualiser (animated) |
+
+## Kiro Agents (IaC)
+
+```
+.kiro/
+├── settings.json              # Project config + agent registry
+├── steering/
+│   ├── product.md             # Business context (always loaded)
+│   ├── tech.md                # Full tech stack (always loaded)
+│   ├── structure.md           # Network nodes + directory layout (always loaded)
+│   └── network.md             # API endpoints for all nodes (auto-loaded)
+├── agents/
+│   ├── chief-of-staff.md      # Full system control, multi-channel comms
+│   ├── network-ops.md         # Health monitoring, diagnostics
+│   ├── deploy.md              # Safe deploys with validation
+│   ├── outreach.md            # Prospect pipeline, email sequences
+│   └── test-runner.md         # E2E test execution + failure analysis
+└── hooks/
+    ├── pre-deploy.md          # Syntax validation before deploy
+    └── post-deploy.md         # Health check after deploy
+```
+
+**Usage in Kiro IDE**: Open project, chat with `@agent-name`, or let hooks auto-trigger.
+
+## E2E Testing (68 tests)
+
+| Suite | Tests | Covers |
+|-------|-------|--------|
+| gateway | 13 | Worker API, auth, metrics, logs, health |
+| compute | 9 | EC2 dashboard, PM2, YOLO, shell API |
+| network | 8 | Tailscale mesh, SSH, TCP connectivity |
+| telegram | 8 | Webhook, bot health, commands |
+| database | 8 | D1 queries, PostgreSQL connectivity |
+| cross-node | 5 | EC2-Oracle, EC2-HP, Worker-EC2 |
+| vision | 4 | Rekognition, YOLO, Lambda |
+| cron | time-aware | Scheduled task verification |
+| playwright | 10 | Headless Chromium, dashboard render, JS errors |
+
+Run: `node Automation/e2e/runner.js once` or `make test`
 
 ## Cloudflare Worker (navada-edge-api)
 
@@ -159,6 +227,9 @@ Claude operates as NAVADA's Chief of Staff from Cloudflare's global edge:
 | POST | `/health` | Ingest health check results |
 | GET | `/health` | Query health history |
 | GET | `/status` | System overview |
+| GET | `/traffic` | Animated architecture dashboard |
+| GET | `/live` | Canvas traffic visualiser |
+| GET | `/health/telegram` | Telegram bot health check |
 
 **Cron Triggers**:
 
@@ -222,7 +293,8 @@ Alex/
 │   ├── logs/                  # Task output logs
 │   └── .env                   # Secrets (gitignored)
 ├── LeadPipeline/              # Lead generation + CRM
-├── Manager/                   # Cost tracking
+├── .kiro/                     # Kiro IDE: agents, steering, hooks
+├── Manager/                   # Cost tracking, ops docs, business plans
 ├── infrastructure/            # Docker + Nginx configs
 ├── navada-lambda/             # AWS Lambda functions
 ├── CLAUDE.md                  # Claude Code instructions

@@ -1,5 +1,6 @@
 ---
 inclusion: auto
+description: API endpoints, node IPs, and D1 tables for NAVADA Edge network integration
 ---
 
 # NAVADA Edge — Network Integration

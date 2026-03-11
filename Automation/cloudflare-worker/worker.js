@@ -1777,6 +1777,7 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%}
     <div class="leg-row"><div class="leg-line" style="background:#cc44ff"></div><span class="leg-label">AI / Bedrock</span></div>
     <div class="leg-row"><div class="leg-line" style="background:#ffdd00"></div><span class="leg-label">Cloudflare / DNS</span></div>
     <div class="leg-row"><div class="leg-line" style="background:#ff4444"></div><span class="leg-label">Alerts / Approval</span></div>
+    <div class="leg-row"><div class="leg-line" style="background:#00e5ff;border-top:1px dashed #00e5ff"></div><span class="leg-label">Kiro Agents</span></div>
   </div>
   <div id="uc-panel">
     <button class="uc-btn" onclick="playUC(0)">UC1 Dev Workflow</button>
@@ -1786,19 +1787,20 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%}
     <button class="uc-btn" onclick="playUC(4)">UC5 Ralph AI</button>
     <button class="uc-btn" onclick="playUC(5)">UC6 Dashboard</button>
     <button class="uc-btn" onclick="playUC(6)">UC7 DB Access</button>
+    <button class="uc-btn" onclick="playUC(7)">UC8 Kiro Agents</button>
   </div>
 </div>
 <script>
 const canvas=document.getElementById('c');const ctx=canvas.getContext('2d');let W,H,scale=1;
 function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;scale=Math.min(W/1280,H/720);}
 window.addEventListener('resize',resize);resize();
-const NODES={hp:{id:'hp',label:'NAVADA-HP',sub1:'192.168.0.58',sub2:'PostgreSQL \\u00b7 Scanner',color:'#4488ff',icon:'\\ud83d\\udcbb',x:0.10,y:0.26,w:148,h:76},asus:{id:'asus',label:'NAVADA-ASUS',sub1:'192.168.0.x',sub2:'Dev \\u00b7 Claude Code',color:'#aaaacc',icon:'\\ud83d\\udda5',x:0.10,y:0.60,w:148,h:76},oracle:{id:'oracle',label:'NAVADA-ORACLE',sub1:'Oracle Cloud',sub2:'Nginx\\u00b7Docker\\u00b7PM2',color:'#ff8844',icon:'\\ud83c\\udfed',x:0.36,y:0.37,w:152,h:76},ec2:{id:'ec2',label:'NAVADA-EC2',sub1:'AWS eu-west-2',sub2:'Ralph\\u00b7Monitor\\u00b724/7',color:'#44ff88',icon:'\\u2601',x:0.57,y:0.27,w:148,h:76},aws:{id:'aws',label:'AWS CLOUD',sub1:'Lambda\\u00b7Bedrock',sub2:'SageMaker\\u00b7DynamoDB',color:'#cc44ff',icon:'\\u26a1',x:0.58,y:0.56,w:152,h:76},cf:{id:'cf',label:'CLOUDFLARE',sub1:'DNS\\u00b7R2\\u00b7WAF',sub2:'navada-edge.com',color:'#ffdd00',icon:'\\ud83c\\udf10',x:0.35,y:0.66,w:148,h:76},zoho:{id:'zoho',label:'ZOHO EMAIL',sub1:'External SMTP',sub2:'IMAP Polling',color:'#ff8844',icon:'\\u2709',x:0.09,y:0.84,w:130,h:62},internet:{id:'internet',label:'INTERNET',sub1:'navada-edge.com',sub2:'Public Users',color:'#ffdd00',icon:'\\ud83c\\udf0d',x:0.56,y:0.84,w:130,h:62}};
-const CONNS=[{id:'hp-oracle',from:'hp',to:'oracle',color:'#4488ff',dash:true,label:'PG :5433 \\u00b7 Tailscale'},{id:'asus-oracle',from:'asus',to:'oracle',color:'#4488ff',dash:true,label:'SSH \\u00b7 Deploy'},{id:'asus-hp',from:'asus',to:'hp',color:'#4488ff',dash:true,label:'SSH \\u00b7 Tailscale'},{id:'asus-ec2',from:'asus',to:'ec2',color:'#4488ff',dash:true,label:'SSH \\u00b7 Tailscale'},{id:'oracle-ec2',from:'oracle',to:'ec2',color:'#44ff88',dash:true,label:'Health \\u00b7 Tailscale'},{id:'ec2-aws',from:'ec2',to:'aws',color:'#cc44ff',dash:false,label:'IAM \\u00b7 Lambda'},{id:'hp-aws',from:'hp',to:'aws',color:'#cc44ff',dash:false,label:'Bedrock \\u00b7 IMAP'},{id:'cf-oracle',from:'cf',to:'oracle',color:'#ffdd00',dash:false,label:'DNS \\u00b7 Proxy :8080'},{id:'cf-hp',from:'cf',to:'hp',color:'#ffdd00',dash:false,label:'R2 \\u00b7 Sync'},{id:'cf-ec2',from:'cf',to:'ec2',color:'#ffdd00',dash:false,label:'R2 \\u00b7 Sync'},{id:'cf-aws',from:'cf',to:'aws',color:'#ffdd00',dash:false,label:'R2 \\u00b7 Storage'},{id:'internet-cf',from:'internet',to:'cf',color:'#ffdd00',dash:false,label:'HTTPS \\u00b7 DNS'},{id:'zoho-aws',from:'zoho',to:'aws',color:'#ff4444',dash:false,label:'EventBridge'},{id:'oracle-aws',from:'oracle',to:'aws',color:'#cc44ff',dash:false,label:'Bedrock \\u00b7 API'}];
-const UCS=[{name:'UC1 \\u2014 Developer Workflow',desc:'ASUS \\u2192 Claude Code CLI \\u2192 Tailscale SSH \\u2192 ORACLE PM2 restart \\u2192 live dashboard',steps:['asus-oracle','asus-hp','hp-oracle'],colors:['#4488ff','#4488ff','#ff8844'],nodes:['asus','oracle','hp']},{name:'UC2 \\u2014 Email Intelligence Pipeline',desc:'Zoho \\u2192 EventBridge \\u2192 Lambda \\u2192 Bedrock Claude \\u2192 DynamoDB \\u2192 Lee approval \\u2192 action',steps:['zoho-aws','hp-aws','ec2-aws'],colors:['#ff4444','#cc44ff','#cc44ff'],nodes:['zoho','hp','aws','ec2']},{name:'UC3 \\u2014 Vision & AI Inference',desc:'Internet \\u2192 API Gateway \\u2192 Lambda \\u2192 Rekognition / SageMaker YOLO / Bedrock Claude',steps:['internet-cf','cf-oracle','oracle-aws'],colors:['#ffdd00','#ffdd00','#cc44ff'],nodes:['internet','cf','oracle','aws']},{name:'UC4 \\u2014 Network Monitoring',desc:'HP Scanner \\u2192 192.168.0.x LAN \\u2192 reports to ORACLE \\u2192 EC2 health monitor alerts',steps:['hp-oracle','oracle-ec2'],colors:['#44ff88','#44ff88'],nodes:['hp','oracle','ec2']},{name:'UC5 \\u2014 Ralph Self-Improvement',desc:'EC2 Ralph scans ELK logs \\u2192 Bedrock analyses \\u2192 digest to Lee \\u2192 R2 snapshot version',steps:['oracle-ec2','ec2-aws','cf-aws'],colors:['#44ff88','#cc44ff','#ffdd00'],nodes:['oracle','ec2','aws','cf']},{name:'UC6 \\u2014 Dashboard Access',desc:'User \\u2192 navada-edge.com \\u2192 Cloudflare DNS \\u2192 ORACLE Nginx :8080 \\u2192 12 dashboards',steps:['internet-cf','cf-oracle'],colors:['#ffdd00','#ffdd00'],nodes:['internet','cf','oracle']},{name:'UC7 \\u2014 Database Access (Tailscale)',desc:'Any node \\u2192 Tailscale tunnel \\u2192 HP :5433 \\u2192 PostgreSQL \\u2192 never exposed to public internet',steps:['asus-hp','hp-oracle','oracle-ec2'],colors:['#ff8844','#ff8844','#ff8844'],nodes:['asus','hp','oracle','ec2']}];
+const NODES={hp:{id:'hp',label:'NAVADA-HP',sub1:'192.168.0.58',sub2:'PostgreSQL \\u00b7 Scanner',color:'#4488ff',icon:'\\ud83d\\udcbb',x:0.10,y:0.26,w:148,h:76},asus:{id:'asus',label:'NAVADA-ASUS',sub1:'192.168.0.x',sub2:'Dev \\u00b7 Claude Code',color:'#aaaacc',icon:'\\ud83d\\udda5',x:0.10,y:0.60,w:148,h:76},oracle:{id:'oracle',label:'NAVADA-ORACLE',sub1:'Oracle Cloud',sub2:'Nginx\\u00b7Docker\\u00b7PM2',color:'#ff8844',icon:'\\ud83c\\udfed',x:0.36,y:0.37,w:152,h:76},ec2:{id:'ec2',label:'NAVADA-EC2',sub1:'AWS eu-west-2',sub2:'Ralph\\u00b7Monitor\\u00b724/7',color:'#44ff88',icon:'\\u2601',x:0.57,y:0.27,w:148,h:76},aws:{id:'aws',label:'AWS CLOUD',sub1:'Lambda\\u00b7Bedrock',sub2:'SageMaker\\u00b7DynamoDB',color:'#cc44ff',icon:'\\u26a1',x:0.58,y:0.56,w:152,h:76},cf:{id:'cf',label:'CLOUDFLARE',sub1:'DNS\\u00b7R2\\u00b7WAF',sub2:'navada-edge.com',color:'#ffdd00',icon:'\\ud83c\\udf10',x:0.35,y:0.66,w:148,h:76},zoho:{id:'zoho',label:'ZOHO EMAIL',sub1:'External SMTP',sub2:'IMAP Polling',color:'#ff8844',icon:'\\u2709',x:0.09,y:0.84,w:130,h:62},internet:{id:'internet',label:'INTERNET',sub1:'navada-edge.com',sub2:'Public Users',color:'#ffdd00',icon:'\\ud83c\\udf0d',x:0.56,y:0.84,w:130,h:62},kiro:{id:'kiro',label:'NAVADA-AGENTS',sub1:'Kiro IDE',sub2:'5 AI Agents \\u00b7 Hooks',color:'#00e5ff',icon:'\\ud83e\\udd16',x:0.36,y:0.12,w:148,h:76}};
+const CONNS=[{id:'hp-oracle',from:'hp',to:'oracle',color:'#4488ff',dash:true,label:'PG :5433 \\u00b7 Tailscale'},{id:'asus-oracle',from:'asus',to:'oracle',color:'#4488ff',dash:true,label:'SSH \\u00b7 Deploy'},{id:'asus-hp',from:'asus',to:'hp',color:'#4488ff',dash:true,label:'SSH \\u00b7 Tailscale'},{id:'asus-ec2',from:'asus',to:'ec2',color:'#4488ff',dash:true,label:'SSH \\u00b7 Tailscale'},{id:'oracle-ec2',from:'oracle',to:'ec2',color:'#44ff88',dash:true,label:'Health \\u00b7 Tailscale'},{id:'ec2-aws',from:'ec2',to:'aws',color:'#cc44ff',dash:false,label:'IAM \\u00b7 Lambda'},{id:'hp-aws',from:'hp',to:'aws',color:'#cc44ff',dash:false,label:'Bedrock \\u00b7 IMAP'},{id:'cf-oracle',from:'cf',to:'oracle',color:'#ffdd00',dash:false,label:'DNS \\u00b7 Proxy :8080'},{id:'cf-hp',from:'cf',to:'hp',color:'#ffdd00',dash:false,label:'R2 \\u00b7 Sync'},{id:'cf-ec2',from:'cf',to:'ec2',color:'#ffdd00',dash:false,label:'R2 \\u00b7 Sync'},{id:'cf-aws',from:'cf',to:'aws',color:'#ffdd00',dash:false,label:'R2 \\u00b7 Storage'},{id:'internet-cf',from:'internet',to:'cf',color:'#ffdd00',dash:false,label:'HTTPS \\u00b7 DNS'},{id:'zoho-aws',from:'zoho',to:'aws',color:'#ff4444',dash:false,label:'EventBridge'},{id:'oracle-aws',from:'oracle',to:'aws',color:'#cc44ff',dash:false,label:'Bedrock \\u00b7 API'},{id:'kiro-asus',from:'kiro',to:'asus',color:'#00e5ff',dash:true,label:'Agents \\u00b7 Steering'},{id:'kiro-cf',from:'kiro',to:'cf',color:'#00e5ff',dash:false,label:'Worker Deploy'},{id:'kiro-ec2',from:'kiro',to:'ec2',color:'#00e5ff',dash:true,label:'E2E Tests'}];
+const UCS=[{name:'UC1 \\u2014 Developer Workflow',desc:'ASUS \\u2192 Claude Code CLI \\u2192 Tailscale SSH \\u2192 ORACLE PM2 restart \\u2192 live dashboard',steps:['asus-oracle','asus-hp','hp-oracle'],colors:['#4488ff','#4488ff','#ff8844'],nodes:['asus','oracle','hp']},{name:'UC2 \\u2014 Email Intelligence Pipeline',desc:'Zoho \\u2192 EventBridge \\u2192 Lambda \\u2192 Bedrock Claude \\u2192 DynamoDB \\u2192 Lee approval \\u2192 action',steps:['zoho-aws','hp-aws','ec2-aws'],colors:['#ff4444','#cc44ff','#cc44ff'],nodes:['zoho','hp','aws','ec2']},{name:'UC3 \\u2014 Vision & AI Inference',desc:'Internet \\u2192 API Gateway \\u2192 Lambda \\u2192 Rekognition / SageMaker YOLO / Bedrock Claude',steps:['internet-cf','cf-oracle','oracle-aws'],colors:['#ffdd00','#ffdd00','#cc44ff'],nodes:['internet','cf','oracle','aws']},{name:'UC4 \\u2014 Network Monitoring',desc:'HP Scanner \\u2192 192.168.0.x LAN \\u2192 reports to ORACLE \\u2192 EC2 health monitor alerts',steps:['hp-oracle','oracle-ec2'],colors:['#44ff88','#44ff88'],nodes:['hp','oracle','ec2']},{name:'UC5 \\u2014 Ralph Self-Improvement',desc:'EC2 Ralph scans ELK logs \\u2192 Bedrock analyses \\u2192 digest to Lee \\u2192 R2 snapshot version',steps:['oracle-ec2','ec2-aws','cf-aws'],colors:['#44ff88','#cc44ff','#ffdd00'],nodes:['oracle','ec2','aws','cf']},{name:'UC6 \\u2014 Dashboard Access',desc:'User \\u2192 navada-edge.com \\u2192 Cloudflare DNS \\u2192 ORACLE Nginx :8080 \\u2192 12 dashboards',steps:['internet-cf','cf-oracle'],colors:['#ffdd00','#ffdd00'],nodes:['internet','cf','oracle']},{name:'UC7 \\u2014 Database Access (Tailscale)',desc:'Any node \\u2192 Tailscale tunnel \\u2192 HP :5433 \\u2192 PostgreSQL \\u2192 never exposed to public internet',steps:['asus-hp','hp-oracle','oracle-ec2'],colors:['#ff8844','#ff8844','#ff8844'],nodes:['asus','hp','oracle','ec2']},{name:'UC8 \\u2014 Kiro AI Agents',desc:'Kiro agents \\u2192 steering context \\u2192 deploy Worker \\u2192 run E2E tests \\u2192 verify health',steps:['kiro-asus','kiro-cf','kiro-ec2'],colors:['#00e5ff','#00e5ff','#00e5ff'],nodes:['kiro','asus','cf','ec2']}];
 let particles=[],activeUC=-1,autoplay=true,autoTimer=null,progressStart=0,animFrame=0;const UC_DURATION=5500;
 function nodePos(n){return{x:n.x*W,y:n.y*H};}
 function hexA(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return'rgba('+r+','+g+','+b+','+a+')';}
-function drawTailscaleZone(){const members=['hp','asus','oracle','ec2','aws','cf'];const pad=44*scale;let mx=Infinity,my=Infinity,mxx=-Infinity,mxy=-Infinity;members.forEach(id=>{const n=NODES[id],p=nodePos(n);const nw=(n.w/2)*scale,nh=(n.h/2)*scale;if(p.x-nw<mx)mx=p.x-nw;if(p.y-nh<my)my=p.y-nh;if(p.x+nw>mxx)mxx=p.x+nw;if(p.y+nh>mxy)mxy=p.y+nh;});mx-=pad;my-=pad;mxx+=pad;mxy+=pad;mxy=Math.min(mxy,H*0.86);const t=Date.now()/1000,alpha=0.45+0.18*Math.sin(t*1.4);ctx.save();ctx.shadowColor='#4488ff';ctx.shadowBlur=18;ctx.beginPath();ctx.roundRect(mx,my,mxx-mx,mxy-my,26);ctx.strokeStyle='rgba(68,136,255,'+alpha+')';ctx.lineWidth=1.8;ctx.setLineDash([11,6]);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(18,28,58,0.22)';ctx.fill();ctx.restore();ctx.save();ctx.font='bold '+(10*scale)+'px JetBrains Mono';ctx.fillStyle='rgba(68,136,255,0.72)';ctx.fillText('\\ud83d\\udd12 Tailscale Mesh VPN \\u2014 Zero Trust Private Network',mx+14,my+17);ctx.restore();}
+function drawTailscaleZone(){const members=['hp','asus','oracle','ec2','aws','cf','kiro'];const pad=44*scale;let mx=Infinity,my=Infinity,mxx=-Infinity,mxy=-Infinity;members.forEach(id=>{const n=NODES[id],p=nodePos(n);const nw=(n.w/2)*scale,nh=(n.h/2)*scale;if(p.x-nw<mx)mx=p.x-nw;if(p.y-nh<my)my=p.y-nh;if(p.x+nw>mxx)mxx=p.x+nw;if(p.y+nh>mxy)mxy=p.y+nh;});mx-=pad;my-=pad;mxx+=pad;mxy+=pad;mxy=Math.min(mxy,H*0.86);const t=Date.now()/1000,alpha=0.45+0.18*Math.sin(t*1.4);ctx.save();ctx.shadowColor='#4488ff';ctx.shadowBlur=18;ctx.beginPath();ctx.roundRect(mx,my,mxx-mx,mxy-my,26);ctx.strokeStyle='rgba(68,136,255,'+alpha+')';ctx.lineWidth=1.8;ctx.setLineDash([11,6]);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(18,28,58,0.22)';ctx.fill();ctx.restore();ctx.save();ctx.font='bold '+(10*scale)+'px JetBrains Mono';ctx.fillStyle='rgba(68,136,255,0.72)';ctx.fillText('\\ud83d\\udd12 Tailscale Mesh VPN \\u2014 Zero Trust Private Network',mx+14,my+17);ctx.restore();}
 function drawAWSZone(){const n=NODES.aws,p=nodePos(n);const nw=(n.w/2+24)*scale,nh=(n.h/2+26)*scale;const t=Date.now()/1000,alpha=0.35+0.12*Math.sin(t*1.1);ctx.save();ctx.shadowColor='#cc44ff';ctx.shadowBlur=14;ctx.beginPath();ctx.roundRect(p.x-nw,p.y-nh,nw*2,nh*2,16);ctx.strokeStyle='rgba(180,70,255,'+alpha+')';ctx.lineWidth=1.4;ctx.stroke();ctx.fillStyle='rgba(28,8,48,0.26)';ctx.fill();ctx.restore();ctx.save();ctx.font='bold '+(8.5*scale)+'px JetBrains Mono';ctx.fillStyle='rgba(180,70,255,0.65)';ctx.fillText('\\u26a1 AWS Cloud Boundary',p.x-nw+9,p.y-nh+13);ctx.restore();}
 function getConnPts(c){const f=NODES[c.from],t=NODES[c.to],fp=nodePos(f),tp=nodePos(t);return{x1:fp.x,y1:fp.y,x2:tp.x,y2:tp.y};}
 function getCurve(x1,y1,x2,y2){const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);const bend=Math.min(len*0.22,60*scale);const mx=(x1+x2)/2-dy/len*bend,my=(y1+y2)/2+dx/len*bend;return{mx,my};}
@@ -1874,6 +1876,8 @@ async function handleTrafficDashboard(env) {
   .node.router .title { color: #7E57C2; }
   .node.mobile { border-color: #555; }
   .node.mobile .title { color: #aaa; }
+  .node.agents { border-color: #00e5ff; }
+  .node.agents .title { color: #00e5ff; }
 
   .actor { position: absolute; text-align: center; z-index: 2; }
   .actor .icon { font-size: 28px; margin-bottom: 4px; }
@@ -1951,6 +1955,11 @@ async function handleTrafficDashboard(env) {
     <text x="400" y="470" fill="#0088cc">Telegram</text>
     <line class="cloudflare" x1="1100" y1="150" x2="750" y2="200"/>
     <text x="900" y="170">HTTPS</text>
+    <!-- Kiro Agent connections -->
+    <line class="tailscale" x1="620" y1="780" x2="170" y2="400" style="stroke: #00e5ff; opacity: 0.4;"/>
+    <line class="tailscale" x1="620" y1="780" x2="600" y2="300" style="stroke: #00e5ff; opacity: 0.4;"/>
+    <line class="tailscale" x1="620" y1="780" x2="600" y2="200" style="stroke: #00e5ff; opacity: 0.3;"/>
+    <text x="380" y="600" fill="#00e5ff" style="opacity: 0.6;">Kiro Agents</text>
   </svg>
 
   <div class="mesh-label" style="top: 50px; left: 520px;">TAILSCALE MESH VPN</div>
@@ -2056,6 +2065,22 @@ async function handleTrafficDashboard(env) {
     <div class="ip">100.68.251.111</div>
   </div>
 
+  <!-- NAVADA-AGENTS (Kiro) -->
+  <div class="node agents" style="top: 730px; left: 500px; width: 240px;">
+    <div class="title"><span class="status on"></span>NAVADA-AGENTS</div>
+    <div class="role">Kiro IDE | AI Agent Orchestration</div>
+    <div class="services">
+      <span class="up">Chief of Staff</span>
+      <span class="up">Network Ops</span>
+      <span class="up">Deploy Agent</span>
+      <span class="up">Outreach Agent</span>
+      <span class="up">Test Runner</span>
+      <span>Hooks</span>
+      <span>Steering</span>
+    </div>
+    <div class="ip">ASUS | .kiro/ | 5 Agents</div>
+  </div>
+
   <div style="position:absolute; top: 155px; right: 170px; font-size: 8px; color: #4285F4; letter-spacing: 0.1em; opacity: 0.5;">CLOUDFLARE</div>
   <div style="position:absolute; top: 345px; right: 170px; font-size: 8px; color: #E53935; letter-spacing: 0.1em; opacity: 0.5;">AWS</div>
   <div style="position:absolute; top: 565px; right: 40px; font-size: 8px; color: #7E57C2; letter-spacing: 0.1em; opacity: 0.5;">ORACLE CLOUD</div>
@@ -2070,6 +2095,7 @@ async function handleTrafficDashboard(env) {
   <div class="legend-item"><div class="legend-line" style="border-color: #0088cc; border-style: solid;"></div>Telegram (Commands)</div>
   <div class="legend-item"><div class="legend-dot" style="background: #4caf50; border-color: #4caf50;"></div>Online</div>
   <div class="legend-item"><div class="legend-dot" style="background: #f44336; border-color: #f44336;"></div>Offline</div>
+  <div class="legend-item"><div class="legend-line" style="border-color: #00e5ff; border-style: solid;"></div>Kiro Agents</div>
 </div>
 
 <div class="footer">
@@ -2116,6 +2142,10 @@ async function handleTrafficDashboard(env) {
     { x1:270,y1:700, x2:600,y2:230, color:'#0088cc', speed:0.005, count:3 },
     // HTTPS (orange)
     { x1:80,y1:150, x2:170,y2:330, color:'#FF9800', speed:0.005, count:2 },
+    // Kiro Agents (cyan)
+    { x1:620,y1:780, x2:170,y2:400, color:'#00e5ff', speed:0.004, count:2 },
+    { x1:620,y1:780, x2:600,y2:300, color:'#00e5ff', speed:0.005, count:2 },
+    { x1:620,y1:780, x2:600,y2:200, color:'#00e5ff', speed:0.003, count:2 },
   ];
 
   // Create particles for each route
