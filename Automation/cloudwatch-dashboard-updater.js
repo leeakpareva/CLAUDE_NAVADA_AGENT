@@ -286,15 +286,63 @@ async function collectCloudflare() {
   return { subdomains: checks, upCount, cosUp, cosLatency };
 }
 
+async function collectWorkerActivity() {
+  log('Collecting Worker activity from D1...');
+  try {
+    const statusResp = await httpGet(`https://edge-api.navada-edge-server.uk/status?key=navada-edge-2026`);
+    const status = statusResp ? JSON.parse(statusResp) : {};
+
+    // Get command counts from D1 via the Worker's logs API
+    const logsResp = await httpGet(`https://edge-api.navada-edge-server.uk/logs?last=10&key=navada-edge-2026`);
+    const logs = logsResp ? JSON.parse(logsResp) : {};
+
+    // Count event types from recent logs
+    const logEntries = logs.logs || [];
+    const eventCounts = {};
+    for (const l of logEntries) {
+      const t = l.event_type || 'unknown';
+      eventCounts[t] = (eventCounts[t] || 0) + 1;
+    }
+
+    return {
+      online: true,
+      metrics: status.last_hour?.metrics || 0,
+      logs: status.last_hour?.logs || 0,
+      healthChecks: status.last_hour?.health_checks || 0,
+      visionYolo: eventCounts['vision.yolo'] || 0,
+      visionDescribe: eventCounts['vision.describe'] || 0,
+      sagemakerWarm: eventCounts['sagemaker.warm'] || 0,
+      errors: eventCounts['error'] || 0,
+      telegramFails: eventCounts['telegram.send_fail'] || 0,
+      cronRuns: eventCounts['cron.run'] || 0,
+    };
+  } catch (e) {
+    log(`Worker collect error: ${e.message}`);
+    return { online: false };
+  }
+}
+
+function httpGet(url) {
+  return new Promise((resolve) => {
+    const mod = url.startsWith('https') ? https : http;
+    mod.get(url, { timeout: 8000 }, (res) => {
+      let body = '';
+      res.on('data', d => body += d);
+      res.on('end', () => resolve(body));
+    }).on('error', () => resolve(null)).on('timeout', function() { this.destroy(); resolve(null); });
+  });
+}
+
 async function collectAll() {
-  const [hp, oracle, ec2, tailscale, cloudflare] = await Promise.all([
+  const [hp, oracle, ec2, tailscale, cloudflare, worker] = await Promise.all([
     collectHP().catch(e => { log(`HP collect error: ${e.message}`); return { online: false, pm2: [] }; }),
     collectOracle().catch(e => { log(`Oracle collect error: ${e.message}`); return { online: false, docker: [], dockerContainers: [], pm2: [] }; }),
     collectEC2().catch(e => { log(`EC2 collect error: ${e.message}`); return { online: true, pm2: [] }; }),
     collectTailscale().catch(e => { log(`Tailscale collect error: ${e.message}`); return { nodes: [], connectedCount: 0 }; }),
     collectCloudflare().catch(e => { log(`Cloudflare collect error: ${e.message}`); return { subdomains: [], upCount: 0 }; }),
+    collectWorkerActivity().catch(e => { log(`Worker collect error: ${e.message}`); return { online: false }; }),
   ]);
-  return { hp, oracle, ec2, tailscale, cloudflare, timestamp: new Date().toISOString() };
+  return { hp, oracle, ec2, tailscale, cloudflare, worker, timestamp: new Date().toISOString() };
 }
 
 // ---------------------------------------------------------------------------
@@ -363,6 +411,27 @@ async function pushMetrics(data) {
     Namespace: 'NAVADA/Cloudflare',
     MetricData: cfMetrics,
   })).then(() => log('  Pushed NAVADA/Cloudflare metrics')).catch(e => log(`  FAIL NAVADA/Cloudflare: ${e.message}`)));
+
+  // --- NAVADA/Worker metrics (Cloudflare Worker activity) ---
+  const w = data.worker || {};
+  if (w.online) {
+    const workerMetrics = [
+      { MetricName: 'WorkerOnline', Value: 1, Unit: 'None', Timestamp: now },
+      { MetricName: 'MetricsLastHour', Value: w.metrics || 0, Unit: 'Count', Timestamp: now },
+      { MetricName: 'LogsLastHour', Value: w.logs || 0, Unit: 'Count', Timestamp: now },
+      { MetricName: 'HealthChecksLastHour', Value: w.healthChecks || 0, Unit: 'Count', Timestamp: now },
+      { MetricName: 'VisionYolo', Value: w.visionYolo || 0, Unit: 'Count', Timestamp: now },
+      { MetricName: 'VisionDescribe', Value: w.visionDescribe || 0, Unit: 'Count', Timestamp: now },
+      { MetricName: 'SageMakerWarms', Value: w.sagemakerWarm || 0, Unit: 'Count', Timestamp: now },
+      { MetricName: 'Errors', Value: w.errors || 0, Unit: 'Count', Timestamp: now },
+      { MetricName: 'TelegramFails', Value: w.telegramFails || 0, Unit: 'Count', Timestamp: now },
+      { MetricName: 'CronRuns', Value: w.cronRuns || 0, Unit: 'Count', Timestamp: now },
+    ];
+    batches.push(CW.send(new PutMetricDataCommand({
+      Namespace: 'NAVADA/Worker',
+      MetricData: workerMetrics,
+    })).then(() => log('  Pushed NAVADA/Worker metrics')).catch(e => log(`  FAIL NAVADA/Worker: ${e.message}`)));
+  }
 
   // --- NAVADA/NodeJS metrics (EC2 runtime) ---
   const nodeMetrics = [];
@@ -1098,6 +1167,57 @@ function buildBKUP(data) {
   return JSON.stringify({ widgets });
 }
 
+// 12. Worker Activity
+function buildWorkerActivity(data) {
+  const ts = data.timestamp;
+  const w = data.worker || {};
+
+  let md = `# NAVADA Worker Activity\n`;
+  md += `**Cloudflare Worker**: navada-edge-api | edge-api.navada-edge-server.uk\n`;
+  md += `**Updated**: ${ts} | **Status**: ${w.online ? 'ONLINE' : 'OFFLINE'}\n\n`;
+  md += `| Feature | Status |\n|---------|--------|\n`;
+  md += `| Telegram Bot | Claude Chief of Staff, 24/7 |\n`;
+  md += `| D1 Database | navada-edge (WEUR) |\n`;
+  md += `| Cron Triggers | 5 schedules (health, morning, news, pipeline, jobs) |\n`;
+  md += `| Vision | /yolo (YOLO + EC2 annotation), /describe (Claude Opus Vision) |\n`;
+  md += `| SageMaker Warmer | Every 5 min ping to prevent cold starts |\n`;
+  md += `| Self-Heal | Webhook auto-repair every 5 min |\n\n`;
+  md += `**Commands**: /status /yolo /describe /vision /docker /shell /email /sms /call /image /flux + more\n`;
+
+  const widgets = [
+    textWidget(0, 0, 24, 4, md),
+    metricWidget(0, 4, 8, 6, 'D1 Activity (Last Hour)', [
+      { namespace: 'NAVADA/Worker', name: 'MetricsLastHour', label: 'Metrics' },
+      { namespace: 'NAVADA/Worker', name: 'LogsLastHour', label: 'Logs' },
+      { namespace: 'NAVADA/Worker', name: 'HealthChecksLastHour', label: 'Health Checks' },
+    ]),
+    metricWidget(8, 4, 8, 6, 'Vision Requests', [
+      { namespace: 'NAVADA/Worker', name: 'VisionYolo', label: 'YOLO Detections' },
+      { namespace: 'NAVADA/Worker', name: 'VisionDescribe', label: 'Describe (Claude Vision)' },
+    ]),
+    metricWidget(16, 4, 8, 6, 'Errors & Reliability', [
+      { namespace: 'NAVADA/Worker', name: 'Errors', label: 'Errors' },
+      { namespace: 'NAVADA/Worker', name: 'TelegramFails', label: 'Telegram Send Fails' },
+    ]),
+    metricWidget(0, 10, 8, 6, 'Cron & SageMaker', [
+      { namespace: 'NAVADA/Worker', name: 'CronRuns', label: 'Cron Executions' },
+      { namespace: 'NAVADA/Worker', name: 'SageMakerWarms', label: 'SageMaker Warms' },
+    ]),
+    metricWidget(8, 10, 8, 6, 'Worker Uptime', [
+      { namespace: 'NAVADA/Worker', name: 'WorkerOnline', label: 'Online (1=Yes)' },
+      { namespace: 'NAVADA/Cloudflare', name: 'ClaudeCoSUp', label: 'CoS UP' },
+      { namespace: 'NAVADA/Cloudflare', name: 'ClaudeCoSLatencyMs', label: 'Latency (ms)' },
+    ]),
+    metricWidget(16, 10, 8, 6, 'Lambda Vision API', [
+      { namespace: 'AWS/Lambda', name: 'Invocations', dimensions: [{ Name: 'FunctionName', Value: 'navada-vision-router' }], stat: 'Sum', label: 'Invocations' },
+      { namespace: 'AWS/Lambda', name: 'Errors', dimensions: [{ Name: 'FunctionName', Value: 'navada-vision-router' }], stat: 'Sum', label: 'Errors' },
+      { namespace: 'AWS/Lambda', name: 'Duration', dimensions: [{ Name: 'FunctionName', Value: 'navada-vision-router' }], stat: 'Average', label: 'Latency (ms)' },
+    ]),
+  ];
+
+  return JSON.stringify({ widgets });
+}
+
 // ---------------------------------------------------------------------------
 // Dashboard Pusher
 // ---------------------------------------------------------------------------
@@ -1113,6 +1233,7 @@ const DASHBOARD_BUILDERS = {
   'NAVADA-ASUS': buildASUS,
   'NAVADA-World-View': buildWorldView,
   'NAVADA-BK-UP-ULTRA': buildBKUP,
+  'NAVADA-Worker-Activity': buildWorkerActivity,
 };
 
 async function pushDashboard(name, body) {
@@ -1130,7 +1251,7 @@ async function pushDashboard(name, body) {
 }
 
 async function pushAllDashboards(data) {
-  log('Pushing 11 dashboards to CloudWatch...');
+  log('Pushing 12 dashboards to CloudWatch...');
   let success = 0;
   let failed = 0;
 

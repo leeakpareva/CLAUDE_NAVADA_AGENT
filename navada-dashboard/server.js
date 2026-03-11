@@ -406,6 +406,248 @@ app.get(['/', '/dashboard', '/dashboard/'], async (req, res) => {
   }
 });
 
+// --- Shell exec endpoint (used by Cloudflare Worker) ---
+app.use(express.json({ limit: '10mb' }));
+
+app.post('/exec', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== (process.env.EC2_API_KEY || 'navada-ec2')) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  const { command } = req.body;
+  if (!command) return res.status(400).json({ error: 'no command' });
+  const { exec } = require('child_process');
+  exec(command, { timeout: 30000, maxBuffer: 1024 * 1024 }, (err, stdout, stderr) => {
+    res.json({ stdout: stdout || '', stderr: stderr || '', error: err?.message || null });
+  });
+});
+
+// --- YOLO Bounding Box Annotation endpoint ---
+app.post('/annotate', async (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== (process.env.EC2_API_KEY || 'navada-ec2')) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const sharp = require('sharp');
+    const { imageBase64, detections, imageSize } = req.body;
+    if (!imageBase64 || !detections) return res.status(400).json({ error: 'missing imageBase64 or detections' });
+
+    const imgBuffer = Buffer.from(imageBase64, 'base64');
+    const img = sharp(imgBuffer);
+    const meta = await img.metadata();
+    const imgW = meta.width;
+    const imgH = meta.height;
+
+    const scaleX = imageSize ? imgW / imageSize.width : 1;
+    const scaleY = imageSize ? imgH / imageSize.height : 1;
+
+    // YOLO colour palette — blue-first for the signature look
+    const COLOURS = [
+      { r: 30, g: 144, b: 255 },   // dodger blue
+      { r: 0, g: 255, b: 127 },    // spring green
+      { r: 255, g: 69, b: 0 },     // red-orange
+      { r: 255, g: 215, b: 0 },    // gold
+      { r: 148, g: 103, b: 189 },  // purple
+      { r: 0, g: 206, b: 209 },    // cyan
+      { r: 255, g: 105, b: 180 },  // hot pink
+      { r: 50, g: 205, b: 50 },    // lime green
+    ];
+
+    const classColours = {};
+    let colourIdx = 0;
+    for (const d of detections) {
+      const cls = d.label || d.class || d.name || 'unknown';
+      if (!classColours[cls]) {
+        classColours[cls] = COLOURS[colourIdx % COLOURS.length];
+        colourIdx++;
+      }
+    }
+
+    const boxThickness = Math.max(2, Math.round(Math.min(imgW, imgH) / 200));
+    const fontSize = Math.max(14, Math.round(Math.min(imgW, imgH) / 40));
+
+    let svg = `<svg width="${imgW}" height="${imgH}" xmlns="http://www.w3.org/2000/svg">`;
+
+    detections.forEach(d => {
+      const cls = d.label || d.class || d.name || 'unknown';
+      const conf = d.confidence || d.score || 0;
+      const c = classColours[cls];
+      const colour = `rgb(${c.r},${c.g},${c.b})`;
+      const bbox = d.bbox || {};
+      const x1 = Math.round((bbox.x1 || 0) * scaleX);
+      const y1 = Math.round((bbox.y1 || 0) * scaleY);
+      const x2 = Math.round((bbox.x2 || 0) * scaleX);
+      const y2 = Math.round((bbox.y2 || 0) * scaleY);
+      const w = x2 - x1;
+      const h = y2 - y1;
+      if (w <= 0 || h <= 0) return;
+
+      // Bounding box
+      svg += `<rect x="${x1}" y="${y1}" width="${w}" height="${h}" fill="none" stroke="${colour}" stroke-width="${boxThickness}" rx="3"/>`;
+
+      // Label background + text
+      const labelText = `${cls} ${(conf * 100).toFixed(0)}%`;
+      const labelW = labelText.length * fontSize * 0.6 + 10;
+      const labelH = fontSize + 8;
+      const labelY = Math.max(0, y1 - labelH);
+      svg += `<rect x="${x1}" y="${labelY}" width="${labelW}" height="${labelH}" fill="${colour}" rx="3"/>`;
+      svg += `<text x="${x1 + 5}" y="${labelY + fontSize}" font-family="Arial,sans-serif" font-size="${fontSize}" font-weight="bold" fill="white">${labelText}</text>`;
+    });
+
+    svg += '</svg>';
+
+    const annotated = await img
+      .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
+      .jpeg({ quality: 90 })
+      .toBuffer();
+
+    res.set('Content-Type', 'image/jpeg');
+    res.send(annotated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Full YOLO pipeline: detect + annotate + send to Telegram ---
+app.post('/yolo', async (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== (process.env.EC2_API_KEY || 'navada-ec2')) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  const { imageBase64, chatId, botToken } = req.body;
+  if (!imageBase64 || !chatId || !botToken) return res.status(400).json({ error: 'missing params' });
+
+  // Respond immediately — do the work async so Worker doesn't timeout
+  res.json({ ok: true, status: 'processing' });
+
+  try {
+    const https = require('https');
+    const sharp = require('sharp');
+
+    // 1. Call SageMaker YOLO (no timeout — handles cold starts)
+    const yoloResult = await new Promise((resolve, reject) => {
+      const data = JSON.stringify({ imageBase64, confidence: 0.25, maxDetections: 50 });
+      const req = https.request({
+        hostname: 'xxqtcilmzi.execute-api.eu-west-2.amazonaws.com',
+        path: '/vision/yolo',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) },
+        timeout: 90000,
+      }, (res) => {
+        let body = '';
+        res.on('data', d => body += d);
+        res.on('end', () => { try { resolve(JSON.parse(body)); } catch { reject(new Error('Invalid YOLO response')); } });
+      });
+      req.on('error', reject);
+      req.on('timeout', () => { req.destroy(); reject(new Error('SageMaker timeout (90s)')); });
+      req.write(data);
+      req.end();
+    });
+
+    const detections = yoloResult.detections || [];
+    const imageSize = yoloResult.imageSize || null;
+
+    if (detections.length === 0) {
+      await sendTelegramText(botToken, chatId, 'No objects detected in this image.');
+      return;
+    }
+
+    // 2. Draw bounding boxes
+    const imgBuffer = Buffer.from(imageBase64, 'base64');
+    const img = sharp(imgBuffer);
+    const meta = await img.metadata();
+    const imgW = meta.width;
+    const imgH = meta.height;
+    const scaleX = imageSize ? imgW / imageSize.width : 1;
+    const scaleY = imageSize ? imgH / imageSize.height : 1;
+
+    const COLOURS = [
+      { r: 30, g: 144, b: 255 }, { r: 0, g: 255, b: 127 },
+      { r: 255, g: 69, b: 0 }, { r: 255, g: 215, b: 0 },
+      { r: 148, g: 103, b: 189 }, { r: 0, g: 206, b: 209 },
+      { r: 255, g: 105, b: 180 }, { r: 50, g: 205, b: 50 },
+    ];
+    const classColours = {};
+    let ci = 0;
+    for (const d of detections) {
+      const cls = d.label || d.class || d.name || 'unknown';
+      if (!classColours[cls]) { classColours[cls] = COLOURS[ci % COLOURS.length]; ci++; }
+    }
+
+    const boxT = Math.max(2, Math.round(Math.min(imgW, imgH) / 200));
+    const fs = Math.max(14, Math.round(Math.min(imgW, imgH) / 40));
+
+    let svg = `<svg width="${imgW}" height="${imgH}" xmlns="http://www.w3.org/2000/svg">`;
+    detections.forEach(d => {
+      const cls = d.label || d.class || d.name || 'unknown';
+      const conf = d.confidence || d.score || 0;
+      const c = classColours[cls];
+      const colour = `rgb(${c.r},${c.g},${c.b})`;
+      const bbox = d.bbox || {};
+      const x1 = Math.round((bbox.x1 || 0) * scaleX);
+      const y1 = Math.round((bbox.y1 || 0) * scaleY);
+      const w = Math.round((bbox.x2 || 0) * scaleX) - x1;
+      const h = Math.round((bbox.y2 || 0) * scaleY) - y1;
+      if (w <= 0 || h <= 0) return;
+      svg += `<rect x="${x1}" y="${y1}" width="${w}" height="${h}" fill="none" stroke="${colour}" stroke-width="${boxT}" rx="3"/>`;
+      const label = `${cls} ${(conf * 100).toFixed(0)}%`;
+      const lw = label.length * fs * 0.6 + 10;
+      const lh = fs + 8;
+      const ly = Math.max(0, y1 - lh);
+      svg += `<rect x="${x1}" y="${ly}" width="${lw}" height="${lh}" fill="${colour}" rx="3"/>`;
+      svg += `<text x="${x1 + 5}" y="${ly + fs}" font-family="Arial,sans-serif" font-size="${fs}" font-weight="bold" fill="white">${label}</text>`;
+    });
+    svg += '</svg>';
+
+    const annotated = await img.composite([{ input: Buffer.from(svg), top: 0, left: 0 }]).jpeg({ quality: 90 }).toBuffer();
+
+    // 3. Build caption
+    const counts = {};
+    let totalConf = 0;
+    detections.forEach(d => {
+      const label = d.label || d.class || d.name || 'unknown';
+      counts[label] = (counts[label] || 0) + 1;
+      totalConf += (d.confidence || d.score || 0);
+    });
+    let caption = `NAVADA Vision — YOLO\n${detections.length} objects, ${Object.keys(counts).length} classes\n`;
+    caption += Object.entries(counts).map(([k, v]) => v > 1 ? `${k} x${v}` : k).join(', ');
+    caption += `\nAvg: ${(totalConf / detections.length * 100).toFixed(1)}%`;
+    if (imageSize) caption += ` | ${imageSize.width}x${imageSize.height}`;
+
+    // 4. Send annotated image to Telegram
+    await sendTelegramPhoto(botToken, chatId, annotated, caption.substring(0, 1024));
+
+    console.log(`[YOLO] Sent annotated image: ${detections.length} detections to chat ${chatId}`);
+  } catch (err) {
+    console.error(`[YOLO] Pipeline error: ${err.message}`);
+    try { await sendTelegramText(botToken, chatId, `YOLO error: ${err.message}`); } catch {}
+  }
+});
+
+// Telegram helpers for EC2
+async function sendTelegramText(token, chatId, text) {
+  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text }),
+  });
+}
+
+async function sendTelegramPhoto(token, chatId, imageBuffer, caption) {
+  const FormData = require('form-data');
+  const form = new FormData();
+  form.append('chat_id', chatId);
+  form.append('photo', imageBuffer, { filename: 'yolo.jpg', contentType: 'image/jpeg' });
+  if (caption) form.append('caption', caption);
+  await new Promise((resolve, reject) => {
+    form.submit(`https://api.telegram.org/bot${token}/sendPhoto`, (err, res) => {
+      if (err) reject(err);
+      else { res.resume(); resolve(); }
+    });
+  });
+}
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'navada-dashboard', port: PORT });

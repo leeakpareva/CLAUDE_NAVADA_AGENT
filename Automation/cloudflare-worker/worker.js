@@ -63,6 +63,8 @@ export default {
         await runHealthChecks(env);
         // Telegram webhook self-heal check
         await ensureTelegramWebhook(env);
+        // Keep SageMaker YOLO warm — tiny ping to prevent cold starts
+        await warmSageMaker(env);
       }
       if (cron === '30 6 * * *') {
         // Morning briefing 6:30 AM UTC
@@ -101,7 +103,7 @@ async function handleTelegramWebhook(request, env) {
   const chatId = message.chat.id;
   const userId = String(message.from.id);
   const username = message.from.username || 'unknown';
-  const text = message.text || '';
+  const text = message.text || message.caption || '';
 
   // Auth check
   const auth = await checkUser(env, userId);
@@ -112,23 +114,32 @@ async function handleTelegramWebhook(request, env) {
 
   const isAdminUser = auth.role === 'admin';
 
+  // Detect photo/document (image) uploads
+  const hasPhoto = message.photo && message.photo.length > 0;
+  const hasImageDoc = message.document && message.document.mime_type?.startsWith('image/');
+
   // Log incoming
-  await env.DB.prepare('INSERT INTO command_log (user_id, command, message) VALUES (?, ?, ?)').bind(userId, text.startsWith('/') ? text.split(' ')[0] : 'chat', text.substring(0, 500)).run();
+  await env.DB.prepare('INSERT INTO command_log (user_id, command, message) VALUES (?, ?, ?)').bind(userId, hasPhoto ? 'photo' : hasImageDoc ? 'image_doc' : text.startsWith('/') ? text.split(' ')[0] : 'chat', text.substring(0, 500) || (hasPhoto ? '[photo]' : '[file]')).run();
 
   try {
-    // Command routing
-    if (text.startsWith('/')) {
+    // Photo/image handling — Claude Vision + AWS Rekognition
+    if (hasPhoto || hasImageDoc) {
+      await handlePhotoMessage(env, message, text, userId, username, isAdminUser, chatId);
+    } else if (text.startsWith('/')) {
+      // Command routing
       const [cmd, ...args] = text.split(' ');
       const command = cmd.slice(1).toLowerCase();
       const argText = args.join(' ');
 
-      const response = await handleCommand(env, command, argText, userId, username, isAdminUser, chatId);
+      const response = await handleCommand(env, command, argText, userId, username, isAdminUser, chatId, message);
       if (response) {
         await sendTelegram(env, response, chatId);
       }
-    } else {
+    } else if (text) {
       // Natural language — Claude AI
       await handleAIChat(env, text, userId, username, isAdminUser, chatId);
+    } else {
+      await sendTelegram(env, 'Send me a message, photo, or use /help for commands.', chatId);
     }
   } catch (e) {
     const errMsg = e?.message || String(e) || 'Unknown error';
@@ -143,7 +154,7 @@ async function handleTelegramWebhook(request, env) {
 // ============================================================
 // COMMAND HANDLER
 // ============================================================
-async function handleCommand(env, command, args, userId, username, isAdmin, chatId) {
+async function handleCommand(env, command, args, userId, username, isAdmin, chatId, message) {
   // Guest-safe commands
   switch (command) {
     case 'start':
@@ -152,12 +163,15 @@ async function handleCommand(env, command, args, userId, username, isAdmin, chat
     case 'help':
       return `NAVADA Edge Commands
 
-System: /status /uptime /about /ping
-AI: Just type naturally — I'll respond with Claude
+System: /status /uptime /about /ping /health /id
+AI: Just type naturally
+Vision: /yolo /describe /vision
+Creative: /image /flux
 Model: /sonnet /opus /auto /model
-${isAdmin ? 'Admin: /shell /run /ls /cat /email /inbox /sms /call\nPM2: /pm2 /pm2restart /pm2stop /pm2start\nOps: /briefing /report /costs /usage /logs' : ''}
+Memory: /memory /clear /costs /usage
+${isAdmin ? 'Admin: /shell /run /ls /cat /docker\nComms: /email /inbox /sms /call\nPM2: /pm2 /pm2restart /pm2stop /pm2start /pm2logs\nOps: /briefing /report /logs /webhook /test\n\nVision: Send photo to describe, or caption /yolo for object detection' : ''}
 
-Or just send me a message and we\'ll chat.`;
+Or just send me a message and I\'ll respond.`;
 
     case 'about':
       return `NAVADA Edge — Autonomous AI Infrastructure
@@ -292,6 +306,37 @@ Time: ${new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC`;
       if (!args) return 'Usage: /image <prompt>';
       return await generateImage(env, args, chatId);
 
+    case 'yolo': {
+      // YOLO object detection — needs a photo (reply to one, or send with caption /yolo)
+      const replyMsg = message?.reply_to_message;
+      if (replyMsg && (replyMsg.photo || replyMsg.document?.mime_type?.startsWith('image/'))) {
+        await handleYoloDetection(env, replyMsg, userId, chatId);
+        return null;
+      }
+      return 'Send a photo with caption /yolo, or reply to a photo with /yolo';
+    }
+
+    case 'describe': {
+      // Claude Vision description — needs a photo
+      const descReplyMsg = message?.reply_to_message;
+      if (descReplyMsg && (descReplyMsg.photo || descReplyMsg.document?.mime_type?.startsWith('image/'))) {
+        await handleDescribePhoto(env, descReplyMsg, args || null, userId, username, isAdmin, chatId);
+        return null;
+      }
+      return 'Send a photo with caption /describe, or reply to a photo with /describe [question]';
+    }
+
+    case 'vision': {
+      // Search vision memory
+      if (!args) {
+        const count = await env.DB.prepare('SELECT COUNT(*) as c FROM vision_memory WHERE user_id = ?').bind(userId).first();
+        return `Vision Memory: ${count?.c || 0} images analysed\n\nUsage: /vision <search term>\nExample: /vision person, /vision car, /vision text`;
+      }
+      const memories = await searchVisionMemory(env, userId, args, 5);
+      if (memories.length === 0) return `No vision memories matching "${args}"`;
+      return memories.map((m, i) => `${i+1}. [${m.analysis_type}] ${m.ts}\n${m.labels ? 'Labels: ' + m.labels : ''}\n${m.description ? m.description.substring(0, 200) + '...' : m.detections ? JSON.parse(m.detections).length + ' objects' : ''}`).join('\n\n');
+    }
+
     case 'flux':
       if (!isAdmin) return 'Admin only.';
       if (!args) return 'Usage: /flux <prompt>';
@@ -314,6 +359,51 @@ Time: ${new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC`;
       if (!logs.results.length) return 'No recent logs.';
       return logs.results.map(l => `[${l.ts}] ${l.node} ${l.event_type}: ${l.message}`).join('\n');
     }
+
+    case 'docker':
+      if (!isAdmin) return 'Admin only.';
+      return await forwardShellToEC2(env, `docker ${args || 'ps --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"'}`);
+
+    case 'email':
+    case 'emailme':
+      if (!isAdmin) return 'Admin only.';
+      if (!args) return 'Usage: /email <to> | <subject> | <body>\nExample: /email lee@example.com | Test | Hello from Claude';
+      await handleAIChat(env, `Send this email: ${args}`, userId, username, isAdmin, chatId, 'opus');
+      return null;
+
+    case 'inbox':
+      if (!isAdmin) return 'Admin only.';
+      await handleAIChat(env, 'Check my email inbox and summarise the latest emails', userId, username, isAdmin, chatId, 'opus');
+      return null;
+
+    case 'briefing':
+      if (!isAdmin) return 'Admin only.';
+      await handleAIChat(env, 'Give me my morning briefing: system status, any alerts, pending tasks, weather, and top AI/tech news', userId, username, isAdmin, chatId, 'opus');
+      return null;
+
+    case 'report':
+      if (!isAdmin) return 'Admin only.';
+      await handleAIChat(env, `Generate a status report for NAVADA Edge: ${args || 'current system health, API usage, costs, and any issues'}`, userId, username, isAdmin, chatId, 'opus');
+      return null;
+
+    case 'usage': {
+      if (!isAdmin) return 'Admin only.';
+      const today = new Date().toISOString().slice(0, 10);
+      const week = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+      const [todayStats, weekStats, visionCount] = await Promise.all([
+        env.DB.prepare("SELECT COUNT(*) as c, SUM(cost) as cost FROM command_log WHERE ts > ?").bind(today).first(),
+        env.DB.prepare("SELECT COUNT(*) as c, SUM(cost) as cost FROM command_log WHERE ts > ?").bind(week).first(),
+        env.DB.prepare("SELECT COUNT(*) as c FROM vision_memory").first(),
+      ]);
+      return `NAVADA Usage Stats\n\nToday: ${todayStats?.c || 0} commands, £${(todayStats?.cost || 0).toFixed(4)}\nThis week: ${weekStats?.c || 0} commands, £${(weekStats?.cost || 0).toFixed(4)}\nVision memory: ${visionCount?.c || 0} images analysed`;
+    }
+
+    case 'nodes':
+    case 'health':
+      return await checkAllNodes(env);
+
+    case 'id':
+      return `Your Telegram ID: ${userId}\nUsername: @${username}\nRole: ${isAdmin ? 'admin' : 'guest'}`;
 
     default:
       return `Unknown command: /${command}\nUse /help for available commands.`;
@@ -456,6 +546,355 @@ async function handleAIChat(env, text, userId, username, isAdmin, chatId, forceM
 }
 
 // ============================================================
+// PHOTO/IMAGE HANDLING — /yolo, /describe, and auto-detect
+// ============================================================
+
+// Download a Telegram photo and return { base64, mediaType, buffer }
+async function downloadTelegramPhoto(env, message) {
+  let fileId;
+  if (message.photo && message.photo.length > 0) {
+    fileId = message.photo[message.photo.length - 1].file_id;
+  } else if (message.document) {
+    fileId = message.document.file_id;
+  }
+  if (!fileId) throw new Error('No image found in message');
+
+  const fileResp = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getFile`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file_id: fileId }),
+    signal: AbortSignal.timeout(10000),
+  });
+  const fileData = await fileResp.json();
+  if (!fileData.ok || !fileData.result?.file_path) throw new Error(fileData.description || 'getFile failed');
+
+  const imageUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${fileData.result.file_path}`;
+  const imageResp = await fetch(imageUrl, { signal: AbortSignal.timeout(15000) });
+  if (!imageResp.ok) throw new Error(`Download failed: HTTP ${imageResp.status}`);
+
+  const buffer = await imageResp.arrayBuffer();
+  const filePath = fileData.result.file_path || '';
+  let mediaType = 'image/jpeg';
+  if (filePath.endsWith('.png')) mediaType = 'image/png';
+  else if (filePath.endsWith('.gif')) mediaType = 'image/gif';
+  else if (filePath.endsWith('.webp')) mediaType = 'image/webp';
+
+  return { base64: arrayBufferToBase64(buffer), mediaType, buffer };
+}
+
+// Route photo messages to the right handler
+async function handlePhotoMessage(env, message, caption, userId, username, isAdmin, chatId) {
+  const lowerCaption = (caption || '').toLowerCase().trim();
+
+  // If caption starts with /yolo, run YOLO object detection
+  if (lowerCaption.startsWith('/yolo') || lowerCaption === 'yolo') {
+    return handleYoloDetection(env, message, userId, chatId);
+  }
+
+  // Default: Claude Vision describe
+  return handleDescribePhoto(env, message, caption, userId, username, isAdmin, chatId);
+}
+
+// ============================================================
+// /yolo — YOLO Object Detection with bounding boxes
+// ============================================================
+async function handleYoloDetection(env, message, userId, chatId) {
+  await sendTelegram(env, 'Running YOLO object detection...', chatId);
+
+  try {
+    const { base64: imageBase64, buffer } = await downloadTelegramPhoto(env, message);
+
+    // Route through EC2 — it calls SageMaker YOLO + draws bounding boxes + sends to Telegram
+    // EC2 has no timeout limit, handles SageMaker cold starts (30-60s)
+    const ec2Resp = await fetch(`http://${env.EC2_IP || '3.11.119.181'}:9090/yolo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': env.EC2_API_KEY || 'navada-ec2' },
+      body: JSON.stringify({
+        imageBase64,
+        chatId: Number(chatId),
+        botToken: env.TELEGRAM_BOT_TOKEN,
+      }),
+      signal: AbortSignal.timeout(25000), // EC2 handles the slow part async
+    });
+
+    if (!ec2Resp.ok) {
+      const errText = await ec2Resp.text().catch(() => '');
+      // Fallback: try calling YOLO directly from Worker (works if endpoint is warm)
+      return await handleYoloDirectFallback(env, imageBase64, buffer, userId, chatId);
+    }
+
+    const result = await ec2Resp.json();
+    if (result.error) {
+      return await handleYoloDirectFallback(env, imageBase64, buffer, userId, chatId);
+    }
+
+    // EC2 handled detection + annotation + Telegram send
+    // Save to vision memory
+    const detections = result.detections || [];
+    const labels = [...new Set(detections.map(d => d.label || d.class || d.name || 'unknown'))].join(', ');
+    await saveVisionMemory(env, userId, 'yolo', null, JSON.stringify(detections), null, labels, null);
+    await logToD1(env, 'vision.yolo', `YOLO: ${detections.length} objects via EC2`, { userId, classes: labels });
+  } catch (e) {
+    // Fallback: try direct YOLO call
+    try {
+      const { base64: imageBase64, buffer } = await downloadTelegramPhoto(env, message);
+      return await handleYoloDirectFallback(env, imageBase64, buffer, userId, chatId);
+    } catch (e2) {
+      await logToD1(env, 'error', `YOLO failed: ${e.message} / fallback: ${e2.message}`);
+      await sendTelegram(env, `YOLO error: ${e.message}`, chatId);
+    }
+  }
+}
+
+// Direct YOLO call from Worker — works when SageMaker endpoint is warm (<30s)
+async function handleYoloDirectFallback(env, imageBase64, buffer, userId, chatId) {
+  try {
+    const yoloResp = await fetch('https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/vision/yolo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64, confidence: 0.25, maxDetections: 50 }),
+      signal: AbortSignal.timeout(25000),
+    });
+
+    if (!yoloResp.ok) {
+      await sendTelegram(env, `YOLO endpoint error: HTTP ${yoloResp.status}. SageMaker may be warming up, try again in 30s.`, chatId);
+      return;
+    }
+
+    const yoloData = await yoloResp.json();
+    const detections = yoloData.detections || [];
+    const imageSize = yoloData.imageSize || null;
+
+    if (detections.length === 0) {
+      await sendTelegram(env, 'No objects detected in this image.', chatId);
+      await saveVisionMemory(env, userId, 'yolo', null, '[]', null, null, null);
+      return;
+    }
+
+    // Try EC2 annotation
+    let annotatedSent = false;
+    try {
+      const annotateResp = await fetch(`http://${env.EC2_IP || '3.11.119.181'}:9090/annotate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': env.EC2_API_KEY || 'navada-ec2' },
+        body: JSON.stringify({ imageBase64, detections, imageSize }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (annotateResp.ok) {
+        const annotatedBuffer = await annotateResp.arrayBuffer();
+        if (annotatedBuffer.byteLength > 1000) {
+          const caption = buildYoloCaption(detections, imageSize, 'AWS SageMaker');
+          await sendTelegramPhotoBuffer(env, chatId, annotatedBuffer, caption.substring(0, 1024));
+          annotatedSent = true;
+        }
+      }
+    } catch {}
+
+    if (!annotatedSent) {
+      const caption = buildYoloCaption(detections, imageSize, 'AWS SageMaker');
+      await sendTelegramPhotoBuffer(env, chatId, buffer, caption.substring(0, 1024));
+      if (caption.length > 1024) await sendTelegram(env, caption, chatId);
+    }
+
+    const labels = [...new Set(detections.map(d => d.label || d.class || d.name || 'unknown'))].join(', ');
+    await saveVisionMemory(env, userId, 'yolo', null, JSON.stringify(detections), null, labels, null);
+    await logToD1(env, 'vision.yolo', `YOLO fallback: ${detections.length} objects`, { userId, classes: labels });
+  } catch (e) {
+    await logToD1(env, 'error', `YOLO direct fallback failed: ${e.message}`);
+    await sendTelegram(env, `YOLO failed: SageMaker may need 30-60s cold start. Try again shortly.`, chatId);
+  }
+}
+
+function buildYoloCaption(detections, imageSize, source) {
+  const counts = {};
+  let totalConf = 0;
+  detections.forEach(d => {
+    const label = d.label || d.class || d.name || 'unknown';
+    const conf = d.confidence || d.score || 0;
+    counts[label] = (counts[label] || 0) + 1;
+    totalConf += conf;
+  });
+  const avgConf = totalConf / detections.length;
+  const uniqueClasses = Object.keys(counts).length;
+
+  let msg = 'NAVADA Vision — YOLO Detection\n';
+  msg += '================================\n\n';
+
+  detections.forEach((d, i) => {
+    const label = d.label || d.class || d.name || 'unknown';
+    const conf = d.confidence || d.score || 0;
+    const bbox = d.bbox || {};
+    const bboxW = Math.round((bbox.x2 || 0) - (bbox.x1 || 0));
+    const bboxH = Math.round((bbox.y2 || 0) - (bbox.y1 || 0));
+    msg += `${i + 1}. ${label} — ${(conf * 100).toFixed(1)}%`;
+    if (bboxW > 0 && bboxH > 0) msg += ` [${bboxW}x${bboxH}px]`;
+    msg += '\n';
+  });
+
+  msg += '\n--- Summary ---\n';
+  msg += `Objects: ${detections.length} detected\n`;
+  msg += `Classes: ${uniqueClasses} unique (${Object.entries(counts).map(([k, v]) => v > 1 ? `${k} x${v}` : k).join(', ')})\n`;
+  msg += `Avg confidence: ${(avgConf * 100).toFixed(1)}%\n`;
+  if (imageSize) msg += `Image: ${imageSize.width}x${imageSize.height}px\n`;
+  msg += `Model: YOLOv8n\nSource: ${source}`;
+  return msg;
+}
+
+// ============================================================
+// /describe — Claude Vision photo description
+// ============================================================
+async function handleDescribePhoto(env, message, caption, userId, username, isAdmin, chatId) {
+  await sendTelegram(env, 'Analysing image with Claude Vision...', chatId);
+
+  try {
+    const { base64: imageBase64, mediaType } = await downloadTelegramPhoto(env, message);
+
+    const userPrompt = (caption && !caption.startsWith('/'))
+      ? caption
+      : 'Analyse this image in detail. Identify any people, objects, text, brands, locations, and anything notable. If there is a person, describe their appearance, clothing, expression, and any identifying details.';
+
+    // Load conversation history (text only, no old images)
+    const history = await env.DB.prepare('SELECT role, content FROM conversations WHERE user_id = ? ORDER BY ts DESC LIMIT ?').bind(userId, MAX_HISTORY * 2).all();
+    const messages = (history.results || []).reverse().map(r => ({ role: r.role, content: r.content }));
+
+    // Add image message
+    messages.push({
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
+        { type: 'text', text: userPrompt },
+      ],
+    });
+
+    // Use Opus for vision
+    const model = MODELS.opus;
+    const systemPrompt = isAdmin
+      ? getAdminSystemPrompt(env, 'Opus 4.6') + '\n\nThe user has sent you an image. Analyse it thoroughly. Identify people, objects, text, brands, locations, emotions, and anything notable. Be specific and detailed. If you recognise a public figure, say who you think it is.'
+      : getGuestSystemPrompt('Opus 4.6');
+
+    const claudeResp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model, max_tokens: 2048, system: systemPrompt, messages }),
+      signal: AbortSignal.timeout(30000),
+    });
+    const claudeResult = await claudeResp.json();
+
+    let visionReply = '';
+    if (claudeResult.error) {
+      await logToD1(env, 'error', `Vision API error: ${claudeResult.error.message}`, { model });
+      visionReply = `Vision error: ${claudeResult.error.message}`;
+    } else {
+      visionReply = (claudeResult.content || []).filter(b => b.type === 'text').map(b => b.text).join('') || '(No response)';
+    }
+
+    // Also run AWS Rekognition in parallel for faces/labels
+    let awsInfo = '';
+    let facesData = [], labelsData = [], faceMatches = [];
+    try {
+      const [detectResp, faceResp] = await Promise.all([
+        fetch('https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/vision/detect', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64, includeLabels: true, includeFaces: true, includeCelebrities: true }),
+          signal: AbortSignal.timeout(15000),
+        }).catch(() => null),
+        fetch('https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/vision/faces', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: imageBase64, action: 'search' }),
+          signal: AbortSignal.timeout(15000),
+        }).catch(() => null),
+      ]);
+
+      if (detectResp?.ok) {
+        const d = await detectResp.json();
+        facesData = d.faces || [];
+        labelsData = d.labels || [];
+        const celebrities = d.celebrities || [];
+        if (facesData.length > 0 || labelsData.length > 0 || celebrities.length > 0) {
+          awsInfo = '\n\nAWS Rekognition:';
+          if (celebrities.length > 0) awsInfo += `\nCelebrities: ${celebrities.map(c => `${c.Name || c.name} (${Math.round(c.Confidence || c.confidence || 0)}%)`).join(', ')}`;
+          if (facesData.length > 0) awsInfo += `\nFaces: ${facesData.length} detected` + facesData.map((f, i) => `\n  Face ${i+1}: ${f.Gender?.Value || '?'}, ~${Math.round(f.AgeRange?.Low || 0)}-${Math.round(f.AgeRange?.High || 0)}y, ${(f.Emotions || []).filter(e => e.Confidence > 50).map(e => e.Type.toLowerCase()).join('/') || 'neutral'}`).join('');
+          if (labelsData.length > 0) awsInfo += `\nLabels: ${labelsData.slice(0, 12).map(l => l.Name || l.name).join(', ')}`;
+        }
+      }
+
+      if (faceResp?.ok) {
+        const fd = await faceResp.json();
+        faceMatches = fd.matches || fd.FaceMatches || [];
+        if (faceMatches.length > 0) {
+          awsInfo += `\nKnown faces: ${faceMatches.map(m => `${m.name || m.ExternalImageId || 'Unknown'} (${Math.round(m.similarity || m.Similarity || 0)}%)`).join(', ')}`;
+        }
+      }
+    } catch {}
+
+    const fullReply = visionReply + awsInfo;
+
+    // Save to conversation + vision memory
+    const tokensIn = claudeResult.usage?.input_tokens || 0;
+    const tokensOut = claudeResult.usage?.output_tokens || 0;
+    const cost = (tokensIn * 15 + tokensOut * 75) / 1e6 * 0.79;
+
+    await env.DB.batch([
+      env.DB.prepare('INSERT INTO conversations (user_id, role, content, model) VALUES (?, ?, ?, ?)').bind(userId, 'user', `[Photo] ${userPrompt}`, model),
+      env.DB.prepare('INSERT INTO conversations (user_id, role, content, model) VALUES (?, ?, ?, ?)').bind(userId, 'assistant', fullReply.substring(0, 10000), model),
+    ]);
+
+    await env.DB.prepare('UPDATE command_log SET response = ?, model = ?, cost = ? WHERE id = (SELECT MAX(id) FROM command_log WHERE user_id = ?)').bind(fullReply.substring(0, 500), model, cost, userId).run();
+
+    // Save to vision_memory for RAG
+    await saveVisionMemory(env, userId, 'describe', userPrompt, null, fullReply,
+      labelsData.slice(0, 20).map(l => l.Name || l.name).join(', '),
+      facesData.length > 0 ? JSON.stringify(facesData.map(f => ({ gender: f.Gender?.Value, age: `${f.AgeRange?.Low}-${f.AgeRange?.High}`, emotions: (f.Emotions || []).filter(e => e.Confidence > 50).map(e => e.Type) }))) : null,
+      model, tokensIn, tokensOut, cost
+    );
+
+    // Send reply
+    if (fullReply.length <= MAX_MSG_LEN) {
+      await sendTelegram(env, fullReply, chatId);
+    } else {
+      const chunks = splitMessage(fullReply, MAX_MSG_LEN);
+      for (const chunk of chunks) { await sendTelegram(env, chunk, chatId); }
+    }
+
+    await logToD1(env, 'vision.describe', `Photo described: ${tokensIn}in/${tokensOut}out`, { userId, mediaType, hasAws: !!awsInfo });
+  } catch (e) {
+    await logToD1(env, 'error', `Describe failed: ${e.message}`);
+    await sendTelegram(env, `Image analysis failed: ${e.message}`, chatId);
+  }
+}
+
+// ============================================================
+// VISION MEMORY — RAG storage in D1 (free)
+// ============================================================
+async function saveVisionMemory(env, userId, analysisType, prompt, detections, description, labels, faces, model, tokensIn, tokensOut, cost) {
+  try {
+    await env.DB.prepare(
+      'INSERT INTO vision_memory (user_id, analysis_type, prompt, detections, description, labels, faces, model, tokens_in, tokens_out, cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(userId, analysisType, prompt || null, detections || null, description?.substring(0, 10000) || null, labels || null, faces || null, model || null, tokensIn || 0, tokensOut || 0, cost || 0).run();
+  } catch {}
+}
+
+async function searchVisionMemory(env, userId, query, limit = 5) {
+  try {
+    // Search across descriptions, labels, and faces
+    const results = await env.DB.prepare(
+      "SELECT analysis_type, prompt, description, labels, faces, detections, ts FROM vision_memory WHERE user_id = ? AND (description LIKE ? OR labels LIKE ? OR faces LIKE ? OR detections LIKE ?) ORDER BY ts DESC LIMIT ?"
+    ).bind(userId, `%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`, limit).all();
+    return results.results || [];
+  } catch { return []; }
+}
+
+// Base64 helper for ArrayBuffer
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+// ============================================================
 // TOOLS
 // ============================================================
 function getAdminTools() {
@@ -466,6 +905,7 @@ function getAdminTools() {
     { name: 'send_sms', description: 'Send an SMS message', input_schema: { type: 'object', properties: { to: { type: 'string' }, message: { type: 'string' } }, required: ['to', 'message'] } },
     { name: 'server_status', description: 'Get the status of all NAVADA nodes', input_schema: { type: 'object', properties: {} } },
     { name: 'query_d1', description: 'Query the D1 database for metrics, logs, or health data', input_schema: { type: 'object', properties: { sql: { type: 'string' }, params: { type: 'array', items: { type: 'string' } } }, required: ['sql'] } },
+    { name: 'analyse_image', description: 'Analyse an image URL using AWS Rekognition (face detection, labels, face recognition). Use when the user references a previously sent image or provides a URL.', input_schema: { type: 'object', properties: { image_url: { type: 'string', description: 'URL of the image to analyse' } }, required: ['image_url'] } },
   ];
 }
 
@@ -505,6 +945,42 @@ async function executeTool(env, name, input, isAdmin) {
         if (!isAdmin) return 'Permission denied.';
         const result = await env.DB.prepare(input.sql).bind(...(input.params || [])).all();
         return JSON.stringify(result.results?.slice(0, 20), null, 2);
+
+      case 'analyse_image': {
+        if (!isAdmin) return 'Permission denied.';
+        try {
+          const imgResp = await fetch(input.image_url, { signal: AbortSignal.timeout(15000) });
+          if (!imgResp.ok) return `Failed to fetch image: HTTP ${imgResp.status}`;
+          const imgBuf = await imgResp.arrayBuffer();
+          const imgB64 = arrayBufferToBase64(imgBuf);
+          const parts = [];
+          // Rekognition detect (faces + labels)
+          const detectResp = await fetch('https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/vision/detect', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: imgB64, features: ['faces', 'labels'] }),
+            signal: AbortSignal.timeout(15000),
+          });
+          if (detectResp.ok) {
+            const d = await detectResp.json();
+            if (d.faces?.length) parts.push(`Faces: ${d.faces.length} detected. ` + d.faces.map((f, i) => `Face ${i+1}: ${f.Gender?.Value || '?'}, ~${f.AgeRange?.Low}-${f.AgeRange?.High}y, ${(f.Emotions||[]).filter(e=>e.Confidence>50).map(e=>e.Type).join('/')}`).join('. '));
+            if (d.labels?.length) parts.push(`Labels: ${d.labels.slice(0,15).map(l=>l.Name).join(', ')}`);
+          }
+          // Face search (known faces)
+          const faceResp = await fetch('https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/vision/faces', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: imgB64, action: 'search' }),
+            signal: AbortSignal.timeout(15000),
+          });
+          if (faceResp.ok) {
+            const fd = await faceResp.json();
+            const matches = fd.matches || fd.FaceMatches || [];
+            if (matches.length) parts.push(`Known faces: ${matches.map(m => `${m.name || m.ExternalImageId || 'Unknown'} (${Math.round(m.similarity || m.Similarity || 0)}%)`).join(', ')}`);
+          }
+          return parts.length > 0 ? parts.join('\n') : 'No faces or labels detected.';
+        } catch (e) {
+          return `Vision analysis failed: ${e.message}`;
+        }
+      }
 
       default:
         return `Unknown tool: ${name}`;
@@ -783,6 +1259,23 @@ async function runHealthChecks(env) {
   }
 
   return `${passed.length} OK, ${failed.length} FAILED`;
+}
+
+// Keep SageMaker YOLO endpoint warm (prevents 30-60s cold starts)
+async function warmSageMaker(env) {
+  try {
+    // Tiny 1x1 red pixel PNG as base64 — minimal payload
+    const tinyImage = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
+    const resp = await fetch('https://xxqtcilmzi.execute-api.eu-west-2.amazonaws.com/vision/yolo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: tinyImage, confidence: 0.5, maxDetections: 1 }),
+      signal: AbortSignal.timeout(25000),
+    });
+    if (resp.ok) {
+      await logToD1(env, 'sagemaker.warm', 'YOLO endpoint warmed');
+    }
+  } catch {} // Silently fail — warming is best-effort
 }
 
 async function checkAllNodes(env) {
