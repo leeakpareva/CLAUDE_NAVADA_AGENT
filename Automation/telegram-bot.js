@@ -810,6 +810,19 @@ const TOOLS = [
     }
   },
   {
+    name: 'system_diagram',
+    description: 'Access the NAVADA Edge v2 system architecture diagram. Actions: "view" returns the public URL, "email" sends the full interactive diagram as an HTML email to a recipient. The diagram shows all nodes (HP, ASUS, Oracle, EC2, AWS), Tailscale mesh, Docker containers, Cloudflare subdomains, and 7 use cases.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['view', 'email'], description: 'Action: view (get public URL) or email (send full diagram as HTML email)' },
+        to: { type: 'string', description: 'Recipient email address (required for email action). Lee = leeakpareva@gmail.com' },
+        subject: { type: 'string', description: 'Email subject (optional, default: NAVADA Edge v2 - System Architecture Diagram)' }
+      },
+      required: ['action']
+    }
+  },
+  {
     name: 'elk_query',
     description: 'Search and query NAVADA logs via Elasticsearch (ELK stack). Full-text search across all server logs, Telegram interactions, PM2 logs, and automation outputs.',
     input_schema: {
@@ -911,6 +924,35 @@ async function executeTool(name, input, userRole) {
       } catch (err) {
         return `Error listing: ${err.message}`;
       }
+    }
+    case 'system_diagram': {
+      log(`[TOOL] system_diagram: ${input.action}`);
+      const DIAGRAM_URL = 'https://diagram.navada-edge-server.uk';
+      const DIAGRAM_FILE = path.join(NAVADA_DIR, 'Automation', 'reports', 'charts', 'NVADA-EDGE.SYSTEM DIAGRAM.V1.drawio.html');
+
+      if (input.action === 'view') {
+        return `NAVADA Edge v2 System Architecture Diagram\n\nPublic URL: ${DIAGRAM_URL}\nLAN: http://192.168.0.58:8080/diagram/\n\nInteractive draw.io diagram showing all nodes, services, Tailscale mesh, AWS cloud, and Cloudflare routing.`;
+      }
+
+      if (input.action === 'email') {
+        if (!input.to) return 'Error: "to" email address required for email action.';
+        if (!emailService) return 'Error: Email service not available.';
+        try {
+          const diagramHtml = fs.readFileSync(DIAGRAM_FILE, 'utf8');
+          const subject = input.subject || 'NAVADA Edge v2 | System Architecture Diagram';
+          const info = await emailService.sendEmail({
+            to: input.to,
+            subject,
+            body: `<p>Please find the NAVADA Edge v2 interactive system architecture diagram attached below.</p><p>You can also view it live at: <a href="${DIAGRAM_URL}">${DIAGRAM_URL}</a></p>`,
+            rawHtml: diagramHtml,
+          });
+          return `System diagram emailed to ${input.to} as full interactive HTML (MessageID: ${info.messageId}). Also viewable at ${DIAGRAM_URL}`;
+        } catch (err) {
+          return `Error emailing diagram: ${err.message}`;
+        }
+      }
+
+      return `Unknown action "${input.action}". Use "view" or "email".`;
     }
     case 'find_file': {
       log(`[TOOL] find_file: ${input.pattern}`);
@@ -3393,6 +3435,51 @@ bot.command('draft', async (ctx) => {
   await askClaude(ctx, `Draft professional content about "${topic}". This could be a LinkedIn post, email, blog post, or any written content. Follow NAVADA content rules (no client names, no em dashes). Present the draft for my review.`);
 });
 
+// /nadia — CV Q&A via .NET Nadia Bridge API (available to guests)
+bot.command('nadia', async (ctx) => {
+  const question = ctx.message.text.replace('/nadia', '').trim();
+  log(`/nadia ${question}`);
+  if (!question) return ctx.reply('Usage: /nadia <question about Lee>\nExamples:\n/nadia where did he work in 2022?\n/nadia is he a Python expert?\n/nadia what certifications does he have?');
+
+  const nadiaUrl = process.env.NADIA_API_URL;
+  const nadiaKey = process.env.NADIA_API_KEY || '';
+
+  // If .NET API is configured, use it; otherwise fall back to Claude with CV data
+  if (nadiaUrl) {
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (nadiaKey) headers['x-nadia-key'] = nadiaKey;
+      const resp = await fetch(`${nadiaUrl}/nadia/query`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ question }),
+        signal: AbortSignal.timeout(30000),
+      });
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => resp.statusText);
+        log(`[ERROR] /nadia API ${resp.status}: ${errText}`);
+        return ctx.reply(`Nadia API error (${resp.status}). Trying fallback...`);
+      }
+      const data = await resp.json();
+      const answer = data.answer || data.response || data.result || JSON.stringify(data);
+      return ctx.reply(`NADIA\n\n${answer}`, { parse_mode: undefined });
+    } catch (e) {
+      log(`[ERROR] /nadia API: ${e.message}`);
+      // Fall through to Claude fallback
+    }
+  }
+
+  // Fallback: use Claude with local CV data
+  try {
+    const cvPath = path.join(__dirname, 'kb', 'lee-cv-2026.txt');
+    const cvData = fs.readFileSync(cvPath, 'utf8');
+    await askClaude(ctx, `You are NADIA, NAVADA's AI assistant specialising in answering questions about Lee Akpareva's professional background. Answer the following question using ONLY the CV data provided below. Be concise, accurate, and mobile-friendly. If the CV doesn't contain the answer, say so.\n\nCV DATA:\n${cvData}\n\nQUESTION: ${question}`);
+  } catch (e) {
+    log(`[ERROR] /nadia fallback: ${e.message}`);
+    await ctx.reply('Nadia is unavailable. Contact Lee.');
+  }
+});
+
 // /stream (admin only)
 guardCommand('stream', async (ctx) => {
   const args = ctx.message.text.replace('/stream', '').trim();
@@ -4155,7 +4242,9 @@ async function registerCommands() {
       { command: 'cache', description: 'Semantic cache stats' },
       { command: 'memory', description: 'Check memory status' },
       { command: 'clear', description: 'Reset conversation + memory' },
+      { command: 'diagram', description: 'System architecture diagram' },
       { command: 'about', description: 'About NAVADA' },
+      { command: 'nadia', description: 'Ask about Lee (CV Q&A)' },
       // Admin
       { command: 'grant', description: 'Grant bot access (admin)' },
       { command: 'revoke', description: 'Remove bot access (admin)' },
@@ -4172,6 +4261,7 @@ async function registerCommands() {
       { command: 'research', description: 'Deep research on any topic' },
       { command: 'draft', description: 'Draft content' },
       { command: 'about', description: 'About NAVADA' },
+      { command: 'nadia', description: 'Ask about Lee (CV Q&A)' },
       { command: 'pm2', description: 'Running services' },
       { command: 'sonnet', description: 'Switch to Sonnet 4 (fast)' },
       { command: 'opus', description: 'Switch to Opus 4 (powerful)' },

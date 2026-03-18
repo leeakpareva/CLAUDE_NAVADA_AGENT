@@ -50,6 +50,7 @@ export default {
       if (path === '/health/telegram' && request.method === 'GET') return handleTelegramHealth(env);
       if (path === '/health' && request.method === 'POST') return handleHealthPost(request, env);
       if (path === '/health' && request.method === 'GET') return handleHealthGet(url, env);
+      if (path === '/commands' && request.method === 'GET') return handleCommandsGet(url, env);
       if (path === '/status') return handleStatus(env);
       return json({ error: 'Not found', routes: ['/telegram/webhook', '/twilio/sms', '/metrics', '/logs', '/health', '/status'] }, 404);
     } catch (e) {
@@ -66,14 +67,14 @@ export default {
       if (cron === '*/5 * * * *') {
         // Health check every 5 min
         await runHealthChecks(env);
-        // Telegram webhook self-heal check
-        await ensureTelegramWebhook(env);
+        // Telegram webhook self-heal check (disabled — bot manages its own webhook)
+        // await ensureTelegramWebhook(env);
         // Keep SageMaker YOLO warm — tiny ping to prevent cold starts
         await warmSageMaker(env);
       }
       if (cron === '30 6 * * *') {
         // Morning briefing 6:30 AM UTC
-        await sendTelegram(env, '☀️ Good morning Lee. NAVADA Edge is online. All systems nominal. Checking infrastructure...');
+        await sendTelegram(env, '☀️ Good morning Lee. NAVADA Edge is online. All systems nominal. Checking infrastructure...\n\nFrom: NAVADA-GATEWAY (Cloudflare) | cron 6:30');
         await runHealthChecks(env);
       }
       if (cron === '0 7 * * *') {
@@ -458,13 +459,19 @@ async function handleAIChat(env, text, userId, username, isAdmin, chatId, forceM
     : getGuestSystemPrompt(modelName);
 
   // Call Claude (with timeout to prevent Worker kill)
+  const apiKey = env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    await logToD1(env, 'error', 'ANTHROPIC_API_KEY is missing from env', `keys=${Object.keys(env).filter(k => typeof env[k] === 'string').join(',')}`);
+    await sendTelegram(env, 'Configuration error: API key not available. Contact admin.', chatId);
+    return;
+  }
   let response, result;
   try {
     response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': env.ANTHROPIC_API_KEY,
+        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
@@ -1159,7 +1166,7 @@ Model: ${modelName}. navada-lab.space | navadarobotics.com`;
 // TELEGRAM WEBHOOK SELF-HEAL
 // ============================================================
 async function ensureTelegramWebhook(env) {
-  const expectedUrl = 'https://edge-api.navada-edge-server.uk/telegram/webhook';
+  const expectedPrefix = 'https://api.navada-edge-server.uk/telegram/webhook';
   try {
     const resp = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getWebhookInfo`, {
       signal: AbortSignal.timeout(8000),
@@ -1171,7 +1178,7 @@ async function ensureTelegramWebhook(env) {
     }
     const info = data.result || {};
     const currentUrl = (info.url || '').trim();
-    const urlWrong = currentUrl !== expectedUrl;
+    const urlWrong = !currentUrl || !currentUrl.startsWith(expectedPrefix);
     const lastError = info.last_error_message || '';
 
     // Only repair if URL is actually wrong or missing — don't repair on transient errors alone
@@ -1182,7 +1189,7 @@ async function ensureTelegramWebhook(env) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url: expectedUrl,
+          url: `${expectedPrefix}/${env.TELEGRAM_BOT_TOKEN}`,
           allowed_updates: ['message', 'callback_query'],
           drop_pending_updates: false,
         }),
@@ -1191,7 +1198,7 @@ async function ensureTelegramWebhook(env) {
       const setResult = await setResp.json();
 
       if (setResult.ok) {
-        await sendTelegram(env, `NAVADA SELF-HEAL\n\nTelegram webhook was ${!currentUrl ? 'missing' : 'wrong URL: ' + currentUrl}.\n\nAuto-repaired. Bot is back online.`);
+        await sendTelegram(env, `NAVADA SELF-HEAL\n\nFrom: NAVADA-GATEWAY (Cloudflare) | ensureTelegramWebhook\n\nTelegram webhook was ${!currentUrl ? 'missing' : 'wrong URL: ' + currentUrl}.\n\nAuto-repaired. Bot is back online.`);
         await logToD1(env, 'telegram.webhook_restored', 'Webhook auto-repaired successfully');
       } else {
         await logToD1(env, 'error', 'Webhook repair failed', JSON.stringify(setResult));
@@ -1662,6 +1669,14 @@ async function handleLogsGet(url, env) {
   return json({ logs: results, count: results.length });
 }
 
+async function handleCommandsGet(url, env) {
+  const last = parseInt(url.searchParams.get('last') || '60');
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200);
+  const q = "SELECT user_id, command, message, response, model, cost, ts FROM command_log WHERE ts > datetime('now', ? || ' minutes') ORDER BY ts DESC LIMIT ?";
+  const { results } = await env.DB.prepare(q).bind(`-${last}`, limit).all();
+  return json({ commands: results, count: results.length });
+}
+
 async function handleHealthPost(request, env) {
   const body = await request.json();
   const checks = Array.isArray(body) ? body : [body];
@@ -1695,7 +1710,7 @@ async function handleTelegramHealth(env) {
     const whData = await whResp.json();
     const wh = whData.result || {};
     result.webhook_url = wh.url || null;
-    result.webhook_ok = wh.url === 'https://edge-api.navada-edge-server.uk/telegram/webhook';
+    result.webhook_ok = (wh.url || '').startsWith('https://api.navada-edge-server.uk/telegram/webhook');
     if (wh.last_error_message) result.webhook_errors = { message: wh.last_error_message, date: new Date((wh.last_error_date || 0) * 1000).toISOString() };
     result.pending_updates = wh.pending_update_count || 0;
 
@@ -1750,6 +1765,29 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%}
 .uc-btn.active{border-color:#c080ff;color:#e0c0ff;background:rgba(70,30,110,0.5);box-shadow:0 0 10px rgba(180,100,255,0.25)}
 #autoplay-btn{position:absolute;top:12px;left:12px;background:rgba(8,12,24,0.96);border:1px solid #00ff88;border-radius:8px;padding:7px 12px;cursor:pointer;pointer-events:all;font-family:'JetBrains Mono',monospace;font-size:9px;color:#00ff88;letter-spacing:1px;box-shadow:0 0 10px rgba(0,255,136,0.15);z-index:10}
 #autoplay-btn.off{border-color:#334;color:#445566;box-shadow:none}
+@media(max-width:768px){
+#header h1{font-size:14px;letter-spacing:2px}
+#header p{font-size:8px;letter-spacing:1px}
+#stats{top:auto;bottom:54px;right:6px;left:6px;max-width:none;min-width:0;padding:8px 10px;display:flex;flex-wrap:wrap;gap:4px 12px;border-radius:8px}
+#stats h3{display:none}
+.stat-row{flex:0 0 auto}
+.stat-label{font-size:9px}
+.stat-value{font-size:10px}
+#current-uc{flex:1 1 100%;margin-top:4px;padding-top:4px}
+#uc-name{font-size:9px}
+#uc-desc{font-size:8px;max-width:none}
+#legend{display:none}
+#uc-panel{bottom:6px;gap:4px;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start;padding:0 8px;max-width:100%}
+.uc-btn{font-size:7px;padding:5px 8px;flex-shrink:0}
+#autoplay-btn{top:8px;left:8px;font-size:8px;padding:5px 9px}
+}
+@media(max-width:480px){
+#header h1{font-size:12px}
+#stats{padding:6px 8px}
+.stat-label{font-size:8px}
+.stat-value{font-size:9px}
+.uc-btn{font-size:6.5px;padding:4px 6px}
+}
 </style>
 </head>
 <body>
@@ -1792,29 +1830,30 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%}
 </div>
 <script>
 const canvas=document.getElementById('c');const ctx=canvas.getContext('2d');let W,H,scale=1;
-function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;scale=Math.min(W/1280,H/720);}
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;scale=W<=768?Math.min(W/700,H/720):Math.min(W/1280,H/720);}
 window.addEventListener('resize',resize);resize();
 const NODES={hp:{id:'hp',label:'NAVADA-HP',sub1:'192.168.0.58',sub2:'PostgreSQL \\u00b7 Scanner',color:'#4488ff',icon:'\\ud83d\\udcbb',x:0.10,y:0.26,w:148,h:76},asus:{id:'asus',label:'NAVADA-ASUS',sub1:'192.168.0.x',sub2:'Dev \\u00b7 Claude Code',color:'#aaaacc',icon:'\\ud83d\\udda5',x:0.10,y:0.60,w:148,h:76},oracle:{id:'oracle',label:'NAVADA-ORACLE',sub1:'Oracle Cloud',sub2:'Nginx\\u00b7Docker\\u00b7PM2',color:'#ff8844',icon:'\\ud83c\\udfed',x:0.36,y:0.37,w:152,h:76},ec2:{id:'ec2',label:'NAVADA-EC2',sub1:'AWS eu-west-2',sub2:'Ralph\\u00b7Monitor\\u00b724/7',color:'#44ff88',icon:'\\u2601',x:0.57,y:0.27,w:148,h:76},aws:{id:'aws',label:'AWS CLOUD',sub1:'Lambda\\u00b7Bedrock',sub2:'SageMaker\\u00b7DynamoDB',color:'#cc44ff',icon:'\\u26a1',x:0.58,y:0.56,w:152,h:76},cf:{id:'cf',label:'CLOUDFLARE',sub1:'DNS\\u00b7R2\\u00b7WAF',sub2:'navada-edge.com',color:'#ffdd00',icon:'\\ud83c\\udf10',x:0.35,y:0.66,w:148,h:76},zoho:{id:'zoho',label:'ZOHO EMAIL',sub1:'External SMTP',sub2:'IMAP Polling',color:'#ff8844',icon:'\\u2709',x:0.09,y:0.84,w:130,h:62},internet:{id:'internet',label:'INTERNET',sub1:'navada-edge.com',sub2:'Public Users',color:'#ffdd00',icon:'\\ud83c\\udf0d',x:0.56,y:0.84,w:130,h:62},kiro:{id:'kiro',label:'NAVADA-AGENTS',sub1:'Kiro IDE',sub2:'5 AI Agents \\u00b7 Hooks',color:'#00e5ff',icon:'\\ud83e\\udd16',x:0.36,y:0.12,w:148,h:76}};
 const CONNS=[{id:'hp-oracle',from:'hp',to:'oracle',color:'#4488ff',dash:true,label:'PG :5433 \\u00b7 Tailscale'},{id:'asus-oracle',from:'asus',to:'oracle',color:'#4488ff',dash:true,label:'SSH \\u00b7 Deploy'},{id:'asus-hp',from:'asus',to:'hp',color:'#4488ff',dash:true,label:'SSH \\u00b7 Tailscale'},{id:'asus-ec2',from:'asus',to:'ec2',color:'#4488ff',dash:true,label:'SSH \\u00b7 Tailscale'},{id:'oracle-ec2',from:'oracle',to:'ec2',color:'#44ff88',dash:true,label:'Health \\u00b7 Tailscale'},{id:'ec2-aws',from:'ec2',to:'aws',color:'#cc44ff',dash:false,label:'IAM \\u00b7 Lambda'},{id:'hp-aws',from:'hp',to:'aws',color:'#cc44ff',dash:false,label:'Bedrock \\u00b7 IMAP'},{id:'cf-oracle',from:'cf',to:'oracle',color:'#ffdd00',dash:false,label:'DNS \\u00b7 Proxy :8080'},{id:'cf-hp',from:'cf',to:'hp',color:'#ffdd00',dash:false,label:'R2 \\u00b7 Sync'},{id:'cf-ec2',from:'cf',to:'ec2',color:'#ffdd00',dash:false,label:'R2 \\u00b7 Sync'},{id:'cf-aws',from:'cf',to:'aws',color:'#ffdd00',dash:false,label:'R2 \\u00b7 Storage'},{id:'internet-cf',from:'internet',to:'cf',color:'#ffdd00',dash:false,label:'HTTPS \\u00b7 DNS'},{id:'zoho-aws',from:'zoho',to:'aws',color:'#ff4444',dash:false,label:'EventBridge'},{id:'oracle-aws',from:'oracle',to:'aws',color:'#cc44ff',dash:false,label:'Bedrock \\u00b7 API'},{id:'kiro-asus',from:'kiro',to:'asus',color:'#00e5ff',dash:true,label:'Agents \\u00b7 Steering'},{id:'kiro-cf',from:'kiro',to:'cf',color:'#00e5ff',dash:false,label:'Worker Deploy'},{id:'kiro-ec2',from:'kiro',to:'ec2',color:'#00e5ff',dash:true,label:'E2E Tests'}];
 const UCS=[{name:'UC1 \\u2014 Developer Workflow',desc:'ASUS \\u2192 Claude Code CLI \\u2192 Tailscale SSH \\u2192 ORACLE PM2 restart \\u2192 live dashboard',steps:['asus-oracle','asus-hp','hp-oracle'],colors:['#4488ff','#4488ff','#ff8844'],nodes:['asus','oracle','hp']},{name:'UC2 \\u2014 Email Intelligence Pipeline',desc:'Zoho \\u2192 EventBridge \\u2192 Lambda \\u2192 Bedrock Claude \\u2192 DynamoDB \\u2192 Lee approval \\u2192 action',steps:['zoho-aws','hp-aws','ec2-aws'],colors:['#ff4444','#cc44ff','#cc44ff'],nodes:['zoho','hp','aws','ec2']},{name:'UC3 \\u2014 Vision & AI Inference',desc:'Internet \\u2192 API Gateway \\u2192 Lambda \\u2192 Rekognition / SageMaker YOLO / Bedrock Claude',steps:['internet-cf','cf-oracle','oracle-aws'],colors:['#ffdd00','#ffdd00','#cc44ff'],nodes:['internet','cf','oracle','aws']},{name:'UC4 \\u2014 Network Monitoring',desc:'HP Scanner \\u2192 192.168.0.x LAN \\u2192 reports to ORACLE \\u2192 EC2 health monitor alerts',steps:['hp-oracle','oracle-ec2'],colors:['#44ff88','#44ff88'],nodes:['hp','oracle','ec2']},{name:'UC5 \\u2014 Ralph Self-Improvement',desc:'EC2 Ralph scans ELK logs \\u2192 Bedrock analyses \\u2192 digest to Lee \\u2192 R2 snapshot version',steps:['oracle-ec2','ec2-aws','cf-aws'],colors:['#44ff88','#cc44ff','#ffdd00'],nodes:['oracle','ec2','aws','cf']},{name:'UC6 \\u2014 Dashboard Access',desc:'User \\u2192 navada-edge.com \\u2192 Cloudflare DNS \\u2192 ORACLE Nginx :8080 \\u2192 12 dashboards',steps:['internet-cf','cf-oracle'],colors:['#ffdd00','#ffdd00'],nodes:['internet','cf','oracle']},{name:'UC7 \\u2014 Database Access (Tailscale)',desc:'Any node \\u2192 Tailscale tunnel \\u2192 HP :5433 \\u2192 PostgreSQL \\u2192 never exposed to public internet',steps:['asus-hp','hp-oracle','oracle-ec2'],colors:['#ff8844','#ff8844','#ff8844'],nodes:['asus','hp','oracle','ec2']},{name:'UC8 \\u2014 Kiro AI Agents',desc:'Kiro agents \\u2192 steering context \\u2192 deploy Worker \\u2192 run E2E tests \\u2192 verify health',steps:['kiro-asus','kiro-cf','kiro-ec2'],colors:['#00e5ff','#00e5ff','#00e5ff'],nodes:['kiro','asus','cf','ec2']}];
 let particles=[],activeUC=-1,autoplay=true,autoTimer=null,progressStart=0,animFrame=0;const UC_DURATION=5500;
-function nodePos(n){return{x:n.x*W,y:n.y*H};}
+const isMobile=()=>W<=768;
+function nodePos(n){if(isMobile()){return{x:(n.x+0.17)*W,y:(n.y*0.78+0.06)*H};}return{x:n.x*W,y:n.y*H};}
 function hexA(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return'rgba('+r+','+g+','+b+','+a+')';}
-function drawTailscaleZone(){const members=['hp','asus','oracle','ec2','aws','cf','kiro'];const pad=44*scale;let mx=Infinity,my=Infinity,mxx=-Infinity,mxy=-Infinity;members.forEach(id=>{const n=NODES[id],p=nodePos(n);const nw=(n.w/2)*scale,nh=(n.h/2)*scale;if(p.x-nw<mx)mx=p.x-nw;if(p.y-nh<my)my=p.y-nh;if(p.x+nw>mxx)mxx=p.x+nw;if(p.y+nh>mxy)mxy=p.y+nh;});mx-=pad;my-=pad;mxx+=pad;mxy+=pad;mxy=Math.min(mxy,H*0.86);const t=Date.now()/1000,alpha=0.45+0.18*Math.sin(t*1.4);ctx.save();ctx.shadowColor='#4488ff';ctx.shadowBlur=18;ctx.beginPath();ctx.roundRect(mx,my,mxx-mx,mxy-my,26);ctx.strokeStyle='rgba(68,136,255,'+alpha+')';ctx.lineWidth=1.8;ctx.setLineDash([11,6]);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(18,28,58,0.22)';ctx.fill();ctx.restore();ctx.save();ctx.font='bold '+(10*scale)+'px JetBrains Mono';ctx.fillStyle='rgba(68,136,255,0.72)';ctx.fillText('\\ud83d\\udd12 Tailscale Mesh VPN \\u2014 Zero Trust Private Network',mx+14,my+17);ctx.restore();}
-function drawAWSZone(){const n=NODES.aws,p=nodePos(n);const nw=(n.w/2+24)*scale,nh=(n.h/2+26)*scale;const t=Date.now()/1000,alpha=0.35+0.12*Math.sin(t*1.1);ctx.save();ctx.shadowColor='#cc44ff';ctx.shadowBlur=14;ctx.beginPath();ctx.roundRect(p.x-nw,p.y-nh,nw*2,nh*2,16);ctx.strokeStyle='rgba(180,70,255,'+alpha+')';ctx.lineWidth=1.4;ctx.stroke();ctx.fillStyle='rgba(28,8,48,0.26)';ctx.fill();ctx.restore();ctx.save();ctx.font='bold '+(8.5*scale)+'px JetBrains Mono';ctx.fillStyle='rgba(180,70,255,0.65)';ctx.fillText('\\u26a1 AWS Cloud Boundary',p.x-nw+9,p.y-nh+13);ctx.restore();}
+function drawTailscaleZone(){const members=['hp','asus','oracle','ec2','aws','cf','kiro'];const pad=44*scale;let mx=Infinity,my=Infinity,mxx=-Infinity,mxy=-Infinity;members.forEach(id=>{const n=NODES[id],p=nodePos(n);const nw=(n.w/2)*scale,nh=(n.h/2)*scale;if(p.x-nw<mx)mx=p.x-nw;if(p.y-nh<my)my=p.y-nh;if(p.x+nw>mxx)mxx=p.x+nw;if(p.y+nh>mxy)mxy=p.y+nh;});mx-=pad;my-=pad;mxx+=pad;mxy+=pad;mxy=Math.min(mxy,H*0.86);const t=Date.now()/1000,alpha=0.45+0.18*Math.sin(t*1.4);ctx.save();ctx.shadowColor='#4488ff';ctx.shadowBlur=6;ctx.beginPath();ctx.roundRect(mx,my,mxx-mx,mxy-my,26);ctx.strokeStyle='rgba(68,136,255,'+alpha+')';ctx.lineWidth=1.8;ctx.setLineDash([11,6]);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(18,28,58,0.22)';ctx.fill();ctx.restore();ctx.save();ctx.font='bold '+(10*scale)+'px JetBrains Mono';ctx.fillStyle='rgba(68,136,255,0.72)';ctx.fillText('\\ud83d\\udd12 Tailscale Mesh VPN \\u2014 Zero Trust Private Network',mx+14,my+17);ctx.restore();}
+function drawAWSZone(){const n=NODES.aws,p=nodePos(n);const nw=(n.w/2+24)*scale,nh=(n.h/2+26)*scale;const t=Date.now()/1000,alpha=0.35+0.12*Math.sin(t*1.1);ctx.save();ctx.shadowColor='#cc44ff';ctx.shadowBlur=6;ctx.beginPath();ctx.roundRect(p.x-nw,p.y-nh,nw*2,nh*2,16);ctx.strokeStyle='rgba(180,70,255,'+alpha+')';ctx.lineWidth=1.4;ctx.stroke();ctx.fillStyle='rgba(28,8,48,0.26)';ctx.fill();ctx.restore();ctx.save();ctx.font='bold '+(8.5*scale)+'px JetBrains Mono';ctx.fillStyle='rgba(180,70,255,0.65)';ctx.fillText('\\u26a1 AWS Cloud Boundary',p.x-nw+9,p.y-nh+13);ctx.restore();}
 function getConnPts(c){const f=NODES[c.from],t=NODES[c.to],fp=nodePos(f),tp=nodePos(t);return{x1:fp.x,y1:fp.y,x2:tp.x,y2:tp.y};}
 function getCurve(x1,y1,x2,y2){const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);const bend=Math.min(len*0.22,60*scale);const mx=(x1+x2)/2-dy/len*bend,my=(y1+y2)/2+dx/len*bend;return{mx,my};}
-function drawConn(conn,hi,hiCol){const{x1,y1,x2,y2}=getConnPts(conn);const{mx,my}=getCurve(x1,y1,x2,y2);const col=hi?hiCol||conn.color:conn.color;ctx.save();if(hi){ctx.shadowColor=col;ctx.shadowBlur=14;}ctx.beginPath();ctx.moveTo(x1,y1);ctx.quadraticCurveTo(mx,my,x2,y2);ctx.strokeStyle=hi?col:hexA(col,0.18);ctx.lineWidth=hi?2.2*scale:1.0*scale;if(conn.dash)ctx.setLineDash([7,4]);ctx.stroke();ctx.setLineDash([]);if(hi)drawArrow(x1,y1,x2,y2,mx,my,col);ctx.restore();}
-function drawArrow(x1,y1,x2,y2,mx,my,col){const t=0.97;const px=(1-t)*(1-t)*x1+2*(1-t)*t*mx+t*t*x2;const py=(1-t)*(1-t)*y1+2*(1-t)*t*my+t*t*y2;const ang=Math.atan2(y2-py,x2-px);const sz=7*scale;ctx.save();ctx.shadowColor=col;ctx.shadowBlur=8;ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-sz*Math.cos(ang-0.42),y2-sz*Math.sin(ang-0.42));ctx.lineTo(x2-sz*Math.cos(ang+0.42),y2-sz*Math.sin(ang+0.42));ctx.closePath();ctx.fillStyle=col;ctx.fill();ctx.restore();}
-function drawNode(n,hi){const p=nodePos(n),nw=(n.w/2)*scale,nh=(n.h/2)*scale;const x=p.x-nw,y=p.y-nh,t=Date.now()/1000;ctx.save();ctx.shadowColor=n.color;ctx.shadowBlur=hi?28:10;ctx.beginPath();ctx.roundRect(x,y,nw*2,nh*2,10);ctx.fillStyle=hi?hexA(n.color,0.16):'rgba(10,14,26,0.90)';ctx.fill();ctx.strokeStyle=hi?n.color:hexA(n.color,0.45);ctx.lineWidth=hi?1.8*scale:1.2*scale;ctx.stroke();ctx.restore();ctx.textAlign='center';ctx.font=(16*scale)+'px Arial';ctx.fillText(n.icon,p.x,p.y-12*scale);ctx.font='bold '+(10.5*scale)+'px JetBrains Mono';ctx.fillStyle=hi?n.color:'#c0c8e0';ctx.fillText(n.label,p.x,p.y+3*scale);ctx.font=(8*scale)+'px Inter';ctx.fillStyle='#445566';ctx.fillText(n.sub1,p.x,p.y+14*scale);ctx.fillText(n.sub2,p.x,p.y+23*scale);ctx.textAlign='left';const da=0.6+0.4*Math.sin(t*3.2+n.x*8);ctx.save();ctx.shadowColor='#00ff88';ctx.shadowBlur=10;ctx.beginPath();ctx.arc(p.x+nw-7*scale,p.y-nh+7*scale,3.5*scale,0,Math.PI*2);ctx.fillStyle='rgba(0,255,136,'+da+')';ctx.fill();ctx.restore();}
+function drawConn(conn,hi,hiCol){const{x1,y1,x2,y2}=getConnPts(conn);const{mx,my}=getCurve(x1,y1,x2,y2);const col=hi?hiCol||conn.color:conn.color;ctx.save();if(hi){ctx.shadowColor=col;ctx.shadowBlur=8;}ctx.beginPath();ctx.moveTo(x1,y1);ctx.quadraticCurveTo(mx,my,x2,y2);ctx.strokeStyle=hi?col:hexA(col,0.18);ctx.lineWidth=hi?2.2*scale:1.0*scale;if(conn.dash)ctx.setLineDash([7,4]);ctx.stroke();ctx.setLineDash([]);if(hi)drawArrow(x1,y1,x2,y2,mx,my,col);ctx.restore();}
+function drawArrow(x1,y1,x2,y2,mx,my,col){const t=0.97;const px=(1-t)*(1-t)*x1+2*(1-t)*t*mx+t*t*x2;const py=(1-t)*(1-t)*y1+2*(1-t)*t*my+t*t*y2;const ang=Math.atan2(y2-py,x2-px);const sz=7*scale;ctx.save();ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-sz*Math.cos(ang-0.42),y2-sz*Math.sin(ang-0.42));ctx.lineTo(x2-sz*Math.cos(ang+0.42),y2-sz*Math.sin(ang+0.42));ctx.closePath();ctx.fillStyle=col;ctx.fill();ctx.restore();}
+function drawNode(n,hi){const p=nodePos(n),nw=(n.w/2)*scale,nh=(n.h/2)*scale;const x=p.x-nw,y=p.y-nh,t=Date.now()/1000;ctx.save();if(hi){ctx.shadowColor=n.color;ctx.shadowBlur=20;}ctx.beginPath();ctx.roundRect(x,y,nw*2,nh*2,10);ctx.fillStyle=hi?hexA(n.color,0.16):'rgba(10,14,26,0.90)';ctx.fill();ctx.strokeStyle=hi?n.color:hexA(n.color,0.45);ctx.lineWidth=hi?1.8*scale:1.2*scale;ctx.stroke();ctx.restore();ctx.textAlign='center';ctx.font=(16*scale)+'px Arial';ctx.fillText(n.icon,p.x,p.y-12*scale);ctx.font='bold '+(10.5*scale)+'px JetBrains Mono';ctx.fillStyle=hi?n.color:'#c0c8e0';ctx.fillText(n.label,p.x,p.y+3*scale);ctx.font=(8*scale)+'px Inter';ctx.fillStyle='#445566';ctx.fillText(n.sub1,p.x,p.y+14*scale);ctx.fillText(n.sub2,p.x,p.y+23*scale);ctx.textAlign='left';const da=0.6+0.4*Math.sin(t*3.2+n.x*8);ctx.save();ctx.beginPath();ctx.arc(p.x+nw-7*scale,p.y-nh+7*scale,3.5*scale,0,Math.PI*2);ctx.fillStyle='rgba(0,255,136,'+da+')';ctx.fill();ctx.restore();}
 function spawnParticle(conn,col,spd){particles.push({conn,t:0,speed:spd||(0.0025+Math.random()*0.003),color:col||conn.color,size:3.5+Math.random()*1.5});}
 function spawnBg(){CONNS.forEach(c=>{if(Math.random()<0.007)spawnParticle(c,null,0.0018+Math.random()*0.0025);});}
 function spawnUC(idx){const uc=UCS[idx];uc.steps.forEach((cid,i)=>{const conn=CONNS.find(c=>c.id===cid);if(!conn)return;for(let j=0;j<5;j++)setTimeout(()=>{if(activeUC===idx)spawnParticle(conn,uc.colors[i],0.005+Math.random()*0.005);},j*250);});}
 function updateParticles(){particles=particles.filter(p=>{p.t+=p.speed;return p.t<1;});}
-function drawParticle(p){const{x1,y1,x2,y2}=getConnPts(p.conn);const{mx,my}=getCurve(x1,y1,x2,y2);const t=p.t;const px=(1-t)*(1-t)*x1+2*(1-t)*t*mx+t*t*x2;const py=(1-t)*(1-t)*y1+2*(1-t)*t*my+t*t*y2;const sz=p.size*scale*(0.7+0.5*(1-Math.abs(t*2-1)));ctx.save();ctx.shadowColor=p.color;ctx.shadowBlur=14;ctx.beginPath();ctx.arc(px,py,sz,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();ctx.restore();for(let i=1;i<=4;i++){const tt=Math.max(0,t-i*0.035);const tx=(1-tt)*(1-tt)*x1+2*(1-tt)*tt*mx+tt*tt*x2;const ty=(1-tt)*(1-tt)*y1+2*(1-tt)*tt*my+tt*tt*y2;ctx.beginPath();ctx.arc(tx,ty,sz*(1-i*0.22),0,Math.PI*2);ctx.fillStyle=hexA(p.color,0.35/i);ctx.fill();}}
+function drawParticle(p){const{x1,y1,x2,y2}=getConnPts(p.conn);const{mx,my}=getCurve(x1,y1,x2,y2);const t=p.t;const px=(1-t)*(1-t)*x1+2*(1-t)*t*mx+t*t*x2;const py=(1-t)*(1-t)*y1+2*(1-t)*t*my+t*t*y2;const sz=p.size*scale*(0.7+0.5*(1-Math.abs(t*2-1)));ctx.beginPath();ctx.arc(px,py,sz,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();ctx.beginPath();ctx.arc(px,py,sz*2.5,0,Math.PI*2);ctx.fillStyle=hexA(p.color,0.15);ctx.fill();for(let i=1;i<=3;i++){const tt=Math.max(0,t-i*0.03);const tx=(1-tt)*(1-tt)*x1+2*(1-tt)*tt*mx+tt*tt*x2;const ty=(1-tt)*(1-tt)*y1+2*(1-tt)*tt*my+tt*tt*y2;ctx.beginPath();ctx.arc(tx,ty,sz*(1-i*0.25),0,Math.PI*2);ctx.fillStyle=hexA(p.color,0.3/i);ctx.fill();}}
 const stars=Array.from({length:130},()=>({x:Math.random(),y:Math.random(),r:Math.random()*1.1,a:Math.random()}));
 function drawStars(){const t=Date.now()/1000;stars.forEach((s,i)=>{ctx.beginPath();ctx.arc(s.x*W,s.y*H,s.r,0,Math.PI*2);ctx.fillStyle='rgba(180,190,255,'+(s.a*(0.25+0.15*Math.sin(t*0.4+i)))+')';ctx.fill();});}
-function drawConnLabels(){if(activeUC<0)return;const uc=UCS[activeUC];uc.steps.forEach((cid,i)=>{const conn=CONNS.find(c=>c.id===cid);if(!conn)return;const{x1,y1,x2,y2}=getConnPts(conn);const{mx,my}=getCurve(x1,y1,x2,y2);ctx.save();ctx.font='bold '+(9*scale)+'px JetBrains Mono';ctx.fillStyle=uc.colors[i]||conn.color;ctx.textAlign='center';ctx.shadowColor=uc.colors[i];ctx.shadowBlur=8;ctx.fillText(conn.label,mx,my-8*scale);ctx.restore();});}
+function drawConnLabels(){if(activeUC<0)return;const uc=UCS[activeUC];uc.steps.forEach((cid,i)=>{const conn=CONNS.find(c=>c.id===cid);if(!conn)return;const{x1,y1,x2,y2}=getConnPts(conn);const{mx,my}=getCurve(x1,y1,x2,y2);ctx.save();ctx.font='bold '+(9*scale)+'px JetBrains Mono';ctx.fillStyle=uc.colors[i]||conn.color;ctx.textAlign='center';ctx.fillText(conn.label,mx,my-8*scale);ctx.restore();});}
 function drawAll(){ctx.clearRect(0,0,W,H);drawStars();drawTailscaleZone();drawAWSZone();CONNS.forEach(c=>{let hi=false,hiCol=null;if(activeUC>=0){const uc=UCS[activeUC];const idx=uc.steps.indexOf(c.id);if(idx>=0){hi=true;hiCol=uc.colors[idx];}}drawConn(c,hi,hiCol);});drawConnLabels();particles.forEach(p=>drawParticle(p));Object.values(NODES).forEach(n=>{const hi=activeUC>=0&&UCS[activeUC].nodes.includes(n.id);drawNode(n,hi);});}
 let ucIdx=0;
 function playUC(idx){activeUC=idx;const uc=UCS[idx];document.getElementById('uc-name').textContent='\\u25b6 '+uc.name;document.getElementById('uc-desc').textContent=uc.desc;document.querySelectorAll('.uc-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));progressStart=Date.now();clearInterval(window._ucInt);spawnUC(idx);window._ucInt=setInterval(()=>{if(activeUC===idx)spawnUC(idx);},700);setTimeout(()=>{if(activeUC===idx)clearInterval(window._ucInt);},UC_DURATION-300);}
@@ -1910,6 +1949,25 @@ async function handleTrafficDashboard(env) {
 
   /* Animated traffic particles */
   .traffic-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+
+  /* Mobile responsive — scale the entire layout to fit viewport */
+  @media (max-width: 768px) {
+    .header { padding: 20px 10px 8px; }
+    .header h1 { font-size: 18px; letter-spacing: 0.15em; }
+    .header .sub { font-size: 9px; }
+    .stats { gap: 12px; padding: 10px; flex-wrap: wrap; }
+    .stat .num { font-size: 16px; }
+    .stat .lbl { font-size: 7px; }
+    .canvas { transform: scale(var(--mobile-scale)); transform-origin: top left; margin: 10px auto; width: 1200px; }
+    .legend { flex-direction: column; align-items: center; gap: 8px; padding: 10px; }
+    .legend-item { font-size: 9px; }
+    .footer { font-size: 7px; padding: 15px; }
+  }
+  @media (max-width: 480px) {
+    .header h1 { font-size: 14px; }
+    .stats { gap: 8px; }
+    .stat .num { font-size: 14px; }
+  }
 </style>
 </head>
 <body>
@@ -2107,6 +2165,22 @@ async function handleTrafficDashboard(env) {
   const canvas = document.getElementById('trafficCanvas');
   const container = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
+
+  // Mobile scaling — shrink the 1200px canvas to fit viewport
+  function applyMobileScale() {
+    if (window.innerWidth <= 768) {
+      const scale = (window.innerWidth - 20) / 1200;
+      document.documentElement.style.setProperty('--mobile-scale', scale);
+      container.style.height = (900 * scale) + 'px';
+      container.style.marginBottom = (-900 * (1 - scale)) + 'px';
+    } else {
+      document.documentElement.style.removeProperty('--mobile-scale');
+      container.style.height = '';
+      container.style.marginBottom = '';
+    }
+  }
+  applyMobileScale();
+  window.addEventListener('resize', applyMobileScale);
 
   function resize() {
     canvas.width = container.offsetWidth;

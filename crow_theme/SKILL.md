@@ -538,9 +538,178 @@ def generate_crow_image(subject: str, use_case: str = "product", size: str = "17
 ### Dashboards
 
 - Cards: `#0a0a0a` elevated background, `#222` border
-- Charts: grayscale only — use `#fff`, `#e0e0e0`, `#888`, `#555`, `#333` for data series
+- Charts: grayscale only — use the data series palette below
 - KPI numbers: serif 40px+ light `#fff`
 - KPI labels: mono 9px uppercase `#555`
+
+---
+
+## 12. CHARTS & DATA VISUALIZATION (Recharts)
+
+The Crow Theme uses **Recharts** for all charts in Next.js. Every chart must be achromatic and follow these exact rules.
+
+### Data Series Palette (max 6 series)
+
+| Series | Hex       | Usage                              |
+|--------|-----------|------------------------------------|
+| 1      | `#ffffff` | Primary / most important series    |
+| 2      | `#e0e0e0` | Secondary series                   |
+| 3      | `#888888` | Tertiary series                    |
+| 4      | `#555555` | Quaternary series                  |
+| 5      | `#333333` | Fifth series                       |
+| 6      | `#1a1a1a` | Sixth series (subtle)              |
+
+If only one series, always use `#e0e0e0` (not white — too harsh for fills).
+
+### Chart Container
+
+Every chart sits inside a card with `#0a0a0a` background, `1px solid #222` border, zero radius:
+
+```jsx
+<div className="border border-[#222] p-6" style={{ background: "#0a0a0a" }}>
+  <div className="mb-4">
+    <p className="font-mono text-[9px] uppercase" style={{ color: "#555", letterSpacing: "0.25em" }}>
+      CHART LABEL
+    </p>
+    <h3 className="font-serif text-2xl font-light" style={{ color: "#e0e0e0" }}>
+      Chart Title
+    </h3>
+  </div>
+  <ResponsiveContainer width="100%" height={300}>
+    {/* chart here */}
+  </ResponsiveContainer>
+</div>
+```
+
+### Axis Styling (apply to ALL charts)
+
+```jsx
+<XAxis
+  dataKey="name"
+  stroke="#222"
+  tick={{ fill: "#555", fontSize: 10, fontFamily: "IBM Plex Mono, monospace" }}
+  tickLine={{ stroke: "#222" }}
+  axisLine={{ stroke: "#222" }}
+/>
+<YAxis
+  stroke="#222"
+  tick={{ fill: "#555", fontSize: 10, fontFamily: "IBM Plex Mono, monospace" }}
+  tickLine={{ stroke: "#222" }}
+  axisLine={{ stroke: "#222" }}
+/>
+```
+
+### Grid
+
+```jsx
+<CartesianGrid stroke="#1a1a1a" strokeDasharray="none" vertical={false} />
+```
+
+Horizontal lines only, `#1a1a1a` (near-invisible). No dashed lines — solid or nothing.
+
+### Tooltip
+
+```jsx
+<Tooltip
+  contentStyle={{
+    background: "#0a0a0a",
+    border: "1px solid #222",
+    borderRadius: 0,
+    fontFamily: "IBM Plex Mono, monospace",
+    fontSize: "11px",
+  }}
+  labelStyle={{ color: "#888", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.15em" }}
+  itemStyle={{ color: "#e0e0e0" }}
+  cursor={{ stroke: "#333", strokeDasharray: "none" }}
+/>
+```
+
+### Legend
+
+```jsx
+<Legend
+  wrapperStyle={{
+    fontFamily: "IBM Plex Mono, monospace",
+    fontSize: "9px",
+    textTransform: "uppercase",
+    letterSpacing: "0.15em",
+    color: "#555",
+    paddingTop: "16px",
+  }}
+  iconType="square"
+  iconSize={8}
+/>
+```
+
+Square icons only. No circles, no lines.
+
+### Line Chart Rules
+
+- `strokeWidth={1.5}` — thin, precise lines
+- `dot={false}` for default, `dot={{ r: 3, fill: "#050505", stroke: color, strokeWidth: 1.5 }}` on hover via `activeDot`
+- No curved lines by default — use `type="monotone"` only when data is naturally continuous (time series)
+- For discrete data use `type="linear"`
+
+### Area Chart Rules
+
+- Fill opacity: `fillOpacity={0.08}` (very subtle)
+- Stroke same as line chart (`strokeWidth={1.5}`)
+- Use `<defs>` gradients fading to transparent:
+
+```jsx
+<defs>
+  <linearGradient id="fadeWhite" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stopColor="#e0e0e0" stopOpacity={0.15} />
+    <stop offset="100%" stopColor="#e0e0e0" stopOpacity={0} />
+  </linearGradient>
+</defs>
+<Area stroke="#e0e0e0" fill="url(#fadeWhite)" strokeWidth={1.5} />
+```
+
+### Bar Chart Rules
+
+- `fill="#e0e0e0"` for single series, use palette for multi-series
+- No border-radius on bars: `radius={[0, 0, 0, 0]}`
+- Bar gap: `barGap={2}`, category gap: `barCategoryGap="20%"`
+- Hover state: bar brightens to `#fff` (use `onMouseEnter` to track active index)
+
+### Pie / Donut Chart Rules
+
+- Use palette colours from outside in (series 1 = largest slice)
+- Donut: `innerRadius="60%"` `outerRadius="80%"`
+- Stroke between slices: `stroke="#050505"` `strokeWidth={2}` (reveals void bg)
+- Center label (donut): serif 32px `#fff` for value, mono 9px `#555` for label
+- No 3D, no exploded slices
+
+### Sparkline (Inline Mini Chart)
+
+For KPI cards, use a tiny area chart with no axes, no grid, no tooltip:
+
+```jsx
+<ResponsiveContainer width="100%" height={40}>
+  <AreaChart data={data}>
+    <defs>
+      <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#888" stopOpacity={0.2} />
+        <stop offset="100%" stopColor="#888" stopOpacity={0} />
+      </linearGradient>
+    </defs>
+    <Area type="monotone" dataKey="value" stroke="#888" fill="url(#spark)"
+          strokeWidth={1} dot={false} />
+  </AreaChart>
+</ResponsiveContainer>
+```
+
+### Chart Anti-Patterns
+
+- No coloured charts — ever. No blues, greens, reds for series
+- No rounded bar corners
+- No 3D effects or shadows on any chart element
+- No animated chart entry (data appears instantly)
+- No gradient fills with colour — gradients are opacity-only (colour → transparent)
+- No dashed grid lines — solid `#1a1a1a` or nothing
+- No thick axis lines — `1px #222` max
+- No background fills on chart area — it inherits the card `#0a0a0a`
 
 ---
 

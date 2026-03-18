@@ -1,0 +1,101 @@
+LESLIE AKPAREVA - CV 2026
+Principal AI Consultant | Product Director | Full-Stack Developer
+07935237704 | leeakpareva@hotmail.com
+www.navada-lab.space | www.navada.space | www.raventerminal.xyz | www.alexterminal.xyz | www.navadarobotics.com
+
+Senior product and commercial expert with 17+ years across insurance, finance, healthcare, aviation, logistics, and e-commerce. Led large-scale technology delivery, enterprise change, and digital transformation programmes. Bridges the gap between business strategy and technical execution.
+
+Track record of owning programme P&L, leading cross-functional teams of 30+, and delivering measurable benefits across underwriting, claims, operations, and commercial functions. Builds production AI systems, trains models, and ships full-stack applications. Actively participates in hackathons.
+
+CORE COMPETENCIES
+Leadership & Governance: Programme Governance, Strategic Planning & Foresight, Portfolio & Product Management, C-Suite & Board Engagement, Vendor & Supplier Management, Risk Compliance & Governance, Organisational Change Management, Cross-Functional Team Leadership
+AI, Data & Full-Stack Engineering: PyTorch, Hugging Face, LangChain, QLoRA Fine-Tuning, RAG Pipelines, Computer Vision (YOLO), Data Science, Azure AI Foundry, Anthropic, OpenAI, Statistical Analysis, Jupyter Notebooks, pandas, NumPy, scikit-learn, Plotly, Next.js, React, Node.js, FastAPI, Docker, CI/CD, pytest, Git
+Commercial & Finance: P&L Ownership, Corporate Finance & Budgeting, Benefits Realisation, ROI NPV & Business Case Modelling, Cost Optimisation & Resource Planning, Investment Prioritisation, Commercial Strategy & GTM, Stakeholder & Board Reporting
+
+PROFESSIONAL EXPERIENCE
+
+Principal AI Solution Architect | Generali UK | November 2024 to Present
+Hired directly by the COO to define and lead AI strategy across the UK business. Architecting the enterprise AI capability on Azure AI Foundry.
+- Owned AI strategy, roadmap, and investment prioritisation across 4 business units
+- Led AI platform architecture on Azure AI Foundry, configuring Copilot Studio agents, responsible AI governance
+- Managed Azure infrastructure: App Service, VMs, resource groups, networking, storage
+- Built RAG pipelines with Azure AI Search, Cosmos DB, LangChain, vector indexing, semantic ranking
+- Explored Microsoft Fabric for unified data analytics
+- Produced executive dashboards in Python (matplotlib, Plotly, pandas)
+Key: Established AI Centre of Excellence from scratch. Reduced concept to POC time by 60%. Deployed 6 Copilot Studio agents. Upskilled 50+ staff. Reduced manual document review by 40%.
+
+Program Director | Informa Markets | October 2023 to September 2024
+Strategy, P&L ownership, delivery of two digital products in global food portfolio (600K-800K budget). Led 27 cross-functional European team. Managed AWS and Mindtree partnerships.
+- Owned product roadmap, feature prioritisation, backlog management
+- Managed 600K-800K programme budget
+- Coordinated delivery across Mindtree (offshore) and AWS across 3 time zones
+- Led product discovery and user research
+Key: Two digital propositions concept to launch in 11 months. Improved product performance visibility by 35%. GTM across 4 European regions. 200K annualised cost savings.
+
+Commercial Program Manager | Farfetch | December 2022 to August 2023
+- Led commercial technology programmes for luxury fashion marketplace
+- Owned programme financials and benefits tracking
+- Coordinated platform initiatives supporting 2.3B GMV marketplace
+
+Blockchain Program Manager | DHL Express | May 2022 to December 2022
+- Managed blockchain and emerging technology programmes
+- Led cross-functional teams evaluating distributed ledger for supply chain transparency
+- Developed business cases and ROI models for blockchain integration
+
+EARLIER CAREER
+Product / Project Lead, Shutterstock | Nov 2021 to May 2022
+DeFi & Blockchain Program Lead, Bumper (DeFi Protocol) | Sep 2021 to Nov 2021
+Project Manager, Millbrook Healthcare | Mar 2021 to May 2021
+Agile Project Consultant, NHSX (NHS Digital) | Oct 2020 to Dec 2020
+Project Manager, Springer Nature | Mar 2020 to Oct 2020
+Platform Manager, Opus Energy | Jun 2019 to Dec 2019
+Digital Project Manager, Centrica (British Gas) | Apr 2018 to Jun 2019
+Project Manager, Wesleyan Bank | Oct 2017 to Apr 2018
+Manager, Avis Budget Group | Oct 2016 to Oct 2017
+Business Program Manager, Wonga | May 2016 to Oct 2016
+Project Manager, British Airways | Nov 2015 to Apr 2016
+Agile PM / Scrum Master, Flybe | May 2015 to Nov 2015
+Technical Project Manager, Expedia Inc | Oct 2014 to May 2015
+Project Manager, Powa Technology | Apr 2014 to Oct 2014
+Implementation Manager, Polarisoft | Aug 2013 to Apr 2014
+
+PERSONAL PROJECTS
+- Custom LLM Fine-Tuning: QLoRA on NVIDIA A4000, 85-example dataset, progressive LoRA rank scaling
+- Stable Diffusion LoRA: Custom image generation adapters using diffusers, PEFT, Hugging Face
+- Computer Vision: YOLOv8 object detection with Streamlit. Live: computervisionbylee.streamlit.app
+- RAVEN Terminal: AI-powered code learning platform. Live: raventerminal.xyz
+- ALEX (Autonomous Agent): Task scheduling, Redis, ChromaDB, LangChain. Live: alexnavada.xyz
+- RAG and Vector Search: ChromaDB embeddings, Redis caching, sub-second enterprise Q&A
+- Robotics IoT CAD: Raspberry Pi robots, PiCrawler, MediaPipe gesture control. Live: navadarobotics.com
+- Full-Stack: 15+ Next.js/TypeScript/Node.js apps. Portfolio: navada.space
+- GPU ML Lab: Paperspace A4000, PyTorch, Hugging Face. Live: navada-lab.space
+- Hugging Face: Publishing models, datasets, research at huggingface.co/Navada25
+
+COMMUNITY
+- AI for Black Women in Tech: Founded community group teaching AI fundamentals
+- JetBrains AI Event, London Tech Week (January 2026)
+- Regular guest speaker on enterprise AI adoption, open-source fine-tuning
+
+EDUCATION
+MBA, Northumbria University (2016-2017)
+MSc Project Management, Northumbria University (2013-2015)
+Fashion Design and Art Direction, Central Saint Martins UAL (2020)
+LLB Law (Hons), Brunel University (2007-2010)
+
+CERTIFICATIONS
+Development: IBM Full Stack Developer, Meta Front End Developer, Python Certificate
+Blockchain: Certified Blockchain Architect, Smart Contract Developer, DeFi Expert, Cryptocurrency Expert
+Project Management: PRINCE2 Practitioner, Certified Scrum Master, SAFe, ITIL, Project Risk Management (Oxford), Strategic Planning and Foresight (Oxford)
+Security: CISM, ISEB Business Analysis, Foundation in Software Testing
+
+TECHNICAL STACK
+ML/AI: PyTorch, Hugging Face (Transformers, Diffusers, PEFT, TRL, Datasets, Accelerate), BitsAndBytes, LangChain, CrewAI, OpenAI API, Anthropic Claude API, Claude Code, YOLOv8, Whisper, Bark TTS, Jupyter, Gradio, Streamlit
+Languages: Python (advanced), TypeScript, JavaScript, SQL, Bash, PowerShell
+Cloud: Azure AI Foundry, Azure DevOps, AWS, Google Cloud, Paperspace GPU, Railway, Vercel, Docker, GitHub Actions
+Web/API: Next.js, React, FastAPI, Flask, Node.js, Tailwind CSS, Chainlit, Shadcn UI
+Data: Azure Cosmos DB, Azure SQL, PostgreSQL, ChromaDB, Pinecone, Redis, Oracle ADB, pandas, NumPy, scikit-learn, matplotlib, Plotly
+Hardware: Raspberry Pi (3/4/5), Arduino, PiCrawler, servo control, MediaPipe
+CAD: Fusion 360, FreeCAD, Shapr3D
+
+REFERENCES
+Nisha Chopra (Mastercard UK), Natasha Berrow (Informa Markets), Abs Oshinowo (Google UK)

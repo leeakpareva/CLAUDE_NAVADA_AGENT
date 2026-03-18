@@ -1,11 +1,11 @@
 # NAVADA Edge v4.1 — Autonomous AI Infrastructure
 
-**Claude, Chief of Staff** manages a distributed 6-node network 24/7 from Cloudflare's global edge. **Kiro AI Agents** provide autonomous agentic capabilities for deploys, testing, outreach, and operations.
+**Claude, Chief of Staff** manages a distributed 7-node network 24/7 from Cloudflare's global edge. **Kiro AI Agents** provide autonomous agentic capabilities for deploys, testing, outreach, and operations.
 
 Founded by **Lee Akpareva** | Principal AI Consultant
 leeakpareva@gmail.com | [navada-lab.space](https://navada-lab.space) | [github.com/Navada25](https://github.com/Navada25)
 
-**Live Dashboards**: [Traffic](https://edge-api.navada-edge-server.uk/traffic) | [Live Visualiser](https://edge-api.navada-edge-server.uk/live)
+**Live Dashboards** (mobile-responsive): [Traffic](https://edge-api.navada-edge-server.uk/traffic) | [Live Visualiser](https://edge-api.navada-edge-server.uk/live)
 
 ## Network Architecture
 
@@ -17,7 +17,7 @@ leeakpareva@gmail.com | [navada-lab.space](https://navada-lab.space) | [github.c
                     │  Workers: navada-edge-api                │
                     │  D1: navada-edge (7 tables, WEUR)        │
                     │  R2: navada-assets (backups, media)      │
-                    │  DNS: navada-edge-server.uk (15 subs)    │
+                    │  DNS: navada-edge-server.uk (13 subs)    │
                     │  Cron: 5 scheduled triggers              │
                     │  WAF / DDoS / SSL / Tunnel Ingress       │
                     └────────────────┬─────────────────────────┘
@@ -33,7 +33,7 @@ leeakpareva@gmail.com | [navada-lab.space](https://navada-lab.space) | [github.c
    │ CONTROL │   │ EDGE-     │  │ COMPUTE    │ │ ROUTER      │
    │ (ASUS)  │   │ SERVER    │  │ (AWS EC2)  │ │ (Oracle VM) │
    │         │   │ (HP)      │  │            │ │             │
-   │ Command │   │ Dev Box / │  │ 24/7       │ │ Routing /   │
+   │ Command │   │ SSH-only  │  │ 24/7       │ │ Routing /   │
    │ Centre  │   │ Node      │  │ Compute /  │ │ Observ. /   │
    │         │   │ Server    │  │ Monitoring │ │ Security    │
    └────┬────┘   └───────────┘  └────────────┘ └─────────────┘
@@ -42,7 +42,7 @@ leeakpareva@gmail.com | [navada-lab.space](https://navada-lab.space) | [github.c
    │ NAVADA-AGENTS  │
    │ (Kiro IDE)     │
    │                │
-   │ 5 AI Agents /  │
+   │ 6 AI Agents /│
    │ Hooks / IaC    │
    └────────────────┘
 ```
@@ -59,7 +59,7 @@ leeakpareva@gmail.com | [navada-lab.space](https://navada-lab.space) | [github.c
 ### NAVADA-AGENTS (Kiro IDE)
 - **Role**: AI Agent Orchestration / IaC / Autonomous Operations
 - **Location**: Runs on ASUS (`.kiro/` folder in project root)
-- **Agents** (5):
+- **Agents** (6):
 
 | Agent | Purpose |
 |-------|---------|
@@ -68,13 +68,14 @@ leeakpareva@gmail.com | [navada-lab.space](https://navada-lab.space) | [github.c
 | deploy | Safe deploys to Worker + EC2 with validation |
 | outreach | Prospect pipeline, email sequences, lead gen |
 | test-runner | E2E test execution + failure analysis |
+| disk-monitor | Disk usage monitoring + cleanup automation |
 
 - **Steering**: product.md, tech.md, structure.md, network.md (auto-loaded context)
 - **Hooks**: pre-deploy (syntax validation), post-deploy (health check)
 - **Integration**: Agents call Worker API, forward commands to EC2, query D1
 
 ### NAVADA-EDGE-SERVER (HP Laptop)
-- **Role**: Dev Box / Node Server (SSH-only, no PM2)
+- **Role**: SSH-only Node Server (no PM2, no scheduled tasks)
 - **IP**: 192.168.0.58 (Ethernet, static) / 100.121.187.67 (Tailscale)
 - **OS**: Windows 11 Pro
 - **Services**: PostgreSQL (:5433), Node.js runtime, SSH server
@@ -170,8 +171,8 @@ Claude operates as NAVADA's Chief of Staff from Cloudflare's global edge:
 | nodes.navada-edge-server.uk | Oracle | Network map |
 | dashboard.navada-edge-server.uk | EC2 | Command centre |
 | logo.navada-edge-server.uk | HP :3000 | Logo service |
-| traffic.navada-edge-server.uk | Cloudflare Worker | Architecture diagram (animated) |
-| live.navada-edge-server.uk | Cloudflare Worker | Canvas traffic visualiser (animated) |
+| traffic.navada-edge-server.uk | Cloudflare Worker | Architecture diagram (animated, mobile-responsive) |
+| live.navada-edge-server.uk | Cloudflare Worker | Canvas traffic visualiser (animated, mobile-responsive) |
 
 ## Kiro Agents (IaC)
 
@@ -188,7 +189,8 @@ Claude operates as NAVADA's Chief of Staff from Cloudflare's global edge:
 │   ├── network-ops.md         # Health monitoring, diagnostics
 │   ├── deploy.md              # Safe deploys with validation
 │   ├── outreach.md            # Prospect pipeline, email sequences
-│   └── test-runner.md         # E2E test execution + failure analysis
+│   ├── test-runner.md         # E2E test execution + failure analysis
+│   └── disk-monitor.md        # Disk usage monitoring + cleanup
 └── hooks/
     ├── pre-deploy.md          # Syntax validation before deploy
     └── post-deploy.md         # Health check after deploy
@@ -227,8 +229,8 @@ Run: `node Automation/e2e/runner.js once` or `make test`
 | POST | `/health` | Ingest health check results |
 | GET | `/health` | Query health history |
 | GET | `/status` | System overview |
-| GET | `/traffic` | Animated architecture dashboard |
-| GET | `/live` | Canvas traffic visualiser |
+| GET | `/traffic` | Animated architecture dashboard (mobile-responsive) |
+| GET | `/live` | Canvas traffic visualiser (mobile-responsive) |
 | GET | `/health/telegram` | Telegram bot health check |
 
 **Cron Triggers**:
@@ -333,6 +335,17 @@ ssh navada "node --version"
 | ALEX | alexnavada.xyz | Autonomous AI agent |
 | Raven Terminal | raventerminal.xyz | AI code learning platform |
 
+## Monthly Costs (March 2026)
+
+| Provider | Cost | Notes |
+|----------|------|-------|
+| AWS | ~$9.18/month | EC2 t3.medium + services (budget: $25) |
+| Oracle Cloud | ~£5.46/month | Compute VM only |
+| Cloudflare | $0 | Free tier (Workers, D1, R2, DNS) |
+| **Total** | **~$16/month** | |
+
+> **AWS CLI cost note**: `aws ce get-cost-and-usage` includes credits/refunds by default. Filter with `--filter '{"Not":{"Dimensions":{"Key":"RECORD_TYPE","Values":["Credit","Refund"]}}}'` for real spend.
+
 ---
 
-**Total: 17+ services across 5 nodes, managed 24/7 by Claude Chief of Staff on Cloudflare's edge.**
+**Total: 17+ services across 7 nodes, managed 24/7 by Claude Chief of Staff on Cloudflare's edge.**

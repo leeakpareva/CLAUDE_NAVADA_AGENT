@@ -6,6 +6,7 @@
     "network-ops": ".kiro/agents/network-ops.md",
     "deploy": ".kiro/agents/deploy.md",
     "outreach": ".kiro/agents/outreach.md",
-    "test-runner": ".kiro/agents/test-runner.md"
+    "test-runner": ".kiro/agents/test-runner.md",
+    "disk-monitor": ".kiro/agents/disk-monitor.md"
   }
 }
