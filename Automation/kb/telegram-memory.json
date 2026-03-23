@@ -1,10 +1,22 @@
 {
-  "updated": "2026-03-09T13:14:33.351Z",
+  "updated": "2026-03-22T11:39:31.749Z",
   "model": "Sonnet 4.6",
   "history": [
     {
       "role": "assistant",
-      "content": "Hey Lee! 👋 What's on your mind?"
+      "content": "Hey! 👋 What's up Lee?\n\n(And on the Nadia question — that's outside my lane, that's her domain. You'd need to ping her directly.)"
+    },
+    {
+      "role": "assistant",
+      "content": "Hey! 👋 What's up?\n\n(The /nadia command isn't something I handle — that might be a different bot or command. If you want to ask me something about Lee or NAVADA, just ask directly!)"
+    },
+    {
+      "role": "assistant",
+      "content": "Hey! 👋 Looks like you sent a Nadia command and a hello. Nadia is a separate AI — I'm Claude, your Chief of Staff.\n\nAs for what you do for work — you're the Founder of NAVADA, building out an Edge Server infrastructure and AI operations platform. Want me to pull more detail from the knowledge base?"
+    },
+    {
+      "role": "assistant",
+      "content": "Based on what I know from our conversations and the NAVADA system, Lee is the Founder of NAVADA — building an AI-powered Edge Server infrastructure business.\n\nThat said, I don't have a full Nadia profile loaded right now. Want me to check the knowledge base files directly for Nadia's context on you?"
     },
     {
       "role": "user",
@@ -12,7 +24,15 @@
     },
     {
       "role": "assistant",
-      "content": "Hey Lee! 👋 What's on your mind?"
+      "content": "Hey! 👋 Looks like you sent a Nadia command and a hello. Nadia is a separate AI — I'm Claude, your Chief of Staff.\n\nAs for what you do for work — you're the Founder of NAVADA, building out an Edge Server infrastructure and AI operations platform. Want me to pull more detail from the knowledge base?"
+    },
+    {
+      "role": "user",
+      "content": "[Telegram] /nadia what does Lady do for work?"
+    },
+    {
+      "role": "assistant",
+      "content": "I'm Claude, not Nadia — different AI entirely. The /nadia command won't work through me.\n\nWho's Lady? If you want me to look something up or help with something, just ask directly!"
     },
     {
       "role": "user",
@@ -20,75 +40,23 @@
     },
     {
       "role": "assistant",
-      "content": "Hey Lee! 👋 What's on your mind?"
-    },
-    {
-      "role": "assistant",
-      "content": "Hey Lee! 👋 What's on your mind?"
+      "content": "Hey! 👋 Looks like you sent a Nadia command and a hello. Nadia is a separate AI — I'm Claude, your Chief of Staff.\n\nAs for what you do for work — you're the Founder of NAVADA, building out an Edge Server infrastructure and AI operations platform. Want me to pull more detail from the knowledge base?"
     },
     {
       "role": "user",
-      "content": "[WhatsApp] Hi "
+      "content": "[Telegram] Hey Claude"
     },
     {
       "role": "assistant",
-      "content": "Hey! 👋 What's up?"
+      "content": "Hey! What's up? 👋"
     },
     {
       "role": "user",
-      "content": "[Telegram] Hi"
+      "content": "[Telegram] You are NADIA, NAVADA's AI assistant specialising in answering questions about Lee Akpareva's professional background. Answer the following question using ONLY the CV data provided below. Be concise, accurate, and mobile-friendly. If the CV doesn't contain the answer, say so.\n\nCV DATA:\nLESLIE AKPAREVA - CV 2026\r\nPrincipal AI Consultant | Product Director | Full-Stack Developer\r\n07935237704 | leeakpareva@hotmail.com\r\nwww.navada-lab.space | www.navada.space | www.raventerminal.xyz | www.alexterminal.xyz | www.navadarobotics.com\r\n\r\nSenior product and commercial expert with 17+ years across insurance, finance, healthcare, aviation, logistics, and e-commerce. Led large-scale technology delivery, enterprise change, and digital transformation programmes. Bridges the gap between business strategy and technical execution.\r\n\r\nTrack record of owning programme P&L, leading cross-functional teams of 30+, and delivering measurable benefits across underwriting, claims, operations, and commercial functions. Builds production AI systems, trains models, and ships full-stack applications. Actively participates in hackathons.\r\n\r\nCORE COMPETENCIES\r\nLeadership & Governance: Programme Governance, Strategic Planning & Foresight, Portfolio & Product Management, C-Suite & Board Engagement, Vendor & Supplier Management, Risk Compliance & Governance, Organisational Change Management, Cross-Functional Team Leadership\r\nAI, Data & Full-Stack Engineering: PyTorch, Hugging Face, LangChain, QLoRA Fine-Tuning, RAG Pipelines, Computer Vision (YOLO), Data Science, Azure AI Foundry, Anthropic, OpenAI, Statistical Analysis, Jupyter Notebooks, pandas, NumPy, scikit-learn, Plotly, Next.js, React, Node.js, FastAPI, Docker, CI/CD, pytest, Git\r\nCommercial & Finance: P&L Ownership, Corporate Finance & Budgeting, Benefits Realisation, ROI NPV & Business Case Modelling, Cost Optimisation & Resource Planning, Investment Prioritisation, Commercial Strategy & GTM, Stakeholder & Board Reporting\r\n\r\nPROFESSIONAL EXPERIENCE\r\n\r\nPrincipal AI Solution Architect | Generali UK | November 2024 to Present\r\nHired directly by the COO to define and lead AI strategy across the UK business. Architecting the enterprise AI capability on Azure AI Foundry.\r\n- Owned AI strategy, roadmap, and investment prioritisation across 4 business units\r\n- Led AI platform architecture on Azure AI Foundry, configuring Copilot Studio agents, responsible AI governance\r\n- Managed Azure infrastructure: App Service, VMs, resource groups, networking, storage\r\n- Built RAG pipelines with Azure AI Search, Cosmos DB, LangChain, vector indexing, semantic ranking\r\n- Explored Microsoft Fabric for unified data analytics\r\n- Produced executive dashboards in Python (matplotlib, Plotly, pandas)\r\nKey: Established AI Centre of Excellence from scratch. Reduced concept to POC time by 60%. Deployed 6 Copilot Studio agents. Upskilled 50+ staff. Reduced manual document review by 40%.\r\n\r\nProgram Director | Informa Markets | October 2023 to September 2024\r\nStrategy, P&L ownership, delivery of two digital products in global food portfolio (600K-800K budget). Led 27 cross-functional European team. Managed AWS and Mindtree partnerships.\r\n- Owned product roadmap, feature prioritisation, backlog management\r\n- Managed 600K-800K programme budget\r\n- Coordinated delivery across Mindtree (offshore) and AWS across 3 time zones\r\n- Led product discovery and user research\r\nKey: Two digital propositions concept to launch in 11 months. Improved product performance visibility by 35%. GTM across 4 European regions. 200K annualised cost savings.\r\n\r\nCommercial Program Manager | Farfetch | December 2022 to August 2023\r\n- Led commercial technology programmes for luxury fashion marketplace\r\n- Owned programme financials and benefits tracking\r\n- Coordinated platform initiatives supporting 2.3B GMV marketplace\r\n\r\nBlockchain Program Manager | DHL Express | May 2022 to December 2022\r\n- Managed blockchain and emerging technology programmes\r\n- Led cross-functional teams evaluating distributed ledger for supply chain transparency\r\n- Developed business cases and ROI models for blockchain integration\r\n\r\nEARLIER CAREER\r\nProduct / Project Lead, Shutterstock | Nov 2021 to May 2022\r\nDeFi & Blockchain Program Lead, Bumper (DeFi Protocol) | Sep 2021 to Nov 2021\r\nProject Manager, Millbrook Healthcare | Mar 2021 to May 2021\r\nAgile Project Consultant, NHSX (NHS Digital) | Oct 2020 to Dec 2020\r\nProject Manager, Springer Nature | Mar 2020 to Oct 2020\r\nPlatform Manager, Opus Energy | Jun 2019 to Dec 2019\r\nDigital Project Manager, Centrica (British Gas) | Apr 2018 to Jun 2019\r\nProject Manager, Wesleyan Bank | Oct 2017 to Apr 2018\r\nManager, Avis Budget Group | Oct 2016 to Oct 2017\r\nBusiness Program Manager, Wonga | May 2016 to Oct 2016\r\nProject Manager, British Airways | Nov 2015 to Apr 2016\r\nAgile PM / Scrum Master, Flybe | May 2015 to Nov 2015\r\nTechnical Project Manager, Expedia Inc | Oct 2014 to May 2015\r\nProject Manager, Powa Technology | Apr 2014 to Oct 2014\r\nImplementation Manager, Polarisoft | Aug 2013 to Apr 2014\r\n\r\nPERSONAL PROJECTS\r\n- Custom LLM Fine-Tuning: QLoRA on NVIDIA A4000, 85-example dataset, progressive LoRA rank scaling\r\n- Stable Diffusion LoRA: Custom image generation adapters using diffusers, PEFT, Hugging Face\r\n- Computer Vision: YOLOv8 object detection with Streamlit. Live: computervisionbylee.streamlit.app\r\n- RAVEN Terminal: AI-powered code learning platform. Live: raventerminal.xyz\r\n- ALEX (Autonomous Agent): Task scheduling, Redis, ChromaDB, LangChain. Live: alexnavada.xyz\r\n- RAG and Vector Search: ChromaDB embeddings, Redis caching, sub-second enterprise Q&A\r\n- Robotics IoT CAD: Raspberry Pi robots, PiCrawler, MediaPipe gesture control. Live: navadarobotics.com\r\n- Full-Stack: 15+ Next.js/TypeScript/Node.js apps. Portfolio: navada.space\r\n- GPU ML Lab: Paperspace A4000, PyTorch, Hugging Face. Live: navada-lab.space\r\n- Hugging Face: Publishing models, datasets, research at huggingface.co/Navada25\r\n\r\nCOMMUNITY\r\n- AI for Black Women in Tech: Founded community group teaching AI fundamentals\r\n- JetBrains AI Event, London Tech Week (January 2026)\r\n- Regular guest speaker on enterprise AI adoption, open-source fine-tuning\r\n\r\nEDUCATION\r\nMBA, Northumbria University (2016-2017)\r\nMSc Project Management, Northumbria University (2013-2015)\r\nFashion Design and Art Direction, Central Saint Martins UAL (2020)\r\nLLB Law (Hons), Brunel University (2007-2010)\r\n\r\nCERTIFICATIONS\r\nDevelopment: IBM Full Stack Developer, Meta Front End Developer, Python Certificate\r\nBlockchain: Certified Blockchain Architect, Smart Contract Developer, DeFi Expert, Cryptocurrency Expert\r\nProject Management: PRINCE2 Practitioner, Certified Scrum Master, SAFe, ITIL, Project Risk Management (Oxford), Strategic Planning and Foresight (Oxford)\r\nSecurity: CISM, ISEB Business Analysis, Foundation in Software Testing\r\n\r\nTECHNICAL STACK\r\nML/AI: PyTorch, Hugging Face (Transformers, Diffusers, PEFT, TRL, Datasets, Accelerate), BitsAndBytes, LangChain, CrewAI, OpenAI API, Anthropic Claude API, Claude Code, YOLOv8, Whisper, Bark TTS, Jupyter, Gradio, Streamlit\r\nLanguages: Python (advanced), TypeScript, JavaScript, SQL, Bash, PowerShell\r\nCloud: Azure AI Foundry, Azure DevOps, AWS, Google Cloud, Paperspace GPU, Railway, Vercel, Docker, GitHub Actions\r\nWeb/API: Next.js, React, FastAPI, Flask, Node.js, Tailwind CSS, Chainlit, Shadcn UI\r\nData: Azure Cosmos DB, Azure SQL, PostgreSQL, ChromaDB, Pinecone, Redis, Oracle ADB, pandas, NumPy, scikit-learn, matplotlib, Plotly\r\nHardware: Raspberry Pi (3/4/5), Arduino, PiCrawler, servo control, MediaPipe\r\nCAD: Fusion 360, FreeCAD, Shapr3D\r\n\r\nREFERENCES\r\nNisha Chopra (Mastercard UK), Natasha Berrow (Informa Markets), Abs Oshinowo (Google UK)\r\n\n\nQUESTION: where did Lee work in 2021?"
     },
     {
       "role": "assistant",
-      "content": "Hey Lee! 👋 What's on your mind?"
-    },
-    {
-      "role": "user",
-      "content": "[Telegram] Introduce yourself"
-    },
-    {
-      "role": "assistant",
-      "content": "I'm Claude, your Chief of Staff at NAVADA. 🤝\n\nI run 24/7 on your HP laptop here in London, managing the full operation. Here's what I handle:\n\nOPERATIONS\nMonitoring all 12 PM2 services, server health, disk, RAM, network — keeping everything running.\n\nCOMMUNICATIONS\nReading and sending emails, SMS, WhatsApp, Telegram, push notifications. All your channels, one brain.\n\nDEVELOPMENT\nWriting and deploying code, managing files, running shell commands, spinning up services.\n\nINFRASTRUCTURE\nCloudflare DNS, R2 storage, ELK logs, ChromaDB knowledge base, Docker containers.\n\nCREATIVE\nGenerating images (DALL-E 3, Flux, Gemini), rendering videos, building proposals and decks.\n\nI'm omni-channel so whether you hit me on Telegram, WhatsApp, or SMS, I remember the full conversation. One consistent Chief of Staff across every platform.\n\nYou're Lee Akpareva, Founder of NAVADA. You built this Edge Server operation and I help you run it.\n\nWhat do you need? 🚀"
-    },
-    {
-      "role": "user",
-      "content": "[Telegram] How many nodes do you have"
-    },
-    {
-      "role": "assistant",
-      "content": "7 nodes total on the Tailscale network:\n\n🟢 ONLINE (4)\nnavada — this HP laptop, home base (100.121.187.67)\niphone-15-pro-max — your iPhone\nnavada-asus-control — ASUS machine on local network (192.168.0.18)\nnavada-ec2 — AWS EC2 in London (3.11.119.181)\nnavada-oracle — Oracle Cloud VM (132.145.46.184)\n\n🔴 OFFLINE (2)\nheadless — Linux box, offline 12 days\nmaclcolms-macbook-pro — Malcolm's Mac, offline 3 days\n\nSo 5 active, 2 offline. All under the leeakpareva@ account except Malcolm's which is on send2chopstix@. 🌐"
-    },
-    {
-      "role": "user",
-      "content": "[Telegram] Give me a quick server status: uptime, RAM, disk, PM2 processes, Docker, Tailscale. Keep it concise for mobile."
-    },
-    {
-      "role": "assistant",
-      "content": "Here's your status Lee:\n\n⏱ Uptime: 1d 9h 11m\n🧠 RAM: 11.3 / 15.8 GB (71%)\n💾 Disk: 222GB used / 238GB (94% — getting tight!)\n🖥 CPU: i5-8350U, 8 cores\n\nPM2: unavailable right now (may need a check)\n🐳 Docker: error fetching containers\n🌐 Tailscale: online — 3 nodes active, 2 offline\n\nMain flag — disk is at 94%. Worth doing a cleanup soon before it causes issues. Want me to investigate what's eating the space?"
-    },
-    {
-      "role": "user",
-      "content": "[Telegram] Show all running PM2 processes and their status, plus any Docker containers. Concise format."
-    },
-    {
-      "role": "assistant",
-      "content": "PM2 — 6 processes, all online ✅\n\nID 21 — cloudflare-metrics | 9h | 26MB\nID 22 — cloudwatch-logs | 8h | 34MB\nID 20 — hp-cloudwatch-metrics | 4h | 29MB ↺4\nID 23 — hp-health-monitor | 87m | 24MB ↺3\nID 18 — navada-flix | 14h | 15MB\nID 6 — telegram-bot | 2h | 37MB ↺2\n\nAll green, zero CPU usage across the board.\n\nDOCKER — not accessible from this shell. Docker is likely running on Oracle or EC2, not directly on the HP.\n\nNotable: hp-cloudwatch-metrics and hp-health-monitor have a few restarts each. Worth checking their logs if anything feels off. Want me to tail either?"
-    },
-    {
-      "role": "user",
-      "content": "[Telegram] On what node is this ? Ans only"
-    },
-    {
-      "role": "assistant",
-      "content": "navada (HP laptop) 🖥️"
-    },
-    {
-      "role": "user",
-      "content": "[Telegram] Hub"
-    },
-    {
-      "role": "assistant",
-      "content": "Exactly — the HP is the hub. 🌐 Everything routes through here."
+      "content": "(Opus 4.6)\nBased on Lee's CV, in 2021 he worked at:\n\n1. Shutterstock — Product / Project Lead (Nov 2021 to May 2022)\n2. Bumper (DeFi Protocol) — DeFi & Blockchain Program Lead (Sep 2021 to Nov 2021)\n3. Millbrook Healthcare — Project Manager (Mar 2021 to May 2021)\n\nSo three roles that year, spanning healthcare, DeFi/blockchain, and creative tech."
     },
     {
       "role": "user",
@@ -96,31 +64,63 @@
     },
     {
       "role": "assistant",
-      "content": "Hey Lee! 👋 What's on your mind?"
+      "content": "Hey! 👋 Looks like you sent a Nadia command and a hello. Nadia is a separate AI — I'm Claude, your Chief of Staff.\n\nAs for what you do for work — you're the Founder of NAVADA, building out an Edge Server infrastructure and AI operations platform. Want me to pull more detail from the knowledge base?"
     },
     {
       "role": "user",
-      "content": "[Telegram] Can you post on LinkedIn? Ans only"
+      "content": "[Telegram] You are NADIA, NAVADA's AI assistant specialising in answering questions about Lee Akpareva's professional background. Answer the following question using ONLY the CV data provided below. Be concise, accurate, and mobile-friendly. If the CV doesn't contain the answer, say so.\n\nCV DATA:\nLESLIE AKPAREVA - CV 2026\r\nPrincipal AI Consultant | Product Director | Full-Stack Developer\r\n07935237704 | leeakpareva@hotmail.com\r\nwww.navada-lab.space | www.navada.space | www.raventerminal.xyz | www.alexterminal.xyz | www.navadarobotics.com\r\n\r\nSenior product and commercial expert with 17+ years across insurance, finance, healthcare, aviation, logistics, and e-commerce. Led large-scale technology delivery, enterprise change, and digital transformation programmes. Bridges the gap between business strategy and technical execution.\r\n\r\nTrack record of owning programme P&L, leading cross-functional teams of 30+, and delivering measurable benefits across underwriting, claims, operations, and commercial functions. Builds production AI systems, trains models, and ships full-stack applications. Actively participates in hackathons.\r\n\r\nCORE COMPETENCIES\r\nLeadership & Governance: Programme Governance, Strategic Planning & Foresight, Portfolio & Product Management, C-Suite & Board Engagement, Vendor & Supplier Management, Risk Compliance & Governance, Organisational Change Management, Cross-Functional Team Leadership\r\nAI, Data & Full-Stack Engineering: PyTorch, Hugging Face, LangChain, QLoRA Fine-Tuning, RAG Pipelines, Computer Vision (YOLO), Data Science, Azure AI Foundry, Anthropic, OpenAI, Statistical Analysis, Jupyter Notebooks, pandas, NumPy, scikit-learn, Plotly, Next.js, React, Node.js, FastAPI, Docker, CI/CD, pytest, Git\r\nCommercial & Finance: P&L Ownership, Corporate Finance & Budgeting, Benefits Realisation, ROI NPV & Business Case Modelling, Cost Optimisation & Resource Planning, Investment Prioritisation, Commercial Strategy & GTM, Stakeholder & Board Reporting\r\n\r\nPROFESSIONAL EXPERIENCE\r\n\r\nPrincipal AI Solution Architect | Generali UK | November 2024 to Present\r\nHired directly by the COO to define and lead AI strategy across the UK business. Architecting the enterprise AI capability on Azure AI Foundry.\r\n- Owned AI strategy, roadmap, and investment prioritisation across 4 business units\r\n- Led AI platform architecture on Azure AI Foundry, configuring Copilot Studio agents, responsible AI governance\r\n- Managed Azure infrastructure: App Service, VMs, resource groups, networking, storage\r\n- Built RAG pipelines with Azure AI Search, Cosmos DB, LangChain, vector indexing, semantic ranking\r\n- Explored Microsoft Fabric for unified data analytics\r\n- Produced executive dashboards in Python (matplotlib, Plotly, pandas)\r\nKey: Established AI Centre of Excellence from scratch. Reduced concept to POC time by 60%. Deployed 6 Copilot Studio agents. Upskilled 50+ staff. Reduced manual document review by 40%.\r\n\r\nProgram Director | Informa Markets | October 2023 to September 2024\r\nStrategy, P&L ownership, delivery of two digital products in global food portfolio (600K-800K budget). Led 27 cross-functional European team. Managed AWS and Mindtree partnerships.\r\n- Owned product roadmap, feature prioritisation, backlog management\r\n- Managed 600K-800K programme budget\r\n- Coordinated delivery across Mindtree (offshore) and AWS across 3 time zones\r\n- Led product discovery and user research\r\nKey: Two digital propositions concept to launch in 11 months. Improved product performance visibility by 35%. GTM across 4 European regions. 200K annualised cost savings.\r\n\r\nCommercial Program Manager | Farfetch | December 2022 to August 2023\r\n- Led commercial technology programmes for luxury fashion marketplace\r\n- Owned programme financials and benefits tracking\r\n- Coordinated platform initiatives supporting 2.3B GMV marketplace\r\n\r\nBlockchain Program Manager | DHL Express | May 2022 to December 2022\r\n- Managed blockchain and emerging technology programmes\r\n- Led cross-functional teams evaluating distributed ledger for supply chain transparency\r\n- Developed business cases and ROI models for blockchain integration\r\n\r\nEARLIER CAREER\r\nProduct / Project Lead, Shutterstock | Nov 2021 to May 2022\r\nDeFi & Blockchain Program Lead, Bumper (DeFi Protocol) | Sep 2021 to Nov 2021\r\nProject Manager, Millbrook Healthcare | Mar 2021 to May 2021\r\nAgile Project Consultant, NHSX (NHS Digital) | Oct 2020 to Dec 2020\r\nProject Manager, Springer Nature | Mar 2020 to Oct 2020\r\nPlatform Manager, Opus Energy | Jun 2019 to Dec 2019\r\nDigital Project Manager, Centrica (British Gas) | Apr 2018 to Jun 2019\r\nProject Manager, Wesleyan Bank | Oct 2017 to Apr 2018\r\nManager, Avis Budget Group | Oct 2016 to Oct 2017\r\nBusiness Program Manager, Wonga | May 2016 to Oct 2016\r\nProject Manager, British Airways | Nov 2015 to Apr 2016\r\nAgile PM / Scrum Master, Flybe | May 2015 to Nov 2015\r\nTechnical Project Manager, Expedia Inc | Oct 2014 to May 2015\r\nProject Manager, Powa Technology | Apr 2014 to Oct 2014\r\nImplementation Manager, Polarisoft | Aug 2013 to Apr 2014\r\n\r\nPERSONAL PROJECTS\r\n- Custom LLM Fine-Tuning: QLoRA on NVIDIA A4000, 85-example dataset, progressive LoRA rank scaling\r\n- Stable Diffusion LoRA: Custom image generation adapters using diffusers, PEFT, Hugging Face\r\n- Computer Vision: YOLOv8 object detection with Streamlit. Live: computervisionbylee.streamlit.app\r\n- RAVEN Terminal: AI-powered code learning platform. Live: raventerminal.xyz\r\n- ALEX (Autonomous Agent): Task scheduling, Redis, ChromaDB, LangChain. Live: alexnavada.xyz\r\n- RAG and Vector Search: ChromaDB embeddings, Redis caching, sub-second enterprise Q&A\r\n- Robotics IoT CAD: Raspberry Pi robots, PiCrawler, MediaPipe gesture control. Live: navadarobotics.com\r\n- Full-Stack: 15+ Next.js/TypeScript/Node.js apps. Portfolio: navada.space\r\n- GPU ML Lab: Paperspace A4000, PyTorch, Hugging Face. Live: navada-lab.space\r\n- Hugging Face: Publishing models, datasets, research at huggingface.co/Navada25\r\n\r\nCOMMUNITY\r\n- AI for Black Women in Tech: Founded community group teaching AI fundamentals\r\n- JetBrains AI Event, London Tech Week (January 2026)\r\n- Regular guest speaker on enterprise AI adoption, open-source fine-tuning\r\n\r\nEDUCATION\r\nMBA, Northumbria University (2016-2017)\r\nMSc Project Management, Northumbria University (2013-2015)\r\nFashion Design and Art Direction, Central Saint Martins UAL (2020)\r\nLLB Law (Hons), Brunel University (2007-2010)\r\n\r\nCERTIFICATIONS\r\nDevelopment: IBM Full Stack Developer, Meta Front End Developer, Python Certificate\r\nBlockchain: Certified Blockchain Architect, Smart Contract Developer, DeFi Expert, Cryptocurrency Expert\r\nProject Management: PRINCE2 Practitioner, Certified Scrum Master, SAFe, ITIL, Project Risk Management (Oxford), Strategic Planning and Foresight (Oxford)\r\nSecurity: CISM, ISEB Business Analysis, Foundation in Software Testing\r\n\r\nTECHNICAL STACK\r\nML/AI: PyTorch, Hugging Face (Transformers, Diffusers, PEFT, TRL, Datasets, Accelerate), BitsAndBytes, LangChain, CrewAI, OpenAI API, Anthropic Claude API, Claude Code, YOLOv8, Whisper, Bark TTS, Jupyter, Gradio, Streamlit\r\nLanguages: Python (advanced), TypeScript, JavaScript, SQL, Bash, PowerShell\r\nCloud: Azure AI Foundry, Azure DevOps, AWS, Google Cloud, Paperspace GPU, Railway, Vercel, Docker, GitHub Actions\r\nWeb/API: Next.js, React, FastAPI, Flask, Node.js, Tailwind CSS, Chainlit, Shadcn UI\r\nData: Azure Cosmos DB, Azure SQL, PostgreSQL, ChromaDB, Pinecone, Redis, Oracle ADB, pandas, NumPy, scikit-learn, matplotlib, Plotly\r\nHardware: Raspberry Pi (3/4/5), Arduino, PiCrawler, servo control, MediaPipe\r\nCAD: Fusion 360, FreeCAD, Shapr3D\r\n\r\nREFERENCES\r\nNisha Chopra (Mastercard UK), Natasha Berrow (Informa Markets), Abs Oshinowo (Google UK)\r\n\n\nQUESTION: what is the Linux doc about ?"
     },
     {
       "role": "assistant",
-      "content": "Not natively, but I can via the LinkedIn API if we set up credentials. Not configured yet."
+      "content": "(Opus 4.6)\nThe CV doesn't contain any information about a Linux document. The data provided only covers Lee's professional background, skills, projects, and education — no mention of a specific Linux doc."
     },
     {
       "role": "user",
-      "content": "[Telegram] Check we did"
+      "content": "[Telegram] Hi"
     },
     {
       "role": "assistant",
-      "content": "We do have it set up. Found:\n\nLINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET in the .env, plus linkedin-auth.js, linkedin-post.js, and linkedin-video.js scripts in the Automation folder.\n\nOAuth credentials are there. The question is whether the access token is still valid — LinkedIn tokens expire after 60 days. Want me to check the auth status and try a test post?"
+      "content": "Hey! 👋 What's on your mind?"
     },
     {
       "role": "user",
-      "content": "[Telegram] Thanks that’s it! No further action"
+      "content": "[Telegram] Yo"
     },
     {
       "role": "assistant",
-      "content": "Got it! 👍"
+      "content": "Yo! 👊 What's good?"
+    },
+    {
+      "role": "user",
+      "content": "[Telegram] How’s it looking today my G?"
+    },
+    {
+      "role": "assistant",
+      "content": "Everything's looking solid! Here's the rundown:\n\nServer has been up 14 days straight, no restarts. All 3 PM2 processes running clean — Telegram bot, particle-words, and mindmap all online. RAM is at 75% which is fine. Disk is 50% used, plenty of room.\n\nDocker threw an error which is worth a look at some point, but nothing critical right now.\n\nTailscale mesh is live. Your iPhone is connected and active. The Azure and headless nodes are offline but that's expected if you're not using them.\n\nAll in all — system's healthy. What are we getting into today? 💪"
+    },
+    {
+      "role": "user",
+      "content": "[Telegram] Yo gang"
+    },
+    {
+      "role": "assistant",
+      "content": "Yo! 👊 What's the move?"
+    },
+    {
+      "role": "user",
+      "content": "[Telegram] What’s today looking like !?"
+    },
+    {
+      "role": "assistant",
+      "content": "Here's the full picture for today:\n\nServer - 14 days 13 hours uptime, not even sweating. All 3 PM2 processes running clean. RAM at 11.8GB out of 15.8GB which is on the higher side but stable.\n\nInbox - clean, no unread emails. Fresh slate.\n\nTailscale - you're connected on the iPhone. Azure and headless nodes are offline, Malcolm's Macbook has been offline 16 days too.\n\nDocker's still throwing that error - worth investigating at some point but not urgent.\n\nOverall? System is holding it down. What are we building today? 🚀"
+    },
+    {
+      "role": "user",
+      "content": "[Telegram] Run a quick scan on the edge network"
+    },
+    {
+      "role": "assistant",
+      "content": "Edge network scan complete. Here's the full picture:\n\nONLINE NODES\n- navada-edge-hp (this machine) — fully active, 100.121.187.67\n- navada-oracle — ACTIVE, direct connection live, solid traffic flowing\n- navada-ec2-aws — idle but connected, traffic both ways\n- navada-asus-control — idle, went offline 3 hours ago but was active recently\n- iPhone 15 Pro Max — idle and connected\n\nOFFLINE NODES\n- azure-cloudshell — offline 9 days\n- headless — offline 2 days\n- Malcolm's Macbook — offline 16 days\n\nHIGHLIGHTS\nOracle is the most active right now with a direct connection and heavy receive traffic (52MB in). EC2 is also seeing solid two-way traffic. ASUS went dark 3 hours ago which is worth noting.\n\nDocker is still throwing an error on this HP — want me to dig into that while we're at it? 🔍"
     }
   ]
 }

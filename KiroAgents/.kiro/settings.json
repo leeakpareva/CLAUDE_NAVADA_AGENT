@@ -1,0 +1,11 @@
+{
+  "project": "NAVADA-KIRO",
+  "description": "NAVADA Edge agent development workspace",
+  "version": "1.0.0",
+  "integrations": {
+    "cloudflare_worker": "https://edge-api.navada-edge-server.uk",
+    "ec2_api": "http://3.11.119.181:9090",
+    "postgresql": "postgresql://navada_user@100.121.187.67:5433/navada_pipeline",
+    "telegram_webhook": "https://edge-api.navada-edge-server.uk/telegram/webhook"
+  }
+}

@@ -1,0 +1,100 @@
+# NAVADA ASUS (NAVADA2025) — 24/7 Server Node
+# Docker Desktop (WSL2 backend) on ASUS Zenbook Duo
+# Role: Always-on server with 16GB RAM + 478GB disk
+# Telegram bot stays as PM2 (dev instance), HP is production
+# NemoClaw/OpenClaw runs separately (own compose/container)
+
+services:
+
+  # --- Databases (always-on, accessible from all nodes via Tailscale) ---
+
+  postgres-dev:
+    image: postgres:17-alpine
+    container_name: navada-pg-dev
+    ports:
+      - "5434:5432"  # 5434 to avoid conflict with native PG17 on 5433
+    environment:
+      POSTGRES_USER: navada
+      POSTGRES_PASSWORD: ${PG_DEV_PASSWORD:-navada2025}
+      POSTGRES_DB: navada_dev
+    volumes:
+      - pg_dev_data:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - navada-internal
+
+  redis:
+    image: redis:7-alpine
+    container_name: navada-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    restart: always
+    networks:
+      - navada-internal
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: navada-chroma
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      ANONYMIZED_TELEMETRY: "false"
+    restart: always
+    networks:
+      - navada-internal
+
+  # --- Tools ---
+
+  sqlite-web:
+    image: coleifer/sqlite-web:latest
+    container_name: navada-sqlite-admin
+    ports:
+      - "8088:8080"
+    volumes:
+      - ${SQLITE_DIR:-/c/Users/leeak/CLAUDE_NAVADA_AGENT/Automation/data}:/data:ro
+    environment:
+      SQLITE_DATABASE: /data/response-cache.db
+    restart: always
+    networks:
+      - navada-internal
+
+  # --- Monitoring ---
+
+  portainer-agent:
+    image: portainer/agent:latest
+    container_name: navada-portainer-agent
+    ports:
+      - "9001:9001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+    restart: always
+    networks:
+      - navada-internal
+
+  # --- Node Exporter (Prometheus metrics for this node) ---
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: navada-node-exporter
+    ports:
+      - "9100:9100"
+    restart: always
+    networks:
+      - navada-internal
+
+volumes:
+  pg_dev_data:
+  redis_data:
+  chroma_data:
+
+networks:
+  navada-internal:
+    driver: bridge
+  navada-public:
+    driver: bridge

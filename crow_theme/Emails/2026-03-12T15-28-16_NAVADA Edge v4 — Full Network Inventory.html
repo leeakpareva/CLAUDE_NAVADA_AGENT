@@ -1,0 +1,188 @@
+<!-- Email Archive
+  From: "Claude | NAVADA" <leeakpareva@gmail.com>
+  To: leeakpareva@gmail.com
+  Subject: NAVADA Edge v4 — Full Network Inventory
+  Date: 2026-03-12T15:28:16.587Z
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body{font-family:'Söhne',-apple-system,'Helvetica Neue',sans-serif;background:#fff;color:#353740;margin:0;padding:0}
+.container{max-width:640px;margin:0 auto;padding:40px 24px}
+.logo-bar{text-align:center;padding:32px 0 24px;border-bottom:1px solid #e5e5e5;margin-bottom:32px}
+.logo-bar h1{font-size:22px;font-weight:600;color:#202123;letter-spacing:-0.2px;margin:0}
+.logo-bar p{font-size:13px;color:#6e6e80;margin:6px 0 0}
+h2{font-size:16px;font-weight:600;color:#202123;margin:32px 0 12px;padding-bottom:8px;border-bottom:1px solid #f0f0f0}
+.node-card{background:#f7f7f8;border:1px solid #e5e5e5;border-radius:8px;padding:16px 20px;margin:16px 0}
+.node-card .nt{font-size:14px;font-weight:600;color:#202123;margin:0 0 4px}
+.node-card .nm{font-size:12px;color:#6e6e80;margin:0 0 10px}
+.node-card ul{margin:4px 0;padding-left:18px}
+.node-card li{font-size:13px;line-height:1.6;color:#353740}
+.tag{display:inline-block;background:#ececf1;color:#353740;font-size:11px;padding:2px 8px;border-radius:4px;margin:2px;font-family:'Söhne Mono',monospace}
+.tag.g{background:#d1f5e0;color:#1a7f37}
+.tag.b{background:#dbeafe;color:#1d4ed8}
+.tag.p{background:#ede9fe;color:#6d28d9}
+.tag.o{background:#ffedd5;color:#c2410c}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+th{text-align:left;font-weight:600;color:#6e6e80;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;padding:8px 10px;border-bottom:2px solid #e5e5e5}
+td{padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#353740}
+.footer{margin-top:40px;padding-top:24px;border-top:1px solid #e5e5e5;text-align:center}
+.footer p{font-size:12px;color:#6e6e80;margin:4px 0}
+p,li{font-size:14px;line-height:1.7;color:#353740}
+ul{padding-left:20px;margin:8px 0}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="logo-bar">
+<h1>NAVADA EDGE v4</h1>
+<p>Full Network Inventory | March 2026</p>
+</div>
+<p>7 nodes, 13 subdomains, 6 AI agents, 3 cloud providers. Total cost: ~$16/month.</p>
+
+<div class="node-card">
+<p class="nt">NODE 1: NAVADA-GATEWAY (Cloudflare)</p>
+<p class="nm">CDN / Security / Edge Compute | Global Edge | $0/month</p>
+<ul>
+<li><span class="tag b">navada-edge-api</span> Worker: Telegram bot, metrics, health, cron</li>
+<li><span class="tag">navada-edge</span> D1 Database: 7 tables (WEUR)</li>
+<li><span class="tag">navada-assets</span> R2 Storage: backups, media</li>
+<li>DNS: 13 subdomains on navada-edge-server.uk</li>
+<li>WAF + DDoS + SSL/TLS + Tunnel</li>
+<li>5 Cron Triggers: health (*/5m), briefing (6:30), news (7:00), pipeline (8:30), jobs (9:00)</li>
+</ul>
+<p style="font-size:12px;color:#6e6e80;margin:8px 0 0">Endpoints: /telegram/webhook, /twilio/sms, /metrics, /logs, /health, /health/telegram, /status, /traffic, /live</p>
+<p style="font-size:12px;color:#6e6e80;margin:4px 0 0">Auth: X-API-Key: navada-edge-2026</p>
+</div>
+
+<div class="node-card">
+<p class="nt">NODE 2: NAVADA-CONTROL (ASUS Zenbook Duo)</p>
+<p class="nm">Command Centre / Dev Workstation | 100.88.118.128 / 192.168.0.18 (WiFi)</p>
+<ul>
+<li><span class="tag">Claude Code</span> <span class="tag">VS Code</span> <span class="tag">Kiro IDE</span></li>
+<li><span class="tag">LM Studio</span> <span class="tag">Ollama</span> local AI inference</li>
+<li><span class="tag">PostgreSQL 17</span> <span class="tag">Docker Desktop</span></li>
+<li>Windows 11 Home, Intel Core Ultra 7, 16GB RAM</li>
+</ul>
+</div>
+
+<div class="node-card">
+<p class="nt">NODE 3: NAVADA-EDGE-SERVER (HP Laptop)</p>
+<p class="nm">Always-on SSH-only Server | 100.121.187.67 / 192.168.0.58 (Ethernet, static)</p>
+<ul>
+<li><span class="tag g">SSH :22</span> <span class="tag g">PostgreSQL :5433</span></li>
+<li>Database: navada_pipeline (prospects, contacts, emails, heartbeats)</li>
+<li>Windows 11 Pro, Ethernet (always-on)</li>
+<li>PM2 removed, all 24 scheduled tasks moved to Cloudflare cron</li>
+</ul>
+</div>
+
+<div class="node-card">
+<p class="nt">NODE 4: NAVADA-COMPUTE (AWS EC2)</p>
+<p class="nm">24/7 Compute | 3.11.119.181 / 100.98.118.33 | t3.medium, eu-west-2 | ~$9.18/month</p>
+<ul>
+<li><b>PM2 Services (5):</b></li>
+<li><span class="tag g">ec2-health-monitor</span> 16 endpoints every 5 min</li>
+<li><span class="tag g">navada-dashboard</span> command centre</li>
+<li><span class="tag g">worldmonitor</span> OSINT dashboard :4000</li>
+<li><span class="tag g">worldview-monitor</span> CloudWatch metrics</li>
+<li><span class="tag g">cloudwatch-dashboard-updater</span> 11 CW dashboards</li>
+<li><b>AWS Services:</b></li>
+<li><span class="tag p">CloudWatch</span> <span class="tag p">DynamoDB</span> <span class="tag p">Lambda</span> <span class="tag p">SageMaker</span> <span class="tag p">Rekognition</span> <span class="tag p">Bedrock</span> <span class="tag p">S3</span> <span class="tag p">ECR</span></li>
+</ul>
+</div>
+
+<div class="node-card">
+<p class="nt">NODE 5: NAVADA-ROUTER (Oracle Cloud VM)</p>
+<p class="nm">Routing / Observability | 132.145.46.184 / 100.77.206.9 | uk-london-1 | ~£5.46/month</p>
+<ul>
+<li><b>Docker Containers (6):</b></li>
+<li><span class="tag o">navada-proxy</span> :80, :443, :8080 Nginx reverse proxy</li>
+<li><span class="tag o">navada-tunnel</span> Cloudflare Tunnel</li>
+<li><span class="tag o">navada-grafana</span> :3000 metrics dashboards</li>
+<li><span class="tag o">navada-prometheus</span> :9090 metrics collection</li>
+<li><span class="tag o">cloudbeaver</span> :8978 database admin</li>
+<li><span class="tag o">navada-portainer</span> :9000 Docker management</li>
+</ul>
+</div>
+
+<div class="node-card">
+<p class="nt">NODE 6: NAVADA-AGENTS (Kiro IDE)</p>
+<p class="nm">AI Agent Orchestration / IaC | runs on ASUS | $0/month</p>
+<ul>
+<li><b>Agents (6):</b></li>
+<li><span class="tag b">chief-of-staff</span> full system control, multi-channel comms</li>
+<li><span class="tag b">network-ops</span> health monitoring, diagnostics</li>
+<li><span class="tag b">deploy</span> safe deploys with validation</li>
+<li><span class="tag b">outreach</span> prospect pipeline, email sequences</li>
+<li><span class="tag b">test-runner</span> E2E tests + failure analysis</li>
+<li><span class="tag b">disk-monitor</span> disk/memory/CPU across all nodes</li>
+<li><b>Steering:</b> product.md, tech.md, structure.md, network.md</li>
+<li><b>Hooks:</b> pre-deploy (syntax), post-deploy (health check)</li>
+</ul>
+</div>
+
+<div class="node-card">
+<p class="nt">NODE 7: NAVADA-MOBILE (iPhone 15 Pro Max)</p>
+<p class="nm">Client / Mobile Ops | 100.68.251.111 (Tailscale)</p>
+<ul>
+<li><span class="tag">Telegram</span> <span class="tag">SMS</span> <span class="tag">Tailscale</span></li>
+<li>NAVADA Phone: +447446994961</li>
+</ul>
+</div>
+
+<h2>13 Subdomains</h2>
+<table>
+<tr><th>#</th><th>Subdomain</th><th>Backend</th></tr>
+<tr><td>1</td><td>edge-api</td><td>Cloudflare Worker</td></tr>
+<tr><td>2</td><td>api</td><td>HP :3456</td></tr>
+<tr><td>3</td><td>flix</td><td>HP :4000</td></tr>
+<tr><td>4</td><td>trading</td><td>HP :5678</td></tr>
+<tr><td>5</td><td>network</td><td>HP :7777</td></tr>
+<tr><td>6</td><td>logo</td><td>HP :3000</td></tr>
+<tr><td>7</td><td>kibana</td><td>Oracle :5601</td></tr>
+<tr><td>8</td><td>grafana</td><td>Oracle :3000</td></tr>
+<tr><td>9</td><td>monitor</td><td>Oracle :3001</td></tr>
+<tr><td>10</td><td>cloudbeaver</td><td>Oracle :8978</td></tr>
+<tr><td>11</td><td>nodes</td><td>Oracle</td></tr>
+<tr><td>12</td><td>dashboard</td><td>EC2</td></tr>
+<tr><td>13</td><td>traffic</td><td>Cloudflare Worker</td></tr>
+</table>
+
+<h2>Tailscale Mesh VPN</h2>
+<table>
+<tr><th>Node</th><th>Tailscale IP</th><th>Role</th></tr>
+<tr><td>ASUS</td><td>100.88.118.128</td><td>Dev workstation</td></tr>
+<tr><td>HP</td><td>100.121.187.67</td><td>Production server</td></tr>
+<tr><td>EC2</td><td>100.98.118.33</td><td>24/7 compute</td></tr>
+<tr><td>Oracle</td><td>100.77.206.9</td><td>Routing / observability</td></tr>
+<tr><td>iPhone</td><td>100.68.251.111</td><td>Mobile client</td></tr>
+</table>
+
+<h2>Monthly Cost Summary</h2>
+<table>
+<tr><th>Provider</th><th>Service</th><th>Cost</th></tr>
+<tr><td>AWS</td><td>EC2 + CloudWatch + DynamoDB + Lambda</td><td><b>~$9.18 USD</b></td></tr>
+<tr><td>Oracle</td><td>Compute VM</td><td><b>~£5.46 GBP</b></td></tr>
+<tr><td>Cloudflare</td><td>Worker + D1 + R2 + DNS</td><td>$0</td></tr>
+<tr><td>Tailscale</td><td>Mesh VPN</td><td>$0</td></tr>
+<tr><td>Local</td><td>ASUS + HP (owned)</td><td>$0</td></tr>
+<tr style="border-top:2px solid #e5e5e5"><td><b>Total</b></td><td></td><td><b>~$16/month</b></td></tr>
+</table>
+
+<h2>Live Dashboards</h2>
+<ul>
+<li><b>Architecture:</b> https://edge-api.navada-edge-server.uk/traffic</li>
+<li><b>Traffic Visualiser:</b> https://edge-api.navada-edge-server.uk/live</li>
+<li>Both mobile-responsive (iPhone optimised)</li>
+</ul>
+
+<div class="footer">
+<p><b>NAVADA AI Engineering &amp; Consulting</b></p>
+<p>Lee Akpareva, Founder | Claude, Chief of Staff</p>
+<p style="color:#acacbe;font-size:11px;margin-top:12px">Generated by Claude Chief of Staff | March 2026</p>
+</div>
+</div>
+</body>
+</html>

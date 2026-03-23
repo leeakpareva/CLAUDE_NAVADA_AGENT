@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <title>NAVADA — Particle Words</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+    body { background: #050508; }
+    #c { display: block; }
+    #hint {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      font-family: sans-serif; font-size: 11px; color: rgba(255,255,255,0.2);
+      pointer-events: none; letter-spacing: 2px; white-space: nowrap; z-index: 10;
+    }
+    @media (max-width: 600px) {
+      #hint { font-size: 9px; letter-spacing: 1.5px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="hint"></div>
+
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const hintEl = document.getElementById('hint');
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    hintEl.textContent = isMobile ? 'TAP · TOUCH · DRAG' : 'HOVER · CLICK · DRAG';
+
+    const WORDS = ['NAVADA','EDGE','AI','AFRICA','VENTURE','CAPITAL','RAVEN','ALEX','FOLIO','FLIX','RALPH','LONDON'];
+    const COLORS = [[200,80,255],[120,220,255],[255,160,60],[80,255,200],[255,80,160],[160,255,80],[255,220,60],[100,180,255],[255,120,200],[80,200,255],[200,255,100],[120,160,255]];
+
+    let W, H, particles = [], wordIndex = 0, switchTimer = 0;
+    let mx = -9999, my = -9999, pressing = false;
+    const SWITCH_INTERVAL = 240;
+
+    function resize() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W;
+      canvas.height = H;
+    }
+
+    function sm() { return W < 600; }
+
+    // Simple seeded noise
+    function noise2d(x, y) {
+      const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+      return n - Math.floor(n);
+    }
+
+    function sampleWord(word) {
+      // Use an offscreen canvas (standard Canvas API, no p5)
+      const offscreen = document.createElement('canvas');
+      offscreen.width = W;
+      offscreen.height = H;
+      const octx = offscreen.getContext('2d');
+      octx.fillStyle = '#000';
+      octx.fillRect(0, 0, W, H);
+      octx.fillStyle = '#fff';
+      const maxSz = sm() ? 65 : 130;
+      const sz = Math.min(W / (word.length * 0.65), maxSz);
+      octx.font = `bold ${sz}px sans-serif`;
+      octx.textAlign = 'center';
+      octx.textBaseline = 'middle';
+      octx.fillText(word, W / 2, H / 2);
+      const imageData = octx.getImageData(0, 0, W, H);
+      const data = imageData.data;
+      const pts = [];
+      const gap = sm() ? 6 : 4;
+      for (let x = 0; x < W; x += gap) {
+        for (let y = 0; y < H; y += gap) {
+          const i = (y * W + x) * 4;
+          if (data[i] > 128) pts.push({ x, y });
+        }
+      }
+      return pts;
+    }
+
+    function init() {
+      resize();
+      particles = [];
+      const pts = sampleWord(WORDS[0]);
+      const col = COLORS[0];
+      for (const pt of pts) {
+        particles.push({
+          x: Math.random() * W, y: Math.random() * (H + 400) - 200,
+          tx: pt.x, ty: pt.y,
+          vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6,
+          col: [...col], tcol: [...col],
+          sz: 1.5 + Math.random() * 1.9,
+          seed: Math.random() * 1000,
+          active: true
+        });
+      }
+    }
+
+    function morphToWord(word, col) {
+      const pts = sampleWord(word);
+      // Shuffle
+      for (let i = pts.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pts[i], pts[j]] = [pts[j], pts[i]];
+      }
+
+      const excess = particles.length - pts.length;
+      if (excess > 0) {
+        for (let i = 0; i < excess; i++) {
+          const pt = particles[particles.length - 1 - i];
+          pt.tx = Math.random() * (W + 200) - 100;
+          pt.ty = Math.random() * (H + 200) - 100;
+          pt.active = false;
+        }
+      } else {
+        for (let i = 0; i < -excess; i++) {
+          particles.push({
+            x: Math.random() * W, y: Math.random() * (H + 200) - 100,
+            tx: 0, ty: 0,
+            vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8,
+            col: [...col], tcol: [...col],
+            sz: 1.5 + Math.random() * 1.9,
+            seed: Math.random() * 1000,
+            active: true
+          });
+        }
+      }
+
+      const n = Math.min(particles.length, pts.length);
+      for (let i = 0; i < n; i++) {
+        particles[i].tx = pts[i].x;
+        particles[i].ty = pts[i].y;
+        particles[i].tcol = [...col];
+        particles[i].active = true;
+      }
+    }
+
+    let frameCount = 0;
+    function draw() {
+      requestAnimationFrame(draw);
+      frameCount++;
+
+      // Fade trail
+      ctx.fillStyle = 'rgba(5,5,8,0.18)';
+      ctx.fillRect(0, 0, W, H);
+
+      const noiseT = frameCount * 0.003;
+
+      switchTimer++;
+      if (switchTimer >= SWITCH_INTERVAL) {
+        switchTimer = 0;
+        wordIndex = (wordIndex + 1) % WORDS.length;
+        morphToWord(WORDS[wordIndex], COLORS[wordIndex % COLORS.length]);
+      }
+
+      const baseR2 = pressing ? 22000 : 9000;
+      const R2 = sm() ? baseR2 * 2.5 : baseR2;
+      const F = pressing ? 24 : 11;
+
+      for (const pt of particles) {
+        if (!pt.active) {
+          pt.x += pt.vx;
+          pt.y += pt.vy;
+          pt.vx *= 0.95;
+          pt.vy *= 0.95;
+          continue;
+        }
+
+        const nx = noise2d(pt.seed, noiseT) * 2 - 1;
+        const ny = noise2d(pt.seed + 500, noiseT) * 2 - 1;
+
+        let ax = (pt.tx - pt.x) * 0.055 + nx * 0.4;
+        let ay = (pt.ty - pt.y) * 0.055 + ny * 0.4;
+
+        const dx = pt.x - mx;
+        const dy = pt.y - my;
+        const d2 = dx * dx + dy * dy;
+
+        if (d2 < R2 && d2 > 0.1) {
+          const d = Math.sqrt(d2);
+          const str = (Math.sqrt(R2) - d) / Math.sqrt(R2) * F;
+          ax += dx / d * str;
+          ay += dy / d * str;
+        }
+
+        pt.vx = (pt.vx + ax) * 0.84;
+        pt.vy = (pt.vy + ay) * 0.84;
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+
+        pt.col[0] += (pt.tcol[0] - pt.col[0]) * 0.04;
+        pt.col[1] += (pt.tcol[1] - pt.col[1]) * 0.04;
+        pt.col[2] += (pt.tcol[2] - pt.col[2]) * 0.04;
+
+        const spd = Math.sqrt(pt.vx * pt.vx + pt.vy * pt.vy);
+        const s = Math.min(1, spd / 14);
+        const r = Math.min(255, Math.round(pt.col[0] + s * 60));
+        const g = Math.max(0, Math.round(pt.col[1] - s * 40));
+        const b = Math.min(255, Math.round(pt.col[2] + s * 20));
+        const a = Math.min(1, (180 + spd * 8) / 255);
+
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, (pt.sz + spd * 0.12) / 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${r},${g},${b},${a.toFixed(2)})`;
+        ctx.fill();
+      }
+    }
+
+    function explode(ex, ey) {
+      const radius = sm() ? 300 : 220;
+      for (const pt of particles) {
+        if (!pt.active) continue;
+        const dx = pt.x - ex;
+        const dy = pt.y - ey;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < radius && d > 0.1) {
+          const force = 10 + Math.random() * 12;
+          pt.vx += dx / d * force;
+          pt.vy += dy / d * force;
+        }
+      }
+    }
+
+    // Mouse
+    canvas.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+    canvas.addEventListener('mousedown', e => { pressing = true; mx = e.clientX; my = e.clientY; });
+    canvas.addEventListener('mouseup', () => { pressing = false; });
+    canvas.addEventListener('mouseleave', () => { mx = -9999; my = -9999; pressing = false; });
+    canvas.addEventListener('click', e => { explode(e.clientX, e.clientY); });
+
+    // Touch
+    document.addEventListener('touchstart', e => {
+      e.preventDefault();
+      pressing = true;
+      mx = e.touches[0].clientX;
+      my = e.touches[0].clientY;
+    }, { passive: false });
+
+    document.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (e.touches.length > 0) {
+        mx = e.touches[0].clientX;
+        my = e.touches[0].clientY;
+      }
+    }, { passive: false });
+
+    document.addEventListener('touchend', e => {
+      e.preventDefault();
+      explode(mx, my);
+      pressing = false;
+      mx = -9999;
+      my = -9999;
+    }, { passive: false });
+
+    // Resize
+    window.addEventListener('resize', () => {
+      resize();
+      morphToWord(WORDS[wordIndex], COLORS[wordIndex % COLORS.length]);
+    });
+
+    // Go
+    init();
+    draw();
+  </script>
+</body>
+</html>

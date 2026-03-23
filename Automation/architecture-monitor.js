@@ -1,4 +1,136 @@
-<!DOCTYPE html>
+#!/usr/bin/env node
+/**
+ * NAVADA Architecture Monitor
+ * - Collects live status from all nodes every 5 minutes
+ * - Regenerates the architecture diagram HTML with live data
+ * - Opens browser popup when infrastructure state changes
+ *
+ * Usage:
+ *   node architecture-monitor.js           Run once (check + update + popup if changed)
+ *   node architecture-monitor.js --watch   Run continuously every 5 minutes
+ *   node architecture-monitor.js --force   Force open diagram regardless of changes
+ */
+
+const net = require('net');
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
+const http = require('http');
+
+const STATE_FILE = path.join(__dirname, 'temp', 'architecture-state.json');
+const HTML_FILE = path.join(__dirname, 'temp', 'navada-edge-v4-visual.html');
+const INTERVAL = 5 * 60_000;
+
+// ---------------------------------------------------------------------------
+// Data Collection
+// ---------------------------------------------------------------------------
+function ping(host, timeout = 3) {
+  try {
+    execSync(`ping -n 1 -w ${timeout * 1000} ${host}`, {
+      timeout: (timeout + 2) * 1000,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true,
+    });
+    return true;
+  } catch { return false; }
+}
+
+function tcpCheck(host, port, timeout = 3000) {
+  return new Promise(resolve => {
+    const sock = new net.Socket();
+    sock.setTimeout(timeout);
+    sock.on('connect', () => { sock.destroy(); resolve(true); });
+    sock.on('timeout', () => { sock.destroy(); resolve(false); });
+    sock.on('error', () => { sock.destroy(); resolve(false); });
+    sock.connect(port, host);
+  });
+}
+
+function httpCheck(url, timeout = 5000) {
+  return new Promise(resolve => {
+    const mod = url.startsWith('https') ? https : http;
+    const req = mod.get(url, { timeout, rejectUnauthorized: false }, res => {
+      res.resume();
+      res.on('end', () => resolve({ up: res.statusCode < 500, status: res.statusCode }));
+    });
+    req.on('error', () => resolve({ up: false, status: 0 }));
+    req.on('timeout', () => { req.destroy(); resolve({ up: false, status: 0 }); });
+  });
+}
+
+async function collectStatus() {
+  console.log(`[${new Date().toISOString()}] Collecting infrastructure status...`);
+
+  const [hpPing, hpSSH, hpPG, oraclePing, ec2Ping, asusPing, mobilePing] = await Promise.all([
+    ping('100.121.187.67'),
+    tcpCheck('100.121.187.67', 22),
+    tcpCheck('100.121.187.67', 5433),
+    ping('100.77.206.9'),
+    ping('100.98.118.33'),
+    ping('100.88.118.128'),
+    ping('100.68.251.111'),
+  ]);
+
+  // Cloudflare + Oracle services (HTTP)
+  const [cfEdge, cfDash, nginx, grafana, prometheus, cloudbeaver, portainer] = await Promise.all([
+    httpCheck('https://edge-api.navada-edge-server.uk/status'),
+    httpCheck('https://dashboard.navada-edge-server.uk'),
+    httpCheck('http://100.77.206.9:80'),
+    httpCheck('http://100.77.206.9:3000'),
+    httpCheck('http://100.77.206.9:9090'),
+    httpCheck('http://100.77.206.9:8978'),
+    httpCheck('http://100.77.206.9:9000'),
+  ]);
+
+  // Count Cloudflare subdomains up
+  const subdomains = ['api', 'edge-api', 'flix', 'trading', 'network', 'kibana',
+    'grafana', 'monitor', 'cloudbeaver', 'nodes', 'dashboard', 'logo'];
+  const subChecks = await Promise.all(
+    subdomains.map(s => httpCheck(`https://${s}.navada-edge-server.uk`))
+  );
+  const subdomainsUp = subChecks.filter(s => s.up).length;
+
+  const state = {
+    timestamp: new Date().toISOString(),
+    nodes: {
+      gateway:  { online: cfEdge.up, label: 'NAVADA-GATEWAY', provider: 'Cloudflare' },
+      control:  { online: asusPing, label: 'NAVADA-CONTROL', provider: 'Local' },
+      compute:  { online: ec2Ping, label: 'NAVADA-COMPUTE', provider: 'AWS' },
+      edge:     { online: hpPing || hpSSH, label: 'NAVADA-EDGE-SERVER', provider: 'Local' },
+      router:   { online: oraclePing, label: 'NAVADA-ROUTER', provider: 'Oracle' },
+      mobile:   { online: mobilePing, label: 'NAVADA-MOBILE', provider: 'Apple' },
+    },
+    services: {
+      hp: { ssh: hpSSH, postgresql: hpPG },
+      oracle: {
+        nginx: nginx.up, grafana: grafana.up, prometheus: prometheus.up,
+        cloudbeaver: cloudbeaver.up, portainer: portainer.up,
+      },
+      cloudflare: { edgeApi: cfEdge.up, dashboard: cfDash.up, subdomainsUp, totalSubdomains: subdomains.length },
+    },
+    nodesOnline: [hpPing || hpSSH, oraclePing, ec2Ping, asusPing, mobilePing, cfEdge.up].filter(Boolean).length,
+  };
+
+  console.log(`  Nodes: ${state.nodesOnline}/6 online | CF: ${subdomainsUp}/${subdomains.length} subs | HP SSH:${hpSSH} PG:${hpPG}`);
+  return state;
+}
+
+// ---------------------------------------------------------------------------
+// HTML Generator
+// ---------------------------------------------------------------------------
+function generateHTML(state) {
+  const ts = state.timestamp;
+  const n = state.nodes;
+  const s = state.services;
+
+  function dot(online) {
+    return online
+      ? '<span class="status on"></span>'
+      : '<span class="status off"></span>';
+  }
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -79,14 +211,14 @@
 <div class="header">
   <h1>NAVADA EDGE v4</h1>
   <div class="sub">LIVE SYSTEM ARCHITECTURE &mdash; CLAUDE CHIEF OF STAFF ON CLOUDFLARE EDGE</div>
-  <div class="live">LIVE &mdash; Last updated: 23/03/2026, 00:16:04 &mdash; Auto-refresh 5 min</div>
+  <div class="live">LIVE &mdash; Last updated: ${new Date(ts).toLocaleString('en-GB')} &mdash; Auto-refresh 5 min</div>
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="num ">6/6</div><div class="lbl">Nodes Online</div></div>
+  <div class="stat"><div class="num ${state.nodesOnline < 4 ? 'bad' : state.nodesOnline < 6 ? 'warn' : ''}">${state.nodesOnline}/6</div><div class="lbl">Nodes Online</div></div>
   <div class="stat"><div class="num">5</div><div class="lbl">PM2 Services</div></div>
-  <div class="stat"><div class="num">2</div><div class="lbl">Docker Containers</div></div>
-  <div class="stat"><div class="num ">10/12</div><div class="lbl">Subdomains UP</div></div>
+  <div class="stat"><div class="num">${[s.oracle.nginx, s.oracle.grafana, s.oracle.prometheus, s.oracle.cloudbeaver, s.oracle.portainer].filter(Boolean).length + (s.oracle.nginx ? 1 : 0)}</div><div class="lbl">Docker Containers</div></div>
+  <div class="stat"><div class="num ${s.cloudflare.subdomainsUp < 10 ? 'warn' : ''}">${s.cloudflare.subdomainsUp}/${s.cloudflare.totalSubdomains}</div><div class="lbl">Subdomains UP</div></div>
   <div class="stat"><div class="num">11</div><div class="lbl">CW Dashboards</div></div>
 </div>
 
@@ -131,10 +263,10 @@
 
   <!-- NAVADA-GATEWAY -->
   <div class="node gateway" style="top: 160px; left: 460px; width: 280px;">
-    <div class="title"><span class="status on"></span>NAVADA-GATEWAY</div>
+    <div class="title">${dot(n.gateway.online)}NAVADA-GATEWAY</div>
     <div class="role">Cloudflare Global Edge</div>
     <div class="services">
-      <span class="up">Edge API Worker</span>
+      <span class="${s.cloudflare.edgeApi ? 'up' : 'down'}">Edge API Worker</span>
       <span class="up">Claude CoS</span>
       <span class="up">D1 (7 tables)</span>
       <span class="up">R2 Storage</span>
@@ -144,12 +276,12 @@
       <span class="up">SSL/TLS</span>
       <span class="up">Tunnel</span>
     </div>
-    <div class="ip">navada-edge-server.uk | 10/12 subdomains UP</div>
+    <div class="ip">navada-edge-server.uk | ${s.cloudflare.subdomainsUp}/${s.cloudflare.totalSubdomains} subdomains UP</div>
   </div>
 
   <!-- NAVADA-CONTROL -->
   <div class="node control" style="top: 320px; left: 30px; width: 240px;">
-    <div class="title"><span class="status on"></span>NAVADA-CONTROL</div>
+    <div class="title">${dot(n.control.online)}NAVADA-CONTROL</div>
     <div class="role">ASUS Zenbook Duo | Dev Workstation</div>
     <div class="services">
       <span>Claude Code</span>
@@ -164,7 +296,7 @@
 
   <!-- NAVADA-COMPUTE -->
   <div class="node compute" style="top: 350px; left: 460px; width: 280px;">
-    <div class="title"><span class="status on"></span>NAVADA-COMPUTE</div>
+    <div class="title">${dot(n.compute.online)}NAVADA-COMPUTE</div>
     <div class="role">AWS EC2 t3.medium | 24/7 Compute</div>
     <div class="services">
       <span class="up">ec2-health-monitor</span>
@@ -184,33 +316,33 @@
 
   <!-- NAVADA-EDGE-SERVER -->
   <div class="node edge" style="top: 570px; left: 30px; width: 240px;">
-    <div class="title"><span class="status on"></span>NAVADA-EDGE-SERVER</div>
+    <div class="title">${dot(n.edge.online)}NAVADA-EDGE-SERVER</div>
     <div class="role">HP Laptop | SSH-Only Node</div>
     <div class="services">
-      <span class="up">SSH :22</span>
-      <span class="down">PostgreSQL :5433</span>
+      <span class="${s.hp.ssh ? 'up' : 'down'}">SSH :22</span>
+      <span class="${s.hp.postgresql ? 'up' : 'down'}">PostgreSQL :5433</span>
     </div>
     <div class="ip">100.121.187.67 | 192.168.0.58 (Ethernet)</div>
   </div>
 
   <!-- NAVADA-ROUTER -->
   <div class="node router" style="top: 570px; left: 900px; width: 260px;">
-    <div class="title"><span class="status on"></span>NAVADA-ROUTER</div>
+    <div class="title">${dot(n.router.online)}NAVADA-ROUTER</div>
     <div class="role">Oracle Cloud VM | Routing + Observability</div>
     <div class="services">
-      <span class="up">Nginx</span>
-      <span class="up">CF Tunnel</span>
-      <span class="down">Grafana</span>
-      <span class="down">Prometheus</span>
-      <span class="down">CloudBeaver</span>
-      <span class="down">Portainer</span>
+      <span class="${s.oracle.nginx ? 'up' : 'down'}">Nginx</span>
+      <span class="${s.oracle.nginx ? 'up' : 'down'}">CF Tunnel</span>
+      <span class="${s.oracle.grafana ? 'up' : 'down'}">Grafana</span>
+      <span class="${s.oracle.prometheus ? 'up' : 'down'}">Prometheus</span>
+      <span class="${s.oracle.cloudbeaver ? 'up' : 'down'}">CloudBeaver</span>
+      <span class="${s.oracle.portainer ? 'up' : 'down'}">Portainer</span>
     </div>
     <div class="ip">100.77.206.9 | 132.145.46.184</div>
   </div>
 
   <!-- NAVADA-MOBILE -->
   <div class="node mobile" style="top: 730px; left: 100px; width: 200px;">
-    <div class="title"><span class="status on"></span>NAVADA-MOBILE</div>
+    <div class="title">${dot(n.mobile.online)}NAVADA-MOBILE</div>
     <div class="role">iPhone 15 Pro Max</div>
     <div class="services">
       <span>Telegram</span>
@@ -239,4 +371,106 @@
   NAVADA AI ENGINEERING &amp; CONSULTING | LEE AKPAREVA, FOUNDER | CLAUDE, CHIEF OF STAFF | MARCH 2026
 </div>
 </body>
-</html>
+</html>`;
+}
+
+// ---------------------------------------------------------------------------
+// Change Detection + Popup
+// ---------------------------------------------------------------------------
+function loadPreviousState() {
+  try {
+    if (fs.existsSync(STATE_FILE)) return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+  } catch {}
+  return null;
+}
+
+function hasChanged(prev, curr) {
+  if (!prev) return true;
+  // Compare node online status
+  for (const key of Object.keys(curr.nodes)) {
+    if (prev.nodes?.[key]?.online !== curr.nodes[key].online) return true;
+  }
+  // Compare key services
+  if (prev.services?.hp?.ssh !== curr.services.hp.ssh) return true;
+  if (prev.services?.hp?.postgresql !== curr.services.hp.postgresql) return true;
+  if (prev.services?.cloudflare?.subdomainsUp !== curr.services.cloudflare.subdomainsUp) return true;
+  for (const svc of ['nginx', 'grafana', 'prometheus', 'cloudbeaver', 'portainer']) {
+    if (prev.services?.oracle?.[svc] !== curr.services.oracle[svc]) return true;
+  }
+  return false;
+}
+
+function describeChanges(prev, curr) {
+  if (!prev) return 'Initial scan';
+  const changes = [];
+  for (const key of Object.keys(curr.nodes)) {
+    const was = prev.nodes?.[key]?.online;
+    const now = curr.nodes[key].online;
+    if (was !== now) changes.push(`${curr.nodes[key].label}: ${was ? 'ONLINE' : 'OFFLINE'} -> ${now ? 'ONLINE' : 'OFFLINE'}`);
+  }
+  if (prev.services?.hp?.ssh !== curr.services.hp.ssh) changes.push(`HP SSH: ${curr.services.hp.ssh ? 'UP' : 'DOWN'}`);
+  if (prev.services?.hp?.postgresql !== curr.services.hp.postgresql) changes.push(`HP PostgreSQL: ${curr.services.hp.postgresql ? 'UP' : 'DOWN'}`);
+  if (prev.services?.cloudflare?.subdomainsUp !== curr.services.cloudflare.subdomainsUp) {
+    changes.push(`Cloudflare: ${prev.services?.cloudflare?.subdomainsUp || '?'} -> ${curr.services.cloudflare.subdomainsUp} subdomains`);
+  }
+  for (const svc of ['nginx', 'grafana', 'prometheus', 'cloudbeaver', 'portainer']) {
+    if (prev.services?.oracle?.[svc] !== curr.services.oracle[svc]) changes.push(`Oracle ${svc}: ${curr.services.oracle[svc] ? 'UP' : 'DOWN'}`);
+  }
+  return changes.join(', ') || 'No changes';
+}
+
+function openBrowser() {
+  try {
+    execSync(`start "" "${HTML_FILE}"`, { stdio: 'ignore', windowsHide: true });
+    console.log('  Browser popup opened');
+  } catch (e) {
+    console.log(`  Failed to open browser: ${e.message}`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+async function run(forceOpen = false) {
+  const curr = await collectStatus();
+
+  // Generate live HTML
+  const html = generateHTML(curr);
+  fs.writeFileSync(HTML_FILE, html);
+  console.log(`  HTML updated: ${HTML_FILE}`);
+
+  // Check for changes
+  const prev = loadPreviousState();
+  const changed = hasChanged(prev, curr);
+  const desc = describeChanges(prev, curr);
+
+  // Save state
+  fs.writeFileSync(STATE_FILE, JSON.stringify(curr, null, 2));
+
+  if (changed || forceOpen) {
+    console.log(`  CHANGE DETECTED: ${desc}`);
+    openBrowser();
+  } else {
+    console.log(`  No changes detected`);
+  }
+
+  return { changed, description: desc };
+}
+
+// CLI
+const args = process.argv.slice(2);
+const forceOpen = args.includes('--force');
+const watchMode = args.includes('--watch');
+
+if (watchMode) {
+  console.log(`NAVADA Architecture Monitor — watching every ${INTERVAL / 1000}s`);
+  run(true); // First run always opens
+  setInterval(() => run(), INTERVAL);
+} else {
+  run(forceOpen).then(({ changed, description }) => {
+    console.log(`Done. Changed: ${changed}. ${description}`);
+  }).catch(err => {
+    console.error('Error:', err.message);
+    process.exit(1);
+  });
+}

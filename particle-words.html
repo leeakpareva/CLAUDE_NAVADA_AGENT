@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NAVADA — Particle Words</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #050508; display: flex; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
+    #wrap { width: 100vw; height: 100vh; background: #050508; cursor: crosshair; position: relative; overflow: hidden; }
+    #hint {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      font-family: sans-serif; font-size: 11px; color: rgba(255,255,255,0.2);
+      pointer-events: none; letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="hint">HOVER · CLICK · DRAG</div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+  <script>
+    const el = document.getElementById('wrap');
+
+    const WORDS = [
+      'NAVADA','EDGE','AI','AFRICA','VENTURE',
+      'CAPITAL','RAVEN','ALEX','FOLIO','FLIX','RALPH','LONDON'
+    ];
+    const COLORS = [
+      [200, 80, 255], [120, 220, 255], [255, 160, 60],  [80, 255, 200],
+      [255,  80, 160], [160, 255,  80], [255, 220,  60], [100, 180, 255],
+      [255, 120, 200], [80, 200, 255],  [200, 255, 100], [120, 160, 255]
+    ];
+
+    new p5(p => {
+      let particles = [];
+      let wordIndex = 0;
+      let switchTimer = 0;
+      const SWITCH_INTERVAL = 240;
+
+      function sampleWord(word, W, H) {
+        const g = p.createGraphics(W, H);
+        g.pixelDensity(1);
+        g.background(0);
+        g.fill(255);
+        g.noStroke();
+        g.textStyle(p.BOLD);
+        const sz = Math.min(W / (word.length * 0.72), 130);
+        g.textSize(sz);
+        g.textAlign(p.CENTER, p.CENTER);
+        g.text(word, W / 2, H / 2);
+        g.loadPixels();
+        const pts = [];
+        const gap = 5;
+        for (let x = 0; x < W; x += gap) {
+          for (let y = 0; y < H; y += gap) {
+            const i = (x + y * W) * 4;
+            if (g.pixels[i] > 128) pts.push({ x, y });
+          }
+        }
+        g.remove();
+        return pts;
+      }
+
+      p.setup = () => {
+        const W = window.innerWidth;
+        const H = window.innerHeight;
+        const cnv = p.createCanvas(W, H);
+        cnv.parent(el);
+        p.pixelDensity(1);
+
+        const pts = sampleWord(WORDS[0], W, H);
+        const col = COLORS[0];
+        for (const pt of pts) {
+          particles.push({
+            x: p.random(W), y: p.random(-200, H + 200),
+            tx: pt.x, ty: pt.y,
+            vx: p.random(-3, 3), vy: p.random(-3, 3),
+            col: [...col], tcol: [...col],
+            sz: p.random(1.5, 3.4),
+            noise: p.random(1000),
+            active: true
+          });
+        }
+      };
+
+      p.windowResized = () => {
+        p.resizeCanvas(window.innerWidth, window.innerHeight);
+      };
+
+      function morphToWord(word, col) {
+        const W = p.width, H = p.height;
+        const pts = sampleWord(word, W, H);
+        for (let i = pts.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [pts[i], pts[j]] = [pts[j], pts[i]];
+        }
+
+        const excess = particles.length - pts.length;
+        if (excess > 0) {
+          for (let i = 0; i < excess; i++) {
+            const pt = particles[particles.length - 1 - i];
+            pt.tx = p.random(-100, W + 100);
+            pt.ty = p.random(-100, H + 100);
+            pt.active = false;
+          }
+        } else {
+          for (let i = 0; i < -excess; i++) {
+            particles.push({
+              x: p.random(W), y: p.random(-100, H + 100),
+              tx: 0, ty: 0,
+              vx: p.random(-4, 4), vy: p.random(-4, 4),
+              col: [...col], tcol: [...col],
+              sz: p.random(1.5, 3.4),
+              noise: p.random(1000),
+              active: true
+            });
+          }
+        }
+
+        const n = Math.min(particles.length, pts.length);
+        for (let i = 0; i < n; i++) {
+          particles[i].tx = pts[i].x;
+          particles[i].ty = pts[i].y;
+          particles[i].tcol = [...col];
+          particles[i].active = true;
+        }
+      }
+
+      p.draw = () => {
+        p.background(5, 5, 8, 45);
+        const W = p.width, H = p.height;
+        const mx = p.mouseX, my = p.mouseY;
+        const pressing = p.mouseIsPressed;
+        const noiseT = p.frameCount * 0.003;
+
+        switchTimer++;
+        if (switchTimer >= SWITCH_INTERVAL) {
+          switchTimer = 0;
+          wordIndex = (wordIndex + 1) % WORDS.length;
+          morphToWord(WORDS[wordIndex], COLORS[wordIndex % COLORS.length]);
+        }
+
+        for (const pt of particles) {
+          if (!pt.active) {
+            pt.x += pt.vx;
+            pt.y += pt.vy;
+            pt.vx *= 0.95;
+            pt.vy *= 0.95;
+            continue;
+          }
+
+          const nx = p.noise(pt.noise, noiseT) * 2 - 1;
+          const ny = p.noise(pt.noise + 500, noiseT) * 2 - 1;
+
+          let ax = (pt.tx - pt.x) * 0.055 + nx * 0.4;
+          let ay = (pt.ty - pt.y) * 0.055 + ny * 0.4;
+
+          const dx = pt.x - mx;
+          const dy = pt.y - my;
+          const d2 = dx * dx + dy * dy;
+          const R2 = pressing ? 22000 : 9000;
+          const F  = pressing ? 24 : 11;
+
+          if (d2 < R2 && d2 > 0.1) {
+            const d = Math.sqrt(d2);
+            const str = (Math.sqrt(R2) - d) / Math.sqrt(R2) * F;
+            ax += dx / d * str;
+            ay += dy / d * str;
+          }
+
+          pt.vx = (pt.vx + ax) * 0.84;
+          pt.vy = (pt.vy + ay) * 0.84;
+          pt.x += pt.vx;
+          pt.y += pt.vy;
+
+          pt.col = [
+            pt.col[0] + (pt.tcol[0] - pt.col[0]) * 0.04,
+            pt.col[1] + (pt.tcol[1] - pt.col[1]) * 0.04,
+            pt.col[2] + (pt.tcol[2] - pt.col[2]) * 0.04
+          ];
+
+          const spd = Math.sqrt(pt.vx * pt.vx + pt.vy * pt.vy);
+          const s = Math.min(1, spd / 14);
+          const r = Math.min(255, Math.round(pt.col[0] + s * 60));
+          const g2 = Math.max(0,  Math.round(pt.col[1] - s * 40));
+          const b  = Math.min(255, Math.round(pt.col[2] + s * 20));
+          const a  = Math.min(255, 180 + spd * 8);
+
+          p.noStroke();
+          p.fill(r, g2, b, a);
+          p.circle(pt.x, pt.y, pt.sz + spd * 0.12);
+        }
+      };
+
+      p.mouseClicked = () => {
+        for (const pt of particles) {
+          if (!pt.active) continue;
+          const dx = pt.x - p.mouseX;
+          const dy = pt.y - p.mouseY;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 220) {
+            pt.vx += dx / d * p.random(10, 22);
+            pt.vy += dy / d * p.random(10, 22);
+          }
+        }
+      };
+
+    }, el);
+  </script>
+</body>
+</html>

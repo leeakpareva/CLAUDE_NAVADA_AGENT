@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAVADA Edge Network — v3.0</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #050505;
+    color: #e0e0e0;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .header {
+    text-align: center;
+    padding: 30px 20px 10px;
+    border-bottom: 1px solid #1a1a1a;
+  }
+
+  .header h1 {
+    font-size: 2em;
+    font-weight: 300;
+    letter-spacing: 0.3em;
+    background: linear-gradient(135deg, #00d4ff, #7b2ff7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 4px;
+  }
+
+  .header .subtitle {
+    color: #555;
+    font-size: 0.75em;
+    letter-spacing: 0.15em;
+  }
+
+  .header .version {
+    color: #333;
+    font-size: 0.65em;
+    margin-top: 4px;
+  }
+
+  .canvas-container {
+    position: relative;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  svg.network {
+    width: 100%;
+    height: auto;
+  }
+
+  /* Node card styling */
+  .node-card {
+    fill: #0a0a0a;
+    stroke: #222;
+    stroke-width: 1.5;
+    rx: 8;
+    ry: 8;
+  }
+
+  .node-card.server { stroke: #00d4ff; stroke-width: 2; }
+  .node-card.protected { stroke: #ff4444; stroke-width: 2; }
+  .node-card.gateway { stroke: #7b2ff7; stroke-width: 2; }
+  .node-card.compute { stroke: #ff8c00; stroke-width: 2; }
+  .node-card.client { stroke: #00ff88; stroke-width: 2; }
+  .node-card.mobile { stroke: #555; stroke-width: 1.5; }
+  .node-card.cloud { stroke: #444; stroke-width: 1; fill: #080808; }
+
+  .node-id {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  .node-id.server { fill: #00d4ff; }
+  .node-id.protected { fill: #ff4444; }
+  .node-id.gateway { fill: #7b2ff7; }
+  .node-id.compute { fill: #ff8c00; }
+  .node-id.client { fill: #00ff88; }
+  .node-id.mobile { fill: #888; }
+
+  .node-name {
+    font-size: 11px;
+    font-weight: 600;
+    fill: #ffffff;
+    letter-spacing: 0.05em;
+  }
+
+  .node-hostname {
+    font-size: 9px;
+    fill: #666;
+    font-style: italic;
+  }
+
+  .node-role {
+    font-size: 8.5px;
+    fill: #888;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .node-ip {
+    font-size: 9px;
+    fill: #00d4ff;
+    font-family: 'SF Mono', monospace;
+  }
+
+  .node-hw {
+    font-size: 8px;
+    fill: #444;
+  }
+
+  .service-label {
+    font-size: 8px;
+    fill: #999;
+  }
+
+  .service-item {
+    font-size: 7.5px;
+    fill: #666;
+    font-family: 'SF Mono', monospace;
+  }
+
+  .service-item.online { fill: #00ff88; }
+  .service-item.docker { fill: #2496ed; }
+  .service-item.disabled { fill: #ff4444; opacity: 0.5; }
+  .service-item.planned { fill: #555; font-style: italic; }
+  .service-item.native { fill: #ff8c00; }
+
+  .section-label {
+    font-size: 8px;
+    fill: #333;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .divider {
+    stroke: #1a1a1a;
+    stroke-width: 0.5;
+  }
+
+  /* Connection lines */
+  .conn-tailscale {
+    stroke: #00d4ff;
+    stroke-width: 1.2;
+    stroke-dasharray: 6 3;
+    fill: none;
+    opacity: 0.4;
+  }
+
+  .conn-tunnel {
+    stroke: #7b2ff7;
+    stroke-width: 1.5;
+    stroke-dasharray: 8 4;
+    fill: none;
+    opacity: 0.5;
+  }
+
+  .conn-ssh {
+    stroke: #00ff88;
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+    fill: none;
+    opacity: 0.3;
+  }
+
+  .conn-internet {
+    stroke: #ff8c00;
+    stroke-width: 1.5;
+    fill: none;
+    opacity: 0.3;
+  }
+
+  /* Pulse animation for active connections */
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.7; }
+  }
+
+  .conn-tailscale { animation: pulse 4s ease-in-out infinite; }
+
+  /* Legend */
+  .legend-dot {
+    r: 4;
+  }
+
+  .legend-text {
+    font-size: 8px;
+    fill: #666;
+  }
+
+  /* Status indicator */
+  .status-dot {
+    r: 3;
+  }
+
+  .status-dot.online { fill: #00ff88; }
+  .status-dot.offline { fill: #ff4444; }
+  .status-dot.planned { fill: #555; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 15px;
+    border-top: 1px solid #1a1a1a;
+    color: #333;
+    font-size: 0.65em;
+    letter-spacing: 0.1em;
+  }
+
+  /* Mesh overlay */
+  .mesh-bg {
+    fill: none;
+    stroke: #0d0d0d;
+    stroke-width: 0.5;
+  }
+
+  .cloud-label {
+    font-size: 10px;
+    fill: #555;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .port-tag {
+    font-size: 7px;
+    fill: #00d4ff;
+    opacity: 0.7;
+  }
+
+  .protected-badge {
+    font-size: 7px;
+    fill: #ff4444;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>NAVADA EDGE</h1>
+  <div class="subtitle">DISTRIBUTED INFRASTRUCTURE NETWORK</div>
+  <div class="version">v3.0 | March 2026 | 6 Nodes | Tailscale Mesh | Cloudflare Edge</div>
+</div>
+
+<div class="canvas-container">
+<svg class="network" viewBox="0 0 1360 1050" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Background grid -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#0a0a0a" stroke-width="0.5"/>
+    </pattern>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glow-strong">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="1360" height="1050" fill="url(#grid)"/>
+
+  <!-- ==================== CLOUDFLARE EDGE (top) ==================== -->
+  <rect x="340" y="15" width="680" height="120" class="node-card cloud" rx="10"/>
+  <text x="680" y="38" text-anchor="middle" class="cloud-label" fill="#ff8c00">CLOUDFLARE EDGE</text>
+  <text x="680" y="52" text-anchor="middle" class="node-hostname">navada-edge-server.uk | 24/7 Serverless</text>
+
+  <text x="370" y="72" class="service-item" fill="#ff8c00">DNS</text>
+  <text x="370" y="83" class="service-item" fill="#666">Tunnel → C (Oracle Nginx)</text>
+  <text x="370" y="94" class="service-item" fill="#666">Workers: cron, health beacon</text>
+  <text x="370" y="105" class="service-item" fill="#666">R2: navada-assets storage</text>
+  <text x="370" y="116" class="service-item" fill="#666">Stream: video CDN ($5/mo)</text>
+  <text x="370" y="127" class="service-item" fill="#666">Flux: free AI image gen</text>
+
+  <text x="700" y="72" class="section-label">11 Subdomains</text>
+  <text x="700" y="84" class="service-item" fill="#888">api | flix | trading | network | logo</text>
+  <text x="700" y="95" class="service-item" fill="#888">grafana | monitor | cloudbeaver | nodes</text>
+  <text x="700" y="106" class="service-item" fill="#888">dashboard | kibana (disabled)</text>
+
+  <!-- Tunnel line from Cloudflare to Oracle -->
+  <path d="M 680 135 L 680 155 L 680 175" class="conn-tunnel"/>
+  <text x="695" y="158" class="service-item" fill="#7b2ff7" font-size="7">CF TUNNEL</text>
+
+  <!-- ==================== TAILSCALE MESH BOUNDARY ==================== -->
+  <rect x="20" y="170" width="1320" height="680" rx="12" fill="none" stroke="#1a1a1a" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="40" y="188" class="section-label" fill="#00d4ff" font-size="9" letter-spacing="0.3em">TAILSCALE MESH — WIREGUARD ENCRYPTED P2P</text>
+
+  <!-- ==================== NODE A: ASUS ZENBOOK (left) ==================== -->
+  <rect x="40" y="210" width="310" height="380" class="node-card server"/>
+
+  <!-- Glow accent -->
+  <line x1="40" y1="210" x2="350" y2="210" stroke="#00d4ff" stroke-width="2" filter="url(#glow)" opacity="0.6"/>
+
+  <circle cx="60" cy="232" r="12" fill="#00d4ff" opacity="0.15"/>
+  <text x="60" y="236" text-anchor="middle" class="node-id server">A</text>
+  <text x="80" y="230" class="node-name">ASUS ZENBOOK DUO</text>
+  <text x="80" y="242" class="node-hostname">navada-asus-control</text>
+  <text x="80" y="254" class="node-role">24/7 SERVER NODE</text>
+  <circle cx="295" cy="232" class="status-dot online"/>
+  <text x="305" y="235" class="service-item online" font-size="7">ONLINE</text>
+
+  <text x="55" y="272" class="node-ip">TS: 100.88.118.128</text>
+  <text x="200" y="272" class="node-ip">LAN: 192.168.0.18</text>
+  <text x="55" y="284" class="node-hw">Intel Core Ultra 7 | 16GB RAM | 478GB free | WiFi | Win 11 Home</text>
+
+  <line x1="50" y1="292" x2="340" y2="292" class="divider"/>
+  <text x="55" y="305" class="section-label">PM2 SERVICES</text>
+  <circle cx="60" cy="317" class="status-dot online"/>
+  <text x="70" y="320" class="service-item online">telegram-bot :3456 (DEV)</text>
+  <circle cx="60" cy="330" class="status-dot online"/>
+  <text x="70" y="333" class="service-item online">particle-words :3100</text>
+  <circle cx="60" cy="343" class="status-dot online"/>
+  <text x="70" y="346" class="service-item online">mindmap :3101</text>
+
+  <line x1="50" y1="355" x2="340" y2="355" class="divider"/>
+  <text x="55" y="368" class="section-label">DOCKER (WSL2, 24/7)</text>
+  <circle cx="60" cy="380" class="status-dot planned"/>
+  <text x="70" y="383" class="service-item docker">navada-pg-dev :5434</text>
+  <circle cx="60" cy="393" class="status-dot planned"/>
+  <text x="70" y="396" class="service-item docker">navada-redis :6379</text>
+  <circle cx="60" cy="406" class="status-dot planned"/>
+  <text x="70" y="409" class="service-item docker">navada-chroma :8000</text>
+  <circle cx="60" cy="419" class="status-dot planned"/>
+  <text x="70" y="422" class="service-item docker">navada-sqlite-admin :8088</text>
+  <circle cx="60" cy="432" class="status-dot planned"/>
+  <text x="70" y="435" class="service-item docker">navada-node-exporter :9100</text>
+  <circle cx="60" cy="445" class="status-dot online"/>
+  <text x="70" y="448" class="service-item docker">NemoClaw/OpenClaw :18789</text>
+
+  <line x1="50" y1="458" x2="340" y2="458" class="divider"/>
+  <text x="55" y="471" class="section-label">NATIVE</text>
+  <circle cx="60" cy="483" class="status-dot online"/>
+  <text x="70" y="486" class="service-item native">PostgreSQL 17 :5433</text>
+  <circle cx="60" cy="496" class="status-dot online"/>
+  <text x="70" y="499" class="service-item native">Ollama :11434 (local AI)</text>
+  <circle cx="60" cy="509" class="status-dot online"/>
+  <text x="70" y="512" class="service-item native">LM Studio (inference)</text>
+
+  <text x="55" y="540" class="service-item" fill="#00d4ff" font-size="7">PRIMARY STORAGE TARGET — 478GB FREE</text>
+  <text x="55" y="555" class="service-item" fill="#333" font-size="7">New services, data, Docker volumes go here</text>
+
+  <!-- ==================== NODE B: HP LAPTOP (right of A) ==================== -->
+  <rect x="380" y="210" width="310" height="380" class="node-card protected"/>
+
+  <line x1="380" y1="210" x2="690" y2="210" stroke="#ff4444" stroke-width="2" filter="url(#glow)" opacity="0.5"/>
+
+  <circle cx="400" cy="232" r="12" fill="#ff4444" opacity="0.15"/>
+  <text x="400" y="236" text-anchor="middle" class="node-id protected">B</text>
+  <text x="420" y="230" class="node-name">HP LAPTOP</text>
+  <text x="420" y="242" class="node-hostname">navada-edge-hp</text>
+  <text x="420" y="254" class="node-role">ALWAYS-ON SSH-ONLY NODE</text>
+  <circle cx="635" cy="232" class="status-dot online"/>
+  <text x="645" y="235" class="service-item online" font-size="7">ONLINE</text>
+
+  <text x="395" y="272" class="node-ip">TS: 100.121.187.67</text>
+  <text x="540" y="272" class="node-ip">LAN: 192.168.0.58</text>
+  <text x="395" y="284" class="node-hw">Win 11 Pro | Ethernet (static) | ~119GB free | Docker DEAD</text>
+
+  <line x1="390" y1="292" x2="680" y2="292" class="divider"/>
+  <text x="395" y="305" class="section-label">PM2 SERVICES (PRODUCTION)</text>
+  <circle cx="400" cy="317" class="status-dot online"/>
+  <text x="410" y="320" class="service-item online">telegram-bot :3456 (PROD 24/7)</text>
+  <circle cx="400" cy="330" class="status-dot online"/>
+  <text x="410" y="333" class="service-item online">navada-flix :4000</text>
+  <circle cx="400" cy="343" class="status-dot online"/>
+  <text x="410" y="346" class="service-item online">hp-cloudwatch-metrics (60s)</text>
+  <circle cx="400" cy="356" class="status-dot online"/>
+  <text x="410" y="359" class="service-item online">cloudflare-metrics (5min)</text>
+  <circle cx="400" cy="369" class="status-dot online"/>
+  <text x="410" y="372" class="service-item online">cloudwatch-logs (60s)</text>
+  <circle cx="400" cy="382" class="status-dot online"/>
+  <text x="410" y="385" class="service-item online">navada-logo :3000</text>
+  <circle cx="400" cy="395" class="status-dot online"/>
+  <text x="410" y="398" class="service-item online">network-scanner :7777</text>
+  <circle cx="400" cy="408" class="status-dot online"/>
+  <text x="410" y="411" class="service-item online">trading-api :5678</text>
+
+  <line x1="390" y1="422" x2="680" y2="422" class="divider"/>
+  <text x="395" y="435" class="section-label">NATIVE</text>
+  <circle cx="400" cy="447" class="status-dot online"/>
+  <text x="410" y="450" class="service-item native">PostgreSQL 17 :5433 (navada_pipeline)</text>
+  <circle cx="400" cy="460" class="status-dot online"/>
+  <text x="410" y="463" class="service-item native">Tailscale (native Windows)</text>
+
+  <line x1="390" y1="478" x2="680" y2="478" class="divider"/>
+  <rect x="395" y="488" width="275" height="42" rx="4" fill="#1a0000" stroke="#ff4444" stroke-width="0.5" opacity="0.6"/>
+  <text x="405" y="502" class="protected-badge">PROTECTED — DO NOT MODIFY</text>
+  <text x="405" y="515" class="service-item" fill="#ff4444" font-size="7" opacity="0.7">No new files | No new services | Disk was full</text>
+  <text x="405" y="525" class="service-item" fill="#ff4444" font-size="7" opacity="0.7">Docker DEAD | SSH-only operations</text>
+
+  <!-- ==================== NODE C: ORACLE VM (center bottom) ==================== -->
+  <rect x="380" y="620" width="310" height="220" class="node-card gateway"/>
+
+  <line x1="380" y1="620" x2="690" y2="620" stroke="#7b2ff7" stroke-width="2" filter="url(#glow)" opacity="0.6"/>
+
+  <circle cx="400" cy="642" r="12" fill="#7b2ff7" opacity="0.15"/>
+  <text x="400" y="646" text-anchor="middle" class="node-id gateway">C</text>
+  <text x="420" y="640" class="node-name">ORACLE VM</text>
+  <text x="420" y="652" class="node-hostname">navada-oracle</text>
+  <text x="420" y="664" class="node-role">GATEWAY / DOCKER HOST</text>
+  <circle cx="635" cy="642" class="status-dot online"/>
+  <text x="645" y="645" class="service-item online" font-size="7">ONLINE</text>
+
+  <text x="395" y="682" class="node-ip">TS: 100.77.206.9</text>
+  <text x="540" y="682" class="node-ip">PUB: 132.145.46.184</text>
+  <text x="395" y="694" class="node-hw">Oracle Free Tier | 1 OCPU | 5.8GB RAM | NO SWAP | Ubuntu</text>
+
+  <line x1="390" y1="702" x2="680" y2="702" class="divider"/>
+  <text x="395" y="715" class="section-label">DOCKER CONTAINERS (7 RUNNING)</text>
+  <circle cx="400" cy="727" class="status-dot online"/>
+  <text x="410" y="730" class="service-item docker">navada-proxy :80/443/8080 (Nginx)</text>
+  <circle cx="400" cy="740" class="status-dot online"/>
+  <text x="410" y="743" class="service-item docker">navada-tunnel (CF Tunnel)</text>
+  <circle cx="400" cy="753" class="status-dot online"/>
+  <text x="410" y="756" class="service-item docker">navada-grafana :3000</text>
+  <circle cx="400" cy="766" class="status-dot online"/>
+  <text x="410" y="769" class="service-item docker">navada-prometheus :9090</text>
+  <circle cx="400" cy="779" class="status-dot online"/>
+  <text x="410" y="782" class="service-item docker">navada-portainer :9000</text>
+  <circle cx="400" cy="792" class="status-dot online"/>
+  <text x="410" y="795" class="service-item docker">cloudbeaver :8978</text>
+  <circle cx="400" cy="805" class="status-dot online"/>
+  <text x="410" y="808" class="service-item docker">navada-uptime :3001 (healthy)</text>
+
+  <text x="395" y="828" class="service-item disabled" font-size="7">DISABLED: elasticsearch, kibana, jenkins (OOM prevention)</text>
+
+  <!-- ==================== NODE D: AWS EC2 (right) ==================== -->
+  <rect x="720" y="210" width="310" height="380" class="node-card compute"/>
+
+  <line x1="720" y1="210" x2="1030" y2="210" stroke="#ff8c00" stroke-width="2" filter="url(#glow)" opacity="0.6"/>
+
+  <circle cx="740" cy="232" r="12" fill="#ff8c00" opacity="0.15"/>
+  <text x="740" y="236" text-anchor="middle" class="node-id compute">D</text>
+  <text x="760" y="230" class="node-name">AWS EC2</text>
+  <text x="760" y="242" class="node-hostname">navada-ec2-aws</text>
+  <text x="760" y="254" class="node-role">24/7 COMPUTE</text>
+  <circle cx="975" cy="232" class="status-dot online"/>
+  <text x="985" y="235" class="service-item online" font-size="7">ONLINE</text>
+
+  <text x="735" y="272" class="node-ip">TS: 100.98.118.33</text>
+  <text x="880" y="272" class="node-ip">EIP: 3.11.119.181</text>
+  <text x="735" y="284" class="node-hw">t3.medium | 2 vCPU | 4GB | Ubuntu | eu-west-2 | $25/mo budget</text>
+
+  <line x1="730" y1="292" x2="1020" y2="292" class="divider"/>
+  <text x="735" y="305" class="section-label">PM2 SERVICES (6/6 ONLINE)</text>
+  <circle cx="740" cy="317" class="status-dot online"/>
+  <text x="750" y="320" class="service-item online">ec2-health-monitor (16 endpoints, 5min)</text>
+  <circle cx="740" cy="330" class="status-dot online"/>
+  <text x="750" y="333" class="service-item online">cloudwatch-dashboard-updater (11 dashboards)</text>
+  <circle cx="740" cy="343" class="status-dot online"/>
+  <text x="750" y="346" class="service-item online">worldmonitor :4000 (OSINT)</text>
+  <circle cx="740" cy="356" class="status-dot online"/>
+  <text x="750" y="359" class="service-item online">worldview-monitor (CW metrics)</text>
+  <circle cx="740" cy="369" class="status-dot online"/>
+  <text x="750" y="372" class="service-item online">navada-dashboard</text>
+  <circle cx="740" cy="382" class="status-dot online"/>
+  <text x="750" y="385" class="service-item online">e2e-tests</text>
+
+  <line x1="730" y1="398" x2="1020" y2="398" class="divider"/>
+  <text x="735" y="411" class="section-label">AWS SERVICES</text>
+  <text x="750" y="425" class="service-item" fill="#ff8c00">Lambda: navada-vision-router</text>
+  <text x="750" y="437" class="service-item" fill="#ff8c00">API Gateway: /vision/* /mcp /api/*</text>
+  <text x="750" y="449" class="service-item" fill="#ff8c00">SageMaker: YOLOv8n (scales to zero)</text>
+  <text x="750" y="461" class="service-item" fill="#ff8c00">Bedrock: Claude Sonnet/Opus</text>
+  <text x="750" y="473" class="service-item" fill="#ff8c00">DynamoDB: faces, vision-log, edge-logs</text>
+  <text x="750" y="485" class="service-item" fill="#ff8c00">Rekognition: navada-faces</text>
+  <text x="750" y="497" class="service-item" fill="#ff8c00">S3: navada-vision-eu-west-2</text>
+  <text x="750" y="509" class="service-item" fill="#ff8c00">CloudWatch: 11 dashboards, 3 log groups</text>
+  <text x="750" y="521" class="service-item" fill="#ff8c00">ECR: navada-yolo container repo</text>
+
+  <line x1="730" y1="534" x2="1020" y2="534" class="divider"/>
+  <text x="735" y="548" class="section-label">HEALTH MONITOR CHECKS (16)</text>
+  <text x="750" y="562" class="service-item" fill="#666">HP: telegram-bot, flix, logo, network, trading, CW, CF</text>
+  <text x="750" y="574" class="service-item" fill="#666">Oracle: proxy, grafana, portainer, cloudbeaver, uptime, prometheus</text>
+  <text x="750" y="586" class="service-item" fill="#666">CF: api, flix, trading subdomains</text>
+
+  <!-- ==================== NODE E: VIVOBOOK (bottom left) ==================== -->
+  <rect x="40" y="620" width="310" height="120" class="node-card client"/>
+
+  <line x1="40" y1="620" x2="350" y2="620" stroke="#00ff88" stroke-width="2" filter="url(#glow)" opacity="0.5"/>
+
+  <circle cx="60" cy="642" r="12" fill="#00ff88" opacity="0.15"/>
+  <text x="60" y="646" text-anchor="middle" class="node-id client">E</text>
+  <text x="80" y="640" class="node-name">ASUS VIVOBOOK (NEW)</text>
+  <text x="80" y="652" class="node-hostname">TBD hostname</text>
+  <text x="80" y="664" class="node-role">CONTROL CLIENT — LEE'S COCKPIT</text>
+  <circle cx="295" cy="642" class="status-dot planned"/>
+  <text x="305" y="645" class="service-item" fill="#555" font-size="7">SETUP</text>
+
+  <text x="55" y="682" class="node-ip">TS: TBD (pending Tailscale join)</text>
+
+  <line x1="50" y1="690" x2="340" y2="690" class="divider"/>
+  <text x="55" y="703" class="section-label">PURPOSE</text>
+  <text x="55" y="716" class="service-item" fill="#00ff88">SSH into all nodes (A, B, C, D)</text>
+  <text x="55" y="728" class="service-item" fill="#00ff88">Claude Code sessions + VS Code Remote</text>
+
+  <!-- ==================== NODE F: iPHONE (bottom right) ==================== -->
+  <rect x="720" y="620" width="310" height="120" class="node-card mobile"/>
+
+  <circle cx="740" cy="642" r="12" fill="#888" opacity="0.15"/>
+  <text x="740" y="646" text-anchor="middle" class="node-id mobile">F</text>
+  <text x="760" y="640" class="node-name">iPHONE 15 PRO MAX</text>
+  <text x="760" y="652" class="node-hostname">iphone-15-pro-max</text>
+  <text x="760" y="664" class="node-role">MOBILE CLIENT</text>
+  <circle cx="975" cy="642" class="status-dot online"/>
+  <text x="985" y="645" class="service-item online" font-size="7">IDLE</text>
+
+  <text x="735" y="682" class="node-ip">TS: 100.68.251.111</text>
+
+  <line x1="730" y1="690" x2="1020" y2="690" class="divider"/>
+  <text x="735" y="703" class="section-label">INTERFACES</text>
+  <text x="735" y="716" class="service-item" fill="#888">Telegram → B:telegram-bot (Chief of Staff)</text>
+  <text x="735" y="728" class="service-item" fill="#888">+447446994961 (NAVADA) | +447935237704 (Lee)</text>
+
+  <!-- ==================== CONNECTION LINES ==================== -->
+
+  <!-- A ↔ B (Tailscale) -->
+  <line x1="350" y1="350" x2="380" y2="350" class="conn-tailscale"/>
+
+  <!-- A ↔ C (Tailscale) -->
+  <line x1="195" y1="590" x2="195" y2="610" class="conn-tailscale" opacity="0.2"/>
+  <path d="M 195 610 L 195 650 L 380 700" class="conn-tailscale"/>
+
+  <!-- A ↔ D (Tailscale) -->
+  <path d="M 350 400 Q 540 420 720 400" class="conn-tailscale" opacity="0.2"/>
+
+  <!-- B ↔ C (Tailscale) -->
+  <line x1="535" y1="590" x2="535" y2="620" class="conn-tailscale"/>
+
+  <!-- B ↔ D (Tailscale) -->
+  <line x1="690" y1="350" x2="720" y2="350" class="conn-tailscale" opacity="0.2"/>
+
+  <!-- C ↔ D (Tailscale) -->
+  <path d="M 690 730 Q 705 730 720 620" class="conn-tailscale" opacity="0.2"/>
+
+  <!-- E → all nodes (SSH) -->
+  <path d="M 195 620 L 195 600 L 195 590" class="conn-ssh"/>
+  <text x="205" y="608" class="service-item" fill="#00ff88" font-size="6">SSH</text>
+
+  <!-- F → B (Telegram) -->
+  <path d="M 720 680 Q 650 680 600 590" class="conn-ssh" stroke="#888" opacity="0.2"/>
+
+  <!-- ==================== LEGEND ==================== -->
+  <rect x="1060" y="210" width="280" height="260" rx="8" fill="#080808" stroke="#1a1a1a" stroke-width="1"/>
+  <text x="1080" y="232" class="section-label" font-size="9" fill="#555">LEGEND</text>
+
+  <line x1="1080" y1="248" x2="1110" y2="248" stroke="#00d4ff" stroke-width="2"/>
+  <text x="1120" y="252" class="legend-text">Node A — 24/7 Server (ASUS)</text>
+
+  <line x1="1080" y1="268" x2="1110" y2="268" stroke="#ff4444" stroke-width="2"/>
+  <text x="1120" y="272" class="legend-text">Node B — Protected (HP)</text>
+
+  <line x1="1080" y1="288" x2="1110" y2="288" stroke="#7b2ff7" stroke-width="2"/>
+  <text x="1120" y="292" class="legend-text">Node C — Gateway (Oracle)</text>
+
+  <line x1="1080" y1="308" x2="1110" y2="308" stroke="#ff8c00" stroke-width="2"/>
+  <text x="1120" y="312" class="legend-text">Node D — Compute (EC2)</text>
+
+  <line x1="1080" y1="328" x2="1110" y2="328" stroke="#00ff88" stroke-width="2"/>
+  <text x="1120" y="332" class="legend-text">Node E — Control Client (Vivobook)</text>
+
+  <line x1="1080" y1="348" x2="1110" y2="348" stroke="#888" stroke-width="1.5"/>
+  <text x="1120" y="352" class="legend-text">Node F — Mobile (iPhone)</text>
+
+  <line x1="1080" y1="375" x2="1320" y2="375" class="divider"/>
+  <text x="1080" y="392" class="section-label" font-size="8" fill="#444">CONNECTIONS</text>
+
+  <line x1="1080" y1="405" x2="1110" y2="405" class="conn-tailscale" style="animation:none; opacity:0.6"/>
+  <text x="1120" y="409" class="legend-text">Tailscale mesh (WireGuard)</text>
+
+  <line x1="1080" y1="425" x2="1110" y2="425" class="conn-tunnel" style="animation:none; opacity:0.6"/>
+  <text x="1120" y="429" class="legend-text">Cloudflare Tunnel</text>
+
+  <line x1="1080" y1="445" x2="1110" y2="445" class="conn-ssh" style="animation:none; opacity:0.6" stroke="#00ff88"/>
+  <text x="1120" y="449" class="legend-text">SSH control (from E)</text>
+
+  <!-- Status dots legend -->
+  <circle cx="1088" cy="462" r="3" fill="#00ff88"/>
+  <text x="1098" y="465" class="legend-text">Online</text>
+  <circle cx="1158" cy="462" r="3" fill="#555"/>
+  <text x="1168" y="465" class="legend-text">Planned</text>
+  <circle cx="1228" cy="462" r="3" fill="#ff4444"/>
+  <text x="1238" y="465" class="legend-text">Disabled</text>
+
+  <!-- ==================== AWS SERVERLESS (bottom right) ==================== -->
+  <rect x="1060" y="500" width="280" height="170" class="node-card cloud" rx="8"/>
+  <text x="1200" y="522" text-anchor="middle" class="cloud-label" fill="#ff8c00">AWS SERVERLESS</text>
+  <text x="1200" y="534" text-anchor="middle" class="node-hostname">eu-west-2 (London) | $25/mo</text>
+
+  <text x="1080" y="554" class="service-item" fill="#ff8c00">Lambda: vision-router</text>
+  <text x="1080" y="566" class="service-item" fill="#ff8c00">API Gateway: /vision/*</text>
+  <text x="1080" y="578" class="service-item" fill="#ff8c00">SageMaker: YOLOv8n</text>
+  <text x="1080" y="590" class="service-item" fill="#ff8c00">Bedrock: Claude AI</text>
+  <text x="1080" y="602" class="service-item" fill="#ff8c00">DynamoDB: 3 tables</text>
+  <text x="1080" y="614" class="service-item" fill="#ff8c00">S3 + ECR + Rekognition</text>
+  <text x="1080" y="626" class="service-item" fill="#ff8c00">CloudWatch: 11 dashboards</text>
+  <text x="1080" y="646" class="service-item" fill="#ff8c00">Budget: $25/mo (80%/100% alerts)</text>
+  <text x="1080" y="660" class="service-item" fill="#444">Region: eu-west-2 | Account: 491085390194</text>
+
+  <!-- ==================== TRAFFIC FLOW (bottom) ==================== -->
+  <rect x="40" y="870" width="1280" height="160" rx="8" fill="#080808" stroke="#1a1a1a" stroke-width="1"/>
+  <text x="60" y="892" class="section-label" font-size="9" fill="#555" letter-spacing="0.2em">TRAFFIC FLOW</text>
+
+  <text x="60" y="914" class="service-item" fill="#ff8c00" font-size="9">INTERNET → CLOUDFLARE</text>
+  <text x="260" y="914" class="service-item" fill="#7b2ff7" font-size="9">→ CF TUNNEL</text>
+  <text x="400" y="914" class="service-item" fill="#7b2ff7" font-size="9">→ C: NGINX</text>
+  <text x="540" y="914" class="service-item" fill="#00d4ff" font-size="9">→ B: HP SERVICES (Tailscale)</text>
+  <text x="60" y="930" class="service-item" fill="#666" font-size="8">                                                                                → A: ASUS SERVICES (Tailscale backup)</text>
+  <text x="60" y="942" class="service-item" fill="#666" font-size="8">                                                                                → C: ORACLE LOCAL (Docker network)</text>
+  <text x="60" y="954" class="service-item" fill="#666" font-size="8">                                                                                → D: EC2 WorldMonitor (Tailscale)</text>
+
+  <line x1="60" y1="964" x2="1300" y2="964" class="divider"/>
+
+  <text x="60" y="980" class="service-item" fill="#888" font-size="9">LEE (iPhone F)</text>
+  <text x="200" y="980" class="service-item" fill="#888" font-size="9">→ Telegram → B:telegram-bot :3456 (primary) | A:telegram-bot :3456 (backup)</text>
+
+  <text x="60" y="996" class="service-item" fill="#00ff88" font-size="9">LEE (Vivobook E)</text>
+  <text x="200" y="996" class="service-item" fill="#00ff88" font-size="9">→ SSH (Tailscale) → A, B, C, D (any node, full control)</text>
+  <text x="200" y="1010" class="service-item" fill="#00ff88" font-size="8">→ Claude Code sessions on any node</text>
+
+</svg>
+</div>
+
+<div class="footer">
+  NAVADA EDGE INFRASTRUCTURE &bull; v3.0 &bull; MARCH 2026 &bull; LEE AKPAREVA &bull; NAVADA-EDGE-SERVER.UK
+</div>
+
+</body>
+</html>

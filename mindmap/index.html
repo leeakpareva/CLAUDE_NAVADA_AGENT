@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>NAVADA EDGE — Architecture Mind Map</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;overflow:hidden;touch-action:none;}
+  body{background:#03030d;font-family:'Courier New',monospace;}
+  #wrap{width:100vw;height:100vh;height:100dvh;position:relative;overflow:hidden;cursor:grab;}
+  #wrap:active{cursor:grabbing;}
+  canvas{position:absolute;top:0;left:0;}
+
+  #panel{
+    display:none;position:absolute;width:230px;
+    background:rgba(6,4,20,0.97);border-radius:10px;padding:16px 18px;
+    pointer-events:auto;z-index:20;
+    border:1px solid rgba(255,255,255,0.07);
+    backdrop-filter:blur(12px);
+    top:16px;right:16px;
+    max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  #panel-close{
+    display:none;position:absolute;top:8px;right:10px;
+    width:28px;height:28px;border:none;background:rgba(255,255,255,0.08);
+    border-radius:50%;color:rgba(255,255,255,0.5);font-size:16px;
+    cursor:pointer;pointer-events:auto;z-index:21;
+    line-height:28px;text-align:center;
+  }
+  #panel-title{font-size:13px;font-weight:700;margin-bottom:3px;letter-spacing:0.5px;}
+  #panel-sub{font-size:10px;opacity:0.45;margin-bottom:12px;letter-spacing:0.3px;}
+  #panel-items div{
+    padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05);
+    color:rgba(210,205,225,0.8);font-size:10px;line-height:1.7;
+  }
+  #panel-items div:last-child{border-bottom:none;}
+
+  #hint{
+    position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+    font-family:'Courier New',monospace;font-size:10px;
+    color:rgba(255,255,255,0.14);letter-spacing:3px;pointer-events:none;
+    white-space:nowrap;
+  }
+  #zoom{
+    position:absolute;bottom:14px;right:16px;
+    font-family:'Courier New',monospace;font-size:10px;
+    color:rgba(255,255,255,0.18);pointer-events:none;
+  }
+  #logo{
+    position:absolute;top:16px;left:16px;
+    font-family:'Courier New',monospace;font-size:11px;
+    color:rgba(180,90,255,0.5);letter-spacing:4px;pointer-events:none;
+  }
+
+  /* Mobile: bottom sheet panel */
+  @media (max-width: 600px) {
+    #panel{
+      top:auto;right:0;bottom:0;left:0;
+      width:100%;max-width:100%;
+      border-radius:16px 16px 0 0;
+      padding:20px 20px calc(env(safe-area-inset-bottom, 8px) + 12px);
+      max-height:55vh;
+    }
+    #panel-close{display:block;}
+    #panel-title{font-size:15px;}
+    #panel-sub{font-size:11px;}
+    #panel-items div{font-size:11px;padding:5px 0;line-height:1.8;}
+    #hint{bottom:calc(env(safe-area-inset-bottom, 8px) + 10px);font-size:9px;letter-spacing:2px;}
+    #zoom{bottom:calc(env(safe-area-inset-bottom, 8px) + 10px);}
+    #logo{top:calc(env(safe-area-inset-top, 8px) + 8px);font-size:10px;}
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <div id="panel">
+    <button id="panel-close">&times;</button>
+    <div id="panel-title"></div>
+    <div id="panel-sub"></div>
+    <div id="panel-items"></div>
+  </div>
+  <div id="logo">NAVADA EDGE</div>
+  <div id="hint"></div>
+  <div id="zoom">100%</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+<script>
+const wrap = document.getElementById('wrap');
+const panel = document.getElementById('panel');
+const panelClose = document.getElementById('panel-close');
+const panelTitle = document.getElementById('panel-title');
+const panelSub = document.getElementById('panel-sub');
+const panelItems = document.getElementById('panel-items');
+const zoomEl = document.getElementById('zoom');
+const hintEl = document.getElementById('hint');
+
+const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+hintEl.textContent = isMobile ? 'DRAG · PINCH TO ZOOM · TAP NODE' : 'DRAG · SCROLL TO ZOOM · CLICK NODE TO EXPAND';
+
+panelClose.addEventListener('click', e => { e.stopPropagation(); panel.style.display='none'; activeId=null; });
+
+const DATA = {
+  id:'edge', label:'NAVADA\nEDGE', sub:'Living Infrastructure', r:58, col:[180,90,255],
+  details:{ head:'NAVADA EDGE', desc:'5-node hybrid mesh · Always on', items:['Run rate: £169/month total','28 External API integrations','23 MCP context channels','1 Operator — Lee Akpareva','Zero services exposed to internet','Tailscale WireGuard encrypted mesh','All compute on free tier'] },
+  children:[
+    {
+      id:'nodeA', label:'NODE A', sub:'AWS EC2', r:34, col:[80,200,255],
+      details:{ head:'Node A — Cloud Gateway', desc:'AWS EC2 t3.micro · eu-west-2 · Free tier', items:['Always-on cloud anchor node','Nginx reverse proxy relay','Cloudflare Tunnel ingress point','EC2 → Tailscale bridge','SSH key-only, no passwords','Region: eu-west-2 London','Zero direct internet exposure'] },
+      children:[
+        { id:'ec2i',  label:'t3.micro',  sub:'Free tier',    r:16, col:[80,200,255], details:{ head:'EC2 t3.micro', desc:'AWS Free Tier · eu-west-2', items:['1 vCPU · 1GB RAM','750 hrs/month free','Always-on cloud anchor','Hosts Nginx + Cloudflare tunnel','Tailscale peer node'] } },
+        { id:'ngxA',  label:'Nginx',     sub:'Proxy relay',  r:16, col:[80,200,255], details:{ head:'Nginx on EC2', desc:'Reverse proxy gateway', items:['Routes traffic via Tailscale to Node B','SSL termination via Cloudflare','All bindings on 127.0.0.1','Subdomain-based routing','Access logs → Elasticsearch'] } },
+        { id:'cfTun', label:'CF Tunnel', sub:'7c9e3c36',     r:16, col:[80,200,255], details:{ head:'Cloudflare Tunnel', desc:'ID: 7c9e3c36', items:['Zero-trust encrypted ingress','No open firewall ports required','Traffic: Internet → CF → Tunnel → EC2','ChaCha20-Poly1305 encryption','Paired with Cloudflare Access policies'] } },
+      ]
+    },
+    {
+      id:'nodeB', label:'NODE B', sub:'HP Laptop', r:34, col:[80,255,160],
+      details:{ head:'Node B — The Powerhouse', desc:'HP Laptop · i5 · 16GB RAM · 512GB SSD', items:['Primary compute engine','11 PM2 services running','8 Docker containers active','London-based physical node','Tailscale peer, all traffic via mesh','Hosts all main app services'] },
+      children:[
+        { id:'pm2', label:'11 PM2', sub:'Services', r:20, col:[80,255,160], details:{ head:'PM2 Process Manager', desc:'11 always-on services · Node B', items:['telegram-bot :3456 — ALEX control','navada-flix :4000 — Video platform','worldmonitor :4173 — OSINT dash','worldmonitor-api :46123','trading-api :5678 — Algo engine','network-scanner :7777','voice-command :7778','inbox-responder — Email AI','auto-deploy — CI/CD','trading-scheduler — Cron trades','notebooklm-watcher'] } },
+        { id:'docker', label:'Docker', sub:'8 containers', r:20, col:[80,255,160], details:{ head:'Docker Containers', desc:'Node B orchestration layer', items:['navada-proxy (nginx) — routing','navada-tunnel (cloudflared) — tunnel','prometheus :9091 — metrics','grafana :9090 — dashboards','portainer :9000 — container mgmt','uptime-kuma :3002 — monitoring','elasticsearch :9200 — log store','kibana :5601 — log visualisation'] } },
+        { id:'ngxB', label:'Nginx', sub:'Reverse proxy', r:16, col:[80,255,160], details:{ head:'Nginx on Node B', desc:'Internal service routing', items:['All services bound to 127.0.0.1','Routes by subdomain pattern','SSL via Cloudflare pass-through','Pending: Flix + Trading routes','Pending: CF Access on admin UIs'] } },
+      ]
+    },
+    {
+      id:'nodeC', label:'NODE C', sub:'Oracle Cloud', r:34, col:[255,80,130],
+      details:{ head:'Node C — Database Node', desc:'Oracle Cloud · uk-london-1 · E5.Flex · Free tier', items:['IP: 132.145.46.184','Always-free Oracle compute','Oracle XE 21c enterprise DB','6 Docker containers hosted','Port 1521 internal only','Tailscale mesh connected'] },
+      children:[
+        { id:'oracleXE', label:'Oracle XE', sub:'XEPDB1',   r:18, col:[255,80,130], details:{ head:'Oracle XE 21c', desc:'Enterprise data warehouse · XEPDB1', items:['navada_contacts unified table','Layer 2: Central warehouse','Nightly sync 9PM cron','DuckDB federation (Layer 3)','SQLite/Postgres fast edge writes (Layer 1)','Telegram /data NL interface (Layer 4)'] } },
+        { id:'oci',      label:'OCI VM',    sub:'E5.Flex',  r:16, col:[255,80,130], details:{ head:'OCI Compute VM', desc:'Oracle Cloud Infrastructure · Free', items:['Always-free tier compute','uk-london-1 region','Tailscale mesh peer','Cloud-init provisioned','6 Docker containers','Terraform IaC managed'] } },
+      ]
+    },
+    {
+      id:'control', label:'CONTROL', sub:'ASUS Zenbook', r:30, col:[255,210,40],
+      details:{ head:'NAVADA-CONTROL', desc:'ASUS Zenbook · Command & control station', items:['Claude Code via SSH terminal','VS Code — primary IDE','LM Studio — local LLM inference','SSH to EC2, Node B, Node C','Managed from iPhone remotely','Terraform IaC for all nodes'] },
+      children:[
+        { id:'claudeCode', label:'Claude\nCode', sub:'AI terminal',  r:16, col:[255,210,40], details:{ head:'Claude Code', desc:'Anthropic agentic CLI tool', items:['Direct SSH to EC2 & Node B','Autonomous code execution','23 MCP server integrations','File editing, bash, git ops','Powers ALEX agent workflows'] } },
+        { id:'lmstudio',   label:'LM Studio',   sub:'Local LLMs',   r:16, col:[255,210,40], details:{ head:'LM Studio', desc:'On-device model inference', items:['Zero API cost inference','Offline capability','Fine-tuning Qwen2-1.5B','SD v1.5 LoRA training','Paperspace GPU for heavy runs'] } },
+        { id:'terraform',  label:'Terraform',   sub:'IaC modules',  r:16, col:[255,210,40], details:{ head:'Terraform IaC', desc:'Infrastructure as Code', items:['Cloudflare: Worker, D1, R2, DNS','13 subdomains managed','AWS: EC2, IAM, S3, DynamoDB','OCI: VCN, compute, cloud-init','Ansible: HP Node B playbook','Tailscale: ACL mesh policy'] } },
+      ]
+    },
+    {
+      id:'gateway', label:'GATEWAY', sub:'Cloudflare', r:32, col:[255,130,50],
+      details:{ head:'NAVADA-GATEWAY', desc:'Cloudflare Worker · Global CDN edge', items:['D1 edge SQLite database','R2 object storage (S3-compat)','13 DNS subdomains managed','WAF OWASP ruleset active','5 Cron trigger automations','Workers serverless compute','Cloudflare Access: admin UIs'] },
+      children:[
+        { id:'waf', label:'WAF',       sub:'OWASP rules', r:16, col:[255,130,50], details:{ head:'Cloudflare WAF', desc:'Layer 1 — Public defence', items:['OWASP core ruleset','DDoS mitigation','Bot score filtering','Rate limiting: 50 req/day guest','Guest budget cap: £2/day','100% requests logged'] } },
+        { id:'r2',  label:'R2',        sub:'Object store', r:16, col:[255,130,50], details:{ head:'Cloudflare R2', desc:'S3-compatible storage · Zero egress', items:['Version snapshots storage','Static asset hosting','Zero egress fees','R2 version snapshots for EDGE','Workers direct access'] } },
+        { id:'d1',  label:'D1',        sub:'Edge DB',      r:16, col:[255,130,50], details:{ head:'Cloudflare D1', desc:'SQLite at the edge', items:['Edge-cached reads globally','Worker integration native','Auto-replicated','Lightweight pipeline data','5 cron triggers attached'] } },
+      ]
+    },
+    {
+      id:'data', label:'DATA', sub:'5 Databases', r:32, col:[140,80,255],
+      details:{ head:'Data Architecture', desc:'5-database layered system', items:['Layer 1: SQLite + Postgres (fast edge writes)','Layer 2: Oracle XE (central warehouse)','Layer 3: DuckDB (federation/analytics)','Layer 4: Telegram NL interface','ChromaDB: RAG vectors (462+ chunks)','Elasticsearch: logs + observability'] },
+      children:[
+        { id:'pg',      label:'Postgres',  sub:':5433',       r:16, col:[140,80,255], details:{ head:'PostgreSQL', desc:'Node B · Port 5433', items:['navada_pipeline database','Prospect & CRM data','Fast edge writes (Layer 1)','SQLite: leads + flix metadata','Nightly 9PM sync cron','9:30PM validation run'] } },
+        { id:'chroma',  label:'ChromaDB',  sub:'RAG vectors', r:16, col:[140,80,255], details:{ head:'ChromaDB Cloud', desc:'Semantic search & RAG', items:['462+ embedded document chunks','Vector similarity search','Powers all AI agent context','Semantic cache layer','Used by ALEX + RALPH + RAVEN'] } },
+        { id:'elastic', label:'Elastic',   sub:'Logs :9200',  r:16, col:[140,80,255], details:{ head:'Elasticsearch', desc:'Node B · Port 9200 · 1GB heap', items:['Filebeat → Elasticsearch pipeline','Kibana :5601 visualisation','100% of requests logged','Log retention + alerting','1GB JVM heap allocation'] } },
+      ]
+    },
+    {
+      id:'auto', label:'AUTONOMY', sub:'Daily Heartbeat', r:32, col:[60,220,220],
+      details:{ head:'Autonomous Schedule', desc:'Zero-intervention 24/7 operations', items:['6:30AM — Morning Briefing','7:00AM — AI News Digest','8:00AM — Economy Report (Mon)','8:30AM — Lead Pipeline','9:00AM — Job Hunter','9:30AM — Prospect Pipeline','10:00AM — Self-Improve (Mon)','2:15PM — Pre-Market Trading','3:45PM — Trade Execution','6:00PM — Weekly Report (Sun)','9:00PM — Daily Ops Report','9:15PM — Trading Report','Continuous — Inbox (every 2hrs)'] },
+      children:[
+        { id:'ralph', label:'RALPH',  sub:'Self-improve',  r:18, col:[60,220,220], details:{ head:'RALPH Agent', desc:'Self-improvement AI layer', items:['Monitors own performance metrics','Rewrites weak workflows autonomously','Learns from all outcomes','Reports improvements via Telegram','Email-to-approval-action pipeline','Bedrock Claude powered','Vision API + YOLO integration'] } },
+        { id:'alex',  label:'ALEX',   sub:'Chief of Staff', r:18, col:[60,220,220], details:{ head:'ALEX Agent', desc:'NAVADA network controller', items:['48+ Telegram bot commands','Controls entire NAVADA network','Live state snapshot injection','Sub-agents: LeadGen, Research, Ops','Repo: github.com/leeakpareva/CLAUDE_NAVADA_AGENT','Pre-flight network snapshots','Atomic typed tool confirmations'] } },
+        { id:'n8n',   label:'n8n',    sub:'Workflows',     r:16, col:[60,220,220], details:{ head:'n8n Automation', desc:'Port 5678 · 5 active workflows', items:['Robotics domain specialist','Economics analyst agent','Finance expert agent','UI Design Guidelines agent','AWS System Builder/Advisor','responseMode: responseNode pattern','All call Claude Sonnet via Anthropic API'] } },
+      ]
+    },
+    {
+      id:'security', label:'SECURITY', sub:'6-Layer Defence', r:30, col:[255,55,75],
+      details:{ head:'Security Architecture', desc:'6-layer defence-in-depth', items:['L1: Public Internet → Cloudflare WAF OWASP','L2: Cloudflare Tunnel 7c9e3c36','L3: Tailscale WireGuard ChaCha20-Poly1305','L4: Nginx reverse proxy','L5: 127.0.0.1 localhost binding','L6: SSH key-only, no passwords','Twilio signature validation on webhooks','Zero hardcoded secrets (.env + gitignored)'] },
+      children:[
+        { id:'tailsec',  label:'Tailscale', sub:'WireGuard mesh', r:17, col:[255,55,75], details:{ head:'Tailscale Mesh', desc:'ChaCha20-Poly1305 encryption', items:['All 5 nodes in private mesh','Zero open firewall ports','No public IPs exposed on nodes','Peer-to-peer fully encrypted','ACL policy managed via Terraform','Pending: Oracle VM node addition'] } },
+        { id:'twilio',   label:'Twilio',    sub:'SMS + Voice',    r:16, col:[255,55,75], details:{ head:'Twilio Security', desc:'+447446994961', items:['Webhook signature validation','WhatsApp sandbox active','SMS + Voice channels','Request authenticity verified','Zoho SMTP/IMAP bidirectional','Gmail IMAP inbound monitoring'] } },
+        { id:'omni',     label:'Omni',      sub:'6 channels',     r:16, col:[255,55,75], details:{ head:'Omnichannel Stack', desc:'6 inbound/outbound channels', items:['Telegram: 48+ commands :3456','Twilio SMS/Voice: +447446994961','Zoho SMTP: claude.navada@zohomail.eu','Gmail IMAP: leeakpareva@gmail.com','LinkedIn API: outbound publishing','Claude Code: SSH terminal control'] } },
+      ]
+    },
+  ]
+};
+
+let activeId = null;
+
+new p5(sk => {
+  let nodes = [];
+  let links = [];
+  let expanded = new Set(['edge']);
+  let offX, offY;
+  let scale = 1, targetScale = 1;
+  let dragging = false, lastMX = 0, lastMY = 0;
+  let hovered = null;
+  let t = 0;
+  let dots = [];
+
+  // Touch state for distinguishing tap vs drag and pinch-to-zoom
+  let touchStartTime = 0;
+  let touchStartPos = { x: 0, y: 0 };
+  let touchMoved = false;
+  let pinching = false;
+  let lastPinchDist = 0;
+
+  // Mobile-aware layout distances
+  const W0 = () => wrap.offsetWidth;
+  const isSm = () => W0() < 600;
+
+  function findNodeData(id, d) {
+    if (d.id === id) return d;
+    if (d.children) { for (const c of d.children) { const r = findNodeData(id, c); if (r) return r; } }
+    return null;
+  }
+
+  function buildGraph() {
+    nodes = []; links = [];
+    const root = { ...DATA, px:0, py:0 };
+    nodes.push(root);
+    function place(pNode, data, depth) {
+      if (!expanded.has(pNode.id) || !data.children) return;
+      const ch = data.children, count = ch.length;
+      const dist = depth === 1 ? (isSm() ? 150 : 210) : (isSm() ? 80 : 108);
+      ch.forEach((child, i) => {
+        const finalAngle = depth === 1
+          ? (i / count) * Math.PI * 2 - Math.PI / 2
+          : Math.atan2(pNode.py, pNode.px) + (i - (count-1)/2) * (Math.PI * 0.7 / Math.max(1,count-1));
+        const px = pNode.px + Math.cos(finalAngle) * dist;
+        const py = pNode.py + Math.sin(finalAngle) * dist;
+        const n = { ...child, px, py, parentId: pNode.id };
+        nodes.push(n);
+        links.push({ from: pNode.id, to: child.id, col: child.col });
+        place(n, child, depth + 1);
+      });
+    }
+    place(root, DATA, 1);
+  }
+
+  sk.setup = () => {
+    const W = wrap.offsetWidth, H = wrap.offsetHeight;
+    sk.createCanvas(W, H).parent(wrap);
+    sk.pixelDensity(1);
+    offX = W / 2; offY = H / 2;
+    // Start slightly zoomed out on mobile so all level-1 nodes visible
+    if (isSm()) { targetScale = 0.75; scale = 0.75; }
+    buildGraph();
+    const dotCount = isSm() ? 40 : 90;
+    for (let i = 0; i < dotCount; i++) {
+      dots.push({
+        x: sk.random(-600,600), y: sk.random(-400,400),
+        vx: sk.random(-0.22,0.22), vy: sk.random(-0.22,0.22),
+        r: sk.random(0.8,2.2),
+        col: [[180,90,255],[80,200,255],[80,255,160],[255,80,130],[255,210,40],[60,220,220]][Math.floor(sk.random(6))],
+        a: sk.random(25,80)
+      });
+    }
+  };
+
+  const ws = (wx,wy) => [offX + wx*scale, offY + wy*scale];
+  const sw = (sx,sy) => [(sx-offX)/scale, (sy-offY)/scale];
+
+  function drawLink(a, b, col, hi) {
+    const [ax,ay]=ws(a.px,a.py), [bx,by]=ws(b.px,b.py);
+    const len = Math.hypot(bx-ax,by-ay);
+    sk.stroke(col[0],col[1],col[2],hi?55:20);
+    sk.strokeWeight(hi?1.4:0.65);
+    sk.noFill(); sk.line(ax,ay,bx,by);
+    // Fewer flow dots on mobile for performance
+    const step = isSm() ? 10 : 7;
+    const steps = Math.ceil(len/step);
+    for (let i=0; i<=steps; i++) {
+      const fr = i/steps;
+      const phase = ((fr*5) - t*3.2) % 1;
+      const glow = Math.max(0, Math.sin(phase*Math.PI));
+      if (glow < 0.18) continue;
+      sk.noStroke();
+      sk.fill(col[0],col[1],col[2],(hi?230:110)*glow);
+      sk.circle(ax+(bx-ax)*fr, ay+(by-ay)*fr, (hi?3.8:2.0)*glow);
+    }
+  }
+
+  function drawNode(n, hov) {
+    const [sx,sy] = ws(n.px,n.py);
+    const br = n.r * scale;
+    if (sx<-140||sx>sk.width+140||sy<-140||sy>sk.height+140) return;
+    const wave = Math.sin(t*1.5+n.px*0.013+n.py*0.013)*0.055;
+    const pr = br*(1+(hov?0.13:0)+wave);
+    const isExp = expanded.has(n.id);
+    const isActive = activeId === n.id;
+
+    // Glow layers (fewer on mobile)
+    const glowMax = (hov||isActive) ? (isSm()?3:5) : 2;
+    for (let g=glowMax; g>=1; g--) {
+      sk.noStroke();
+      sk.fill(n.col[0],n.col[1],n.col[2],(hov||isActive)?(24-g*5):(9-g*2));
+      sk.circle(sx,sy,pr*2*(1+g*0.25));
+    }
+    // Body
+    sk.noStroke();
+    sk.fill(n.id==='edge'?14:7, n.id==='edge'?7:4, n.id==='edge'?28:18, 238);
+    sk.circle(sx,sy,pr*2);
+    // Border
+    sk.noFill();
+    sk.stroke(n.col[0],n.col[1],n.col[2], isActive?255:hov?220:(n.id==='edge'?200:150));
+    sk.strokeWeight(n.id==='edge'?2.8:n.r>28?2.0:1.2);
+    sk.circle(sx,sy,pr*2);
+    // Inner ring
+    if (n.children) {
+      sk.stroke(n.col[0],n.col[1],n.col[2],50);
+      sk.strokeWeight(0.5);
+      sk.circle(sx,sy,pr*1.62);
+    }
+    // +/- indicator
+    if (n.children && n.id!=='edge') {
+      sk.noStroke();
+      sk.fill(n.col[0],n.col[1],n.col[2],180);
+      sk.textSize(Math.max(8,11*scale));
+      sk.textAlign(sk.RIGHT,sk.TOP);
+      sk.textStyle(sk.BOLD);
+      sk.text(isExp?'−':'+', sx+pr*0.75, sy-pr*0.78);
+    }
+    // Label
+    const fs = Math.max(7,(n.id==='edge'?14:n.r>28?10:8)*scale);
+    sk.noStroke();
+    sk.fill(n.col[0],n.col[1],n.col[2],hov||isActive?255:215);
+    sk.textAlign(sk.CENTER,sk.CENTER);
+    sk.textStyle(sk.BOLD);
+    sk.textSize(fs);
+    const lines = n.label.split('\n');
+    if (lines.length>1) {
+      sk.text(lines[0],sx,sy-fs*0.56);
+      sk.text(lines[1],sx,sy+fs*0.56);
+    } else {
+      sk.text(n.label,sx,sy-(n.sub&&scale>0.55?fs*0.4:0));
+    }
+    if (n.sub&&scale>0.5) {
+      sk.textStyle(sk.NORMAL);
+      sk.textSize(Math.max(6,fs*0.68));
+      sk.fill(n.col[0],n.col[1],n.col[2],100);
+      sk.text(n.sub,sx,sy+fs*0.78);
+    }
+  }
+
+  function showPanel(n) {
+    if (!n||!n.details) { panel.style.display='none'; activeId=null; return; }
+    activeId = n.id;
+    panelTitle.textContent = n.details.head;
+    panelTitle.style.color = `rgb(${n.col[0]},${n.col[1]},${n.col[2]})`;
+    panelSub.textContent = n.details.desc;
+    panelItems.innerHTML = n.details.items.map(it =>
+      `<div>· ${it}</div>`
+    ).join('');
+    panel.style.borderColor = `rgba(${n.col[0]},${n.col[1]},${n.col[2]},0.35)`;
+    panel.style.display = 'block';
+    panel.scrollTop = 0;
+  }
+
+  function handleTap(clientX, clientY) {
+    const rect = wrap.getBoundingClientRect();
+    const [mwx,mwy] = sw(clientX - rect.left, clientY - rect.top);
+    // Larger hit radius on mobile for fat fingers
+    const hitMult = isSm() ? 2.0 : 1.4;
+    let found = null;
+    for (const n of nodes) {
+      if (Math.hypot(mwx-n.px, mwy-n.py) < n.r * hitMult) { found=n; break; }
+    }
+    if (!found) { showPanel(null); return; }
+    if (found.children) {
+      if (expanded.has(found.id) && found.id!=='edge') {
+        function collapseTree(id) {
+          expanded.delete(id);
+          const nd = findNodeData(id, DATA);
+          if (nd&&nd.children) nd.children.forEach(c=>collapseTree(c.id));
+        }
+        collapseTree(found.id);
+      } else {
+        expanded.add(found.id);
+      }
+      buildGraph();
+    }
+    // Pan to node — offset panel on mobile so node isn't hidden behind bottom sheet
+    const panelOffset = isSm() ? -wrap.offsetHeight * 0.12 : 0;
+    offX = wrap.offsetWidth/2 - found.px*scale;
+    offY = wrap.offsetHeight/2 - found.py*scale + panelOffset;
+    showPanel(found);
+  }
+
+  sk.draw = () => {
+    sk.background(3,3,13);
+    t += 0.018;
+    scale += (targetScale-scale)*0.09;
+    zoomEl.textContent = Math.round(scale*100)+'%';
+
+    // Background particles
+    for (const d of dots) {
+      d.x+=d.vx; d.y+=d.vy;
+      if(Math.abs(d.x)>600) d.vx*=-1;
+      if(Math.abs(d.y)>400) d.vy*=-1;
+      const [sx,sy]=ws(d.x,d.y);
+      sk.noStroke(); sk.fill(d.col[0],d.col[1],d.col[2],d.a);
+      sk.circle(sx,sy,d.r);
+    }
+
+    // Hover detect (desktop only)
+    if (!isMobile) {
+      const [mwx,mwy]=sw(sk.mouseX,sk.mouseY);
+      hovered=null;
+      for(const n of nodes){
+        if(Math.hypot(mwx-n.px,mwy-n.py)<n.r*1.4){hovered=n;break;}
+      }
+      wrap.style.cursor=hovered?'pointer':(dragging?'grabbing':'grab');
+    }
+
+    // Links
+    for(const lk of links){
+      const a=nodes.find(n=>n.id===lk.from);
+      const b=nodes.find(n=>n.id===lk.to);
+      if(a&&b) drawLink(a,b,lk.col,hovered&&(hovered.id===a.id||hovered.id===b.id));
+    }
+
+    // Nodes
+    const order = [
+      'edge',
+      ...nodes.filter(n=>n.id!=='edge'&&n.children).map(n=>n.id),
+      ...nodes.filter(n=>!n.children).map(n=>n.id)
+    ];
+    for(const id of order){
+      const n=nodes.find(x=>x.id===id);
+      if(n) drawNode(n, hovered===n);
+    }
+  };
+
+  // === Desktop: Mouse events ===
+  wrap.addEventListener('mousedown',e=>{dragging=true;lastMX=e.clientX;lastMY=e.clientY;});
+  window.addEventListener('mouseup',()=>{dragging=false;});
+  window.addEventListener('mousemove',e=>{
+    if(!dragging)return;
+    offX+=e.clientX-lastMX; offY+=e.clientY-lastMY;
+    lastMX=e.clientX; lastMY=e.clientY;
+  });
+
+  // Wheel zoom
+  wrap.addEventListener('wheel',e=>{
+    e.preventDefault();
+    targetScale=Math.max(0.25,Math.min(3.0,targetScale-e.deltaY*0.0013));
+  },{passive:false});
+
+  // Desktop click
+  wrap.addEventListener('click',e=>{ handleTap(e.clientX, e.clientY); });
+
+  // === Mobile: Touch events ===
+  wrap.addEventListener('touchstart',e=>{
+    if (e.touches.length === 2) {
+      // Pinch start
+      pinching = true;
+      dragging = false;
+      lastPinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      return;
+    }
+    pinching = false;
+    dragging = true;
+    touchMoved = false;
+    touchStartTime = Date.now();
+    touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    lastMX = e.touches[0].clientX;
+    lastMY = e.touches[0].clientY;
+  },{passive:true});
+
+  wrap.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    if (e.touches.length === 2 && pinching) {
+      // Pinch zoom
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const delta = dist - lastPinchDist;
+      targetScale = Math.max(0.25, Math.min(3.0, targetScale + delta * 0.004));
+      lastPinchDist = dist;
+      return;
+    }
+    if (!dragging || pinching) return;
+    const dx = e.touches[0].clientX - lastMX;
+    const dy = e.touches[0].clientY - lastMY;
+    // Track if finger moved enough to count as drag (not tap)
+    const totalDx = e.touches[0].clientX - touchStartPos.x;
+    const totalDy = e.touches[0].clientY - touchStartPos.y;
+    if (Math.abs(totalDx) > 8 || Math.abs(totalDy) > 8) touchMoved = true;
+    offX += dx; offY += dy;
+    lastMX = e.touches[0].clientX; lastMY = e.touches[0].clientY;
+  },{passive:false});
+
+  wrap.addEventListener('touchend',e=>{
+    if (pinching && e.touches.length < 2) { pinching = false; dragging = false; return; }
+    dragging = false;
+    // Detect tap: short duration, minimal movement
+    const elapsed = Date.now() - touchStartTime;
+    if (!touchMoved && elapsed < 300) {
+      handleTap(touchStartPos.x, touchStartPos.y);
+    }
+  },{passive:true});
+
+  // Resize
+  window.addEventListener('resize',()=>{
+    sk.resizeCanvas(wrap.offsetWidth, wrap.offsetHeight);
+    buildGraph(); // Recalc layout distances for new screen size
+  });
+
+}, wrap);
+</script>
+</body>
+</html>
